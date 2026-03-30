@@ -1,0 +1,17 @@
+[package]
+name = "costlens"
+version.workspace = true
+edition.workspace = true
+description = "LLM cost analysis CLI - compare models, providers, and usage across OpenRouter"
+
+[[bin]]
+name = "costlens"
+path = "src/main.rs"
+
+[dependencies]
+clap = { workspace = true }
+serde = { workspace = true }
+serde_json = { workspace = true }
+csv = "1.3"
+thiserror = { workspace = true }
+anyhow = { workspace = true }

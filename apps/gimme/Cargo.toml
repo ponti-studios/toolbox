@@ -1,0 +1,29 @@
+[package]
+name = "gimme"
+version = "0.1.1"
+edition = "2021"
+description = "Copy files from GitHub to local filesystem"
+license = "MIT"
+authors = ["Hackefeller"]
+repository = "https://github.com/hackefeller/gimme"
+keywords = ["github", "cli", "file", "download", "fetch"]
+categories = ["command-line-utilities"]
+readme = "README.md"
+
+[dependencies]
+thiserror = "2"
+base64 = "0.22"
+clap = { version = "4.5", features = ["derive"] }
+reqwest = { version = "0.12", features = ["json"] }
+tokio = { version = "1", features = ["full"] }
+anyhow = "1"
+regex = "1"
+serde = { version = "1", features = ["derive"] }
+serde_json = "1"
+
+[dev-dependencies]
+wiremock = "0.6"
+tempfile = "3"
+assert_cmd = "2"
+predicates = "3"
+chrono = "0.4"
