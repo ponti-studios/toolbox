@@ -1,9 +1,12 @@
 use anyhow::{Context, Result};
 use clap::{Parser, Subcommand};
 use serde::Deserialize;
-use std::collections::HashMap;
+use std::collections::{BTreeMap, HashMap};
 use std::fs::File;
+use std::path::Path;
 use std::path::PathBuf;
+use tiktoken_rs::CoreBPE;
+use walkdir::WalkDir;
 
 #[derive(Parser)]
 #[command(name = "costlens")]
@@ -20,6 +23,7 @@ enum Commands {
     Dashboard(DashboardOpts),
     Models(ModelsOpts),
     Costs(CostsOpts),
+    Tokens(TokensOpts),
 }
 
 #[derive(Parser)]
@@ -56,6 +60,12 @@ struct CostsOpts {
     model: Option<String>,
     #[arg(short, long)]
     provider: Option<String>,
+}
+
+#[derive(Parser)]
+struct TokensOpts {
+    #[arg(value_name = "FOLDER", default_value = ".")]
+    folder: PathBuf,
 }
 
 #[derive(Debug, Deserialize)]
@@ -150,6 +160,24 @@ struct ModelData {
     cached_tokens: i64,
     gen_time_ms: i64,
     ttft_ms: i64,
+}
+
+impl ModelData {
+    fn cost_per_m_completion(&self) -> f64 {
+        if self.completion_tokens > 0 {
+            self.spend / self.completion_tokens as f64 * 1_000_000.0
+        } else {
+            0.0
+        }
+    }
+
+    fn tier(&self, threshold: f64) -> &'static str {
+        if self.cost_per_m_completion() >= threshold {
+            "large"
+        } else {
+            "small"
+        }
+    }
 }
 
 #[derive(Default)]
@@ -253,6 +281,27 @@ fn load_csv(path: &PathBuf) -> Result<Vec<Row>> {
         rows.push(row);
     }
     Ok(rows)
+}
+
+fn matches_filter(value: Option<&str>, pattern: &Option<String>) -> bool {
+    pattern
+        .as_ref()
+        .is_none_or(|p| fuzzy_match(value.unwrap_or(""), p))
+}
+
+fn filter_rows(
+    rows: Vec<Row>,
+    model: &Option<String>,
+    provider: &Option<String>,
+    app: &Option<String>,
+) -> Vec<Row> {
+    rows.into_iter()
+        .filter(|r| {
+            matches_filter(r.model_permaslug.as_deref(), model)
+                && matches_filter(r.provider_name.as_deref(), provider)
+                && matches_filter(r.app_name.as_deref(), app)
+        })
+        .collect()
 }
 
 fn render_dashboard(rows: Vec<Row>, limit: usize) {
@@ -539,8 +588,13 @@ fn render_dashboard(rows: Vec<Row>, limit: usize) {
     }
 }
 
-fn render_models(rows: Vec<Row>, limit: usize) {
+fn render_models(rows: Vec<Row>, opts: &ModelsOpts) -> Result<()> {
     let (_, _, models, _, _) = process_rows(&rows);
+    let tier = opts.tier.trim().to_lowercase();
+
+    if !matches!(tier.as_str(), "all" | "large" | "small") {
+        anyhow::bail!("tier must be one of: all, large, small");
+    }
 
     println!("\n=== MODEL COST ANALYSIS ===");
     println!(
@@ -555,7 +609,15 @@ fn render_models(rows: Vec<Row>, limit: usize) {
             .unwrap_or(std::cmp::Ordering::Equal)
     });
 
-    for (model, data) in model_items.iter().take(limit) {
+    for (model, data) in model_items
+        .into_iter()
+        .filter(|(model, data)| {
+            matches_filter(Some(model.as_str()), &opts.model)
+                && matches_filter(None, &None::<String>)
+                && (tier == "all" || data.tier(opts.threshold) == tier)
+        })
+        .take(opts.limit)
+    {
         let reqs = data.requests;
         if reqs == 0 {
             continue;
@@ -590,16 +652,33 @@ fn render_models(rows: Vec<Row>, limit: usize) {
             cache_pct
         );
     }
+
+    Ok(())
 }
 
-fn render_costs_over_time(rows: Vec<Row>) {
-    use std::collections::BTreeMap;
+fn bucket_key(ts: &str, interval: &str) -> Option<String> {
+    let trimmed = ts.trim();
+    match interval {
+        "minute" if trimmed.len() >= 16 => Some(trimmed[0..16].to_string()),
+        "day" if trimmed.len() >= 10 => Some(trimmed[0..10].to_string()),
+        "hour" if trimmed.len() >= 13 => Some(trimmed[0..13].to_string()),
+        _ => None,
+    }
+}
 
+fn render_costs_over_time(rows: Vec<Row>, opts: &CostsOpts) -> Result<()> {
     let mut time_buckets: BTreeMap<String, (f64, i64, f64, i64)> = BTreeMap::new();
+    let interval = opts.interval.trim().to_lowercase();
+
+    if !matches!(interval.as_str(), "hour" | "day" | "minute") {
+        anyhow::bail!("interval must be one of: hour, day, minute");
+    }
 
     for r in &rows {
         let ts = r.created_at.as_deref().unwrap_or("");
-        let key = if ts.len() >= 13 { &ts[0..13] } else { ts };
+        let Some(key) = bucket_key(ts, &interval) else {
+            continue;
+        };
 
         let spend = parse_float(&r.cost_total);
         let cache = if parse_float(&r.cost_cache) < 0.0 {
@@ -609,9 +688,7 @@ fn render_costs_over_time(rows: Vec<Row>) {
         };
         let tokens = parse_int(&r.tokens_prompt) + parse_int(&r.tokens_completion);
 
-        let entry = time_buckets
-            .entry(key.to_string())
-            .or_insert((0.0, 0, 0.0, 0));
+        let entry = time_buckets.entry(key).or_insert((0.0, 0, 0.0, 0));
         entry.0 += spend;
         entry.1 += 1;
         entry.2 += cache;
@@ -630,44 +707,174 @@ fn render_costs_over_time(rows: Vec<Row>) {
             time, spend, requests, cached, tokens
         );
     }
+
+    Ok(())
+}
+fn count_tokens_in_file(path: &Path, encoding: &CoreBPE) -> Option<usize> {
+    let content = std::fs::read_to_string(path).ok()?;
+    let tokens = encoding.encode_ordinary(&content).len();
+    Some(tokens)
+}
+
+fn render_tokens(opts: &TokensOpts) -> Result<()> {
+    let encoding = tiktoken_rs::cl100k_base_singleton();
+
+    let folder = &opts.folder;
+    let mut total = 0;
+    let mut file_count = 0;
+
+    let mut entries: Vec<_> = WalkDir::new(folder)
+        .into_iter()
+        .filter_map(|e| e.ok())
+        .filter(|e| e.file_type().is_file())
+        .collect();
+    entries.sort_by_key(|e| e.path().to_path_buf());
+
+    for entry in entries {
+        let path = entry.path();
+        if let Some(tokens) = count_tokens_in_file(path, &encoding) {
+            let rel = path.strip_prefix(folder).unwrap_or(path);
+            println!("{:>8}  {}", tokens, rel.display());
+            total += tokens;
+            file_count += 1;
+        }
+    }
+
+    println!("\n{:>8}  TOTAL ({} files)", total, file_count);
+    Ok(())
 }
 
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
-    let rows = load_csv(&cli.file)?;
-
-    if rows.is_empty() {
-        println!("No data found in CSV file");
-        return Ok(());
-    }
-
     match cli.command {
-        Commands::Dashboard(opts) => {
-            let filtered: Vec<Row> = rows
-                .into_iter()
-                .filter(|r| {
-                    let model_match = opts.model.as_ref().map_or(true, |m| {
-                        fuzzy_match(r.model_permaslug.as_deref().unwrap_or(""), m)
-                    });
-                    let provider_match = opts.provider.as_ref().map_or(true, |p| {
-                        fuzzy_match(r.provider_name.as_deref().unwrap_or(""), p)
-                    });
-                    let app_match = opts.app.as_ref().map_or(true, |a| {
-                        fuzzy_match(r.app_name.as_deref().unwrap_or(""), a)
-                    });
-                    model_match && provider_match && app_match
-                })
-                .collect();
-            render_dashboard(filtered, opts.limit);
+        Commands::Tokens(opts) => {
+            render_tokens(&opts)?;
         }
-        Commands::Models(opts) => {
-            render_models(rows, opts.limit);
-        }
-        Commands::Costs(_opts) => {
-            render_costs_over_time(rows);
+        _ => {
+            let rows = load_csv(&cli.file)?;
+
+            if rows.is_empty() {
+                println!("No data found in CSV file");
+                return Ok(());
+            }
+
+            match cli.command {
+                Commands::Dashboard(opts) => {
+                    let filtered = filter_rows(rows, &opts.model, &opts.provider, &opts.app);
+                    render_dashboard(filtered, opts.limit);
+                }
+                Commands::Models(opts) => {
+                    let filtered = filter_rows(rows, &opts.model, &opts.provider, &None);
+                    render_models(filtered, &opts)?;
+                }
+                Commands::Costs(opts) => {
+                    let filtered = filter_rows(rows, &opts.model, &opts.provider, &None);
+                    render_costs_over_time(filtered, &opts)?;
+                }
+                Commands::Tokens(_) => unreachable!(),
+            }
         }
     }
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    fn sample_row(
+        created_at: &str,
+        provider: &str,
+        model: &str,
+        app: &str,
+        cost_total: &str,
+        cost_cache: &str,
+        prompt: &str,
+        completion: &str,
+    ) -> Row {
+        Row {
+            cost_total: cost_total.to_string(),
+            cost_cache: cost_cache.to_string(),
+            tokens_prompt: prompt.to_string(),
+            tokens_completion: completion.to_string(),
+            tokens_reasoning: Some("0".to_string()),
+            tokens_cached: Some("0".to_string()),
+            generation_time_ms: "1000".to_string(),
+            time_to_first_token_ms: Some("100".to_string()),
+            provider_name: Some(provider.to_string()),
+            model_permaslug: Some(model.to_string()),
+            app_name: Some(app.to_string()),
+            cancelled: Some("false".to_string()),
+            streamed: Some("true".to_string()),
+            finish_reason_normalized: Some("stop".to_string()),
+            created_at: Some(created_at.to_string()),
+        }
+    }
+
+    #[test]
+    fn filter_rows_applies_fuzzy_filters() {
+        let rows = vec![
+            sample_row(
+                "2026-03-30 02:37:51.271",
+                "Minimax",
+                "minimax/minimax-m2.7-20260318",
+                "vscode",
+                "0.1",
+                "-0.01",
+                "10",
+                "20",
+            ),
+            sample_row(
+                "2026-03-30 03:37:51.271",
+                "AtlasCloud",
+                "openai/gpt-5",
+                "opencode",
+                "0.2",
+                "0",
+                "10",
+                "20",
+            ),
+        ];
+
+        let filtered = filter_rows(
+            rows,
+            &Some("m27".to_string()),
+            &Some("mini".to_string()),
+            &Some("vsc".to_string()),
+        );
+
+        assert_eq!(filtered.len(), 1);
+        assert_eq!(filtered[0].provider_name.as_deref(), Some("Minimax"));
+    }
+
+    #[test]
+    fn model_tier_uses_completion_cost_threshold() {
+        let data = ModelData {
+            requests: 1,
+            spend: 0.6,
+            cache_credits: 0.0,
+            prompt_tokens: 1000,
+            completion_tokens: 10_000,
+            cached_tokens: 0,
+            gen_time_ms: 0,
+            ttft_ms: 0,
+        };
+
+        assert_eq!(data.tier(50.0), "large");
+        assert_eq!(data.tier(70.0), "small");
+    }
+
+    #[test]
+    fn bucket_key_respects_interval() {
+        let ts = "2026-03-30 02:37:51.271";
+
+        assert_eq!(bucket_key(ts, "hour").as_deref(), Some("2026-03-30 02"));
+        assert_eq!(bucket_key(ts, "day").as_deref(), Some("2026-03-30"));
+        assert_eq!(
+            bucket_key(ts, "minute").as_deref(),
+            Some("2026-03-30 02:37")
+        );
+    }
 }

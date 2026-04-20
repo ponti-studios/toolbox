@@ -12,3 +12,30 @@ Cargo.lock
 *.iml
 .env
 .env.local
+
+# Chronicle local artifacts
+/research/
+/Formula/
+apps/chronicle/.env
+apps/chronicle/*.db
+apps/chronicle/*.sqlite
+apps/chronicle/*.sqlite3
+apps/chronicle/*.json
+apps/chronicle/.credentials/
+apps/chronicle/.ruff_cache/
+apps/chronicle/.venv/
+python/chronicle-engine/.venv/
+python/chronicle-engine/.pytest_cache/
+python/chronicle-engine/.ruff_cache/
+python/chronicle-engine/__pycache__/
+python/chronicle-engine/**/*.pyc
+python/chronicle-engine/.mypy_cache/
+
+# Legacy archived source repos
+apps/legacy-costlens/.DS_Store
+apps/legacy-costlens/_data/.DS_Store
+apps/legacy-costlens/src/costlens/__pycache__/
+apps/legacy-voidline/.data/
+apps/legacy-voidline/.env.local
+apps/legacy-voidline/bin/
+apps/legacy-voidline/.vscode/

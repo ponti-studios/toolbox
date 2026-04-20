@@ -1,8 +1,15 @@
 [package]
 name = "voidline"
-version.workspace = true
+version = "0.1.0"
 edition.workspace = true
+license.workspace = true
+authors.workspace = true
+repository.workspace = true
+homepage.workspace = true
 description = "Voidline CLI - utilities and tools"
+readme = "README.md"
+keywords = ["cli", "calendar", "frontmatter", "utilities"]
+categories = ["command-line-utilities"]
 
 [[bin]]
 name = "voidline"
@@ -18,3 +25,14 @@ walkdir = "2"
 glob = "0.3"
 chrono = { version = "0.4", features = ["serde"] }
 anyhow = { workspace = true }
+rusqlite = { version = "0.32", features = ["bundled"] }
+refinery = { workspace = true }
+sha2 = "0.10"
+hex = "0.4"
+chrono-tz = "0.10"
+dirs = "5"
+regex = "1"
+csv = "1"
+
+[dev-dependencies]
+tempfile = "3"

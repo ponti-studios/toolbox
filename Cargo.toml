@@ -5,15 +5,16 @@ members = [
     "apps/gimme",
     "apps/voidline",
     "apps/costlens",
-    "apps/labstools",
+    "apps/netdebug",
     "packages/cli-utils",
 ]
 
 [workspace.package]
-version = "0.1.0"
 edition = "2021"
 license = "MIT"
 authors = ["Charles Ponti"]
+repository = "https://github.com/charlesponti/cli-tools"
+homepage = "https://github.com/charlesponti/cli-tools"
 
 [workspace.dependencies]
 anyhow = "1"
@@ -25,3 +26,4 @@ reqwest = { version = "0.12", features = ["json"] }
 thiserror = "2"
 cli-utils = { path = "packages/cli-utils" }
 walkdir = "2"
+refinery = { version = "0.9", features = ["rusqlite", "rusqlite-bundled"] }

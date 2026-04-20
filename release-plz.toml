@@ -32,5 +32,5 @@ name = "costlens"
 git_release_enable = true
 
 [[package]]
-name = "labstools"
+name = "chronicle"
 git_release_enable = true

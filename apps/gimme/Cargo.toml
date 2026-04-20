@@ -1,11 +1,12 @@
 [package]
 name = "gimme"
 version = "0.1.1"
-edition = "2021"
+edition.workspace = true
 description = "Copy files from GitHub to local filesystem"
-license = "MIT"
+license.workspace = true
 authors = ["Hackefeller"]
-repository = "https://github.com/hackefeller/gimme"
+repository.workspace = true
+homepage.workspace = true
 keywords = ["github", "cli", "file", "download", "fetch"]
 categories = ["command-line-utilities"]
 readme = "README.md"
