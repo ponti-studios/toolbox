@@ -29,17 +29,18 @@ struct TimingResult {
     total_ms: f64,
 }
 
-async fn measure_site(client: &reqwest::Client, site: &str, pb: &ProgressBar) -> Result<TimingResult> {
+async fn measure_site(
+    client: &reqwest::Client,
+    site: &str,
+    pb: &ProgressBar,
+) -> Result<TimingResult> {
     pb.set_message(format!("Measuring {}", site));
     pb.enable_steady_tick(std::time::Duration::from_millis(100));
 
     let start = Instant::now();
     let dns_start = Instant::now();
 
-    let _resp = client
-        .get(format!("https://{}", site))
-        .send()
-        .await?;
+    let _resp = client.get(format!("https://{}", site)).send().await?;
 
     let dns_ms = dns_start.elapsed().as_secs_f64() * 1000.0;
     let connect_ms = 0.0;
@@ -63,11 +64,7 @@ fn print_results(results: &[TimingResult]) {
     println!();
 
     for r in results {
-        println!(
-            "  {} {}",
-            style("▸").cyan(),
-            style(&r.site).bold()
-        );
+        println!("  {} {}", style("▸").cyan(), style(&r.site).bold());
         println!(
             "    DNS Lookup:    {:.3} ms",
             style(format!("{:.3}", r.dns_ms)).green()
@@ -121,15 +118,21 @@ async fn main() -> Result<()> {
     println!();
     println!(
         "{}",
-        style("╔══════════════════════════════════════════╗").bold().cyan()
+        style("╔══════════════════════════════════════════╗")
+            .bold()
+            .cyan()
     );
     println!(
         "{}",
-        style("║         NETWORK DEBUG SCRIPT             ║").bold().cyan()
+        style("║         NETWORK DEBUG SCRIPT             ║")
+            .bold()
+            .cyan()
     );
     println!(
         "{}",
-        style("╚══════════════════════════════════════════╝").bold().cyan()
+        style("╚══════════════════════════════════════════╝")
+            .bold()
+            .cyan()
     );
     println!();
 
@@ -183,8 +186,7 @@ async fn main() -> Result<()> {
     println!();
 
     let mp = MultiProgress::new();
-    let pb_style = ProgressStyle::with_template("{spinner:.cyan} {msg}")?
-        .tick_chars("✦✧◎●◉◈▣◐◑○●");
+    let pb_style = ProgressStyle::with_template("{spinner:.cyan} {msg}")?.tick_chars("✦✧◎●◉◈▣◐◑○●");
 
     let handles: Vec<_> = sites
         .iter()
@@ -193,9 +195,7 @@ async fn main() -> Result<()> {
             pb.set_style(pb_style.clone());
             let client = client.clone();
             let site = site.to_string();
-            tokio::spawn(async move {
-                measure_site(&client, &site, &pb).await
-            })
+            tokio::spawn(async move { measure_site(&client, &site, &pb).await })
         })
         .collect();
 
@@ -205,8 +205,6 @@ async fn main() -> Result<()> {
             results.push(result);
         }
     }
-
-
 
     print_results(&results);
     print_recommendations();
