@@ -21,12 +21,36 @@ struct Args {
     no_traceroute: bool,
 }
 
+#[derive(Debug, Clone, PartialEq)]
 struct TimingResult {
     site: String,
     dns_ms: f64,
     connect_ms: f64,
     ttfb_ms: f64,
     total_ms: f64,
+}
+
+impl TimingResult {
+    #[allow(dead_code)]
+    fn new(site: String, dns_ms: f64, connect_ms: f64, ttfb_ms: f64, total_ms: f64) -> Self {
+        Self {
+            site,
+            dns_ms,
+            connect_ms,
+            ttfb_ms,
+            total_ms,
+        }
+    }
+
+    #[allow(dead_code)]
+    fn total_time_ms(&self) -> f64 {
+        self.total_ms
+    }
+
+    #[allow(dead_code)]
+    fn is_dns_slow(&self) -> bool {
+        self.dns_ms > 50.0
+    }
 }
 
 async fn measure_site(
@@ -109,6 +133,85 @@ fn print_recommendations() {
         "If total varies wildly: Try Cloudflare WARP VPN"
     );
     println!();
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn timing_result_calculates_total_time() {
+        let result = TimingResult::new("example.com".to_string(), 10.0, 5.0, 100.0, 200.0);
+        assert_eq!(result.total_time_ms(), 200.0);
+    }
+
+    #[test]
+    fn timing_result_detects_slow_dns() {
+        let slow_result =
+            TimingResult::new("slow.example.com".to_string(), 75.0, 10.0, 100.0, 300.0);
+        let fast_result =
+            TimingResult::new("fast.example.com".to_string(), 25.0, 10.0, 100.0, 200.0);
+
+        assert!(slow_result.is_dns_slow());
+        assert!(!fast_result.is_dns_slow());
+    }
+
+    #[test]
+    fn timing_result_boundary_dns_check() {
+        // Exactly 50ms should not be considered slow
+        let boundary_result =
+            TimingResult::new("boundary.example.com".to_string(), 50.0, 10.0, 100.0, 200.0);
+        assert!(!boundary_result.is_dns_slow());
+
+        // Just over 50ms should be slow
+        let slightly_slow = TimingResult::new(
+            "slightly-slow.example.com".to_string(),
+            50.1,
+            10.0,
+            100.0,
+            200.0,
+        );
+        assert!(slightly_slow.is_dns_slow());
+    }
+
+    #[test]
+    fn timing_result_fields_are_accessible() {
+        let result = TimingResult::new("test.example.com".to_string(), 15.5, 8.2, 120.7, 250.0);
+
+        assert_eq!(result.site, "test.example.com");
+        assert_eq!(result.dns_ms, 15.5);
+        assert_eq!(result.connect_ms, 8.2);
+        assert_eq!(result.ttfb_ms, 120.7);
+        assert_eq!(result.total_ms, 250.0);
+    }
+
+    #[test]
+    fn timing_result_clone_is_equal() {
+        let original = TimingResult::new("clone.example.com".to_string(), 10.0, 5.0, 50.0, 100.0);
+        let cloned = original.clone();
+
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn timing_result_debug_format() {
+        let result = TimingResult::new("debug.example.com".to_string(), 1.0, 2.0, 3.0, 4.0);
+        let debug_str = format!("{:?}", result);
+
+        assert!(debug_str.contains("debug.example.com"));
+        assert!(debug_str.contains("dns_ms"));
+    }
+
+    #[test]
+    fn timing_result_partial_eq() {
+        let result1 = TimingResult::new("compare.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
+        let result2 = TimingResult::new("compare.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
+        let result3 =
+            TimingResult::new("different.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
+
+        assert_eq!(result1, result2);
+        assert_ne!(result1, result3);
+    }
 }
 
 #[tokio::main]

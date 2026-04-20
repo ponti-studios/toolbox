@@ -75,3 +75,82 @@ pub fn update_frontmatter_field(path: &Path, field: &str, value: serde_json::Val
 
     Ok(())
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use std::collections::HashMap;
+
+    #[test]
+    fn parse_yaml_frontmatter_with_valid_frontmatter() {
+        let content = r#"---
+title: Test
+tags: [rust, cli]
+---
+
+Body content here.
+"#;
+        let result = parse_yaml_frontmatter(content).unwrap();
+
+        assert!(result.has_fm);
+        assert_eq!(result.body.trim(), "Body content here.");
+
+        let fm = result.frontmatter.unwrap();
+        assert_eq!(fm.get("title").and_then(|v| v.as_str()), Some("Test"));
+    }
+
+    #[test]
+    fn parse_yaml_frontmatter_without_frontmatter() {
+        let content = "Just plain content.";
+        let result = parse_yaml_frontmatter(content).unwrap();
+
+        assert!(!result.has_fm);
+        assert!(result.frontmatter.is_none());
+        assert_eq!(result.body, content);
+    }
+
+    #[test]
+    fn parse_yaml_frontmatter_with_bom() {
+        let content = "\u{feff}---\ntitle: BOM Test\n---\n\nContent.";
+        let result = parse_yaml_frontmatter(content).unwrap();
+
+        assert!(result.has_fm);
+        let fm = result.frontmatter.unwrap();
+        assert_eq!(fm.get("title").and_then(|v| v.as_str()), Some("BOM Test"));
+    }
+
+    #[test]
+    fn parse_yaml_frontmatter_empty_frontmatter() {
+        let content = "---\n---\n\nContent.";
+        let result = parse_yaml_frontmatter(content).unwrap();
+
+        assert!(result.has_fm);
+        assert!(result.frontmatter.unwrap().is_empty());
+    }
+
+    #[test]
+    fn build_yaml_frontmatter_round_trip() {
+        let mut frontmatter = HashMap::new();
+        frontmatter.insert("title".to_string(), serde_json::json!("Hello"));
+        frontmatter.insert("count".to_string(), serde_json::json!(42));
+
+        let body = "This is the body content.";
+        let content = build_yaml_frontmatter(&frontmatter, body).unwrap();
+
+        assert!(content.contains("title: Hello"));
+        assert!(content.contains("count: 42"));
+        assert!(content.starts_with("---"));
+        assert!(content.contains("---"));
+        assert!(content.ends_with(body));
+    }
+
+    #[test]
+    fn build_yaml_frontmatter_with_array() {
+        let mut frontmatter = HashMap::new();
+        frontmatter.insert("tags".to_string(), serde_json::json!(["a", "b", "c"]));
+
+        let content = build_yaml_frontmatter(&frontmatter, "").unwrap();
+
+        assert!(content.contains("tags:"));
+    }
+}
