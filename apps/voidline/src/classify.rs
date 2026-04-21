@@ -167,18 +167,26 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
     let pass3_path = state_dir.join("pass3_clusters.json");
     let pass4_path = state_dir.join("pass4_classifications.json");
     let pass5_path = state_dir.join("move_plan.json");
-    let start_pass = opts.from_pass.unwrap_or(if opts.resume { 2 } else { 1 }).clamp(1, 5);
+    let start_pass = opts
+        .from_pass
+        .unwrap_or(if opts.resume { 2 } else { 1 })
+        .clamp(1, 5);
 
     let fingerprints = if start_pass > 1 && pass1_path.exists() {
         let state: ClassificationState = load_json(&pass1_path)?;
-        println!("loaded {} fingerprints from {}", state.fingerprints.len(), pass1_path.display());
+        println!(
+            "loaded {} fingerprints from {}",
+            state.fingerprints.len(),
+            pass1_path.display()
+        );
         state.fingerprints
     } else {
         let fingerprints = pass1_scan(&opts.dir)?;
         let pass1 = ClassificationState {
             fingerprints: fingerprints.clone(),
         };
-        fs::write(&pass1_path, serde_json::to_string_pretty(&pass1)?).context("writing pass1 state")?;
+        fs::write(&pass1_path, serde_json::to_string_pretty(&pass1)?)
+            .context("writing pass1 state")?;
         println!("parsed {} essays", fingerprints.len());
         println!("wrote {}", pass1_path.display());
         fingerprints
@@ -186,14 +194,19 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
 
     let embeddings = if start_pass > 2 && pass2_path.exists() {
         let state: EmbeddingState = load_json(&pass2_path)?;
-        println!("loaded {} embeddings from {}", state.embeddings.len(), pass2_path.display());
+        println!(
+            "loaded {} embeddings from {}",
+            state.embeddings.len(),
+            pass2_path.display()
+        );
         state.embeddings
     } else {
         let embeddings = pass2_embed(&fingerprints);
         let pass2 = EmbeddingState {
             embeddings: embeddings.clone(),
         };
-        fs::write(&pass2_path, serde_json::to_string_pretty(&pass2)?).context("writing pass2 state")?;
+        fs::write(&pass2_path, serde_json::to_string_pretty(&pass2)?)
+            .context("writing pass2 state")?;
         println!("generated {} embeddings", embeddings.len());
         println!("wrote {}", pass2_path.display());
         embeddings
@@ -201,11 +214,16 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
 
     let clusters = if start_pass > 3 && pass3_path.exists() {
         let clusters: Vec<ClusterResult> = load_json(&pass3_path)?;
-        println!("loaded {} clusters from {}", clusters.len(), pass3_path.display());
+        println!(
+            "loaded {} clusters from {}",
+            clusters.len(),
+            pass3_path.display()
+        );
         clusters
     } else {
         let clusters = pass3_cluster(&embeddings, opts.cluster_threshold);
-        fs::write(&pass3_path, serde_json::to_string_pretty(&clusters)?).context("writing pass3 state")?;
+        fs::write(&pass3_path, serde_json::to_string_pretty(&clusters)?)
+            .context("writing pass3 state")?;
         println!("clustered {} essays", clusters.len());
         println!("wrote {}", pass3_path.display());
         clusters
@@ -213,11 +231,16 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
 
     let classifications = if start_pass > 4 && pass4_path.exists() {
         let classifications: Vec<Classification> = load_json(&pass4_path)?;
-        println!("loaded {} classifications from {}", classifications.len(), pass4_path.display());
+        println!(
+            "loaded {} classifications from {}",
+            classifications.len(),
+            pass4_path.display()
+        );
         classifications
     } else {
         let classifications = pass4_classify(&fingerprints, &clusters, opts.threshold);
-        fs::write(&pass4_path, serde_json::to_string_pretty(&classifications)?).context("writing pass4 state")?;
+        fs::write(&pass4_path, serde_json::to_string_pretty(&classifications)?)
+            .context("writing pass4 state")?;
         println!("classified {} essays", classifications.len());
         println!("wrote {}", pass4_path.display());
         classifications
@@ -225,11 +248,16 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
 
     let move_plan = if start_pass > 5 && pass5_path.exists() {
         let move_plan: Vec<MoveEntry> = load_json(&pass5_path)?;
-        println!("loaded {} move plan entries from {}", move_plan.len(), pass5_path.display());
+        println!(
+            "loaded {} move plan entries from {}",
+            move_plan.len(),
+            pass5_path.display()
+        );
         move_plan
     } else {
         let move_plan = pass5_move(&fingerprints, &classifications);
-        fs::write(&pass5_path, serde_json::to_string_pretty(&move_plan)?).context("writing move plan")?;
+        fs::write(&pass5_path, serde_json::to_string_pretty(&move_plan)?)
+            .context("writing move plan")?;
         println!("wrote {} move plan entries", move_plan.len());
         println!("wrote {}", pass5_path.display());
         move_plan
@@ -263,9 +291,13 @@ fn pass1_scan(root: &Path) -> Result<Vec<Fingerprint>> {
     files.sort();
     let mut fingerprints = Vec::with_capacity(files.len());
     for (idx, path) in files.iter().enumerate() {
-        let content = fs::read_to_string(path)
-            .with_context(|| format!("reading {}", path.display()))?;
-        let rel = path.strip_prefix(root).unwrap_or(path).to_string_lossy().to_string();
+        let content =
+            fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+        let rel = path
+            .strip_prefix(root)
+            .unwrap_or(path)
+            .to_string_lossy()
+            .to_string();
         fingerprints.push(Fingerprint {
             id: format!("essay_{:04}", idx),
             filename: path
@@ -299,7 +331,11 @@ fn extract_title(content: &str) -> String {
 fn extract_headings(content: &str) -> Vec<String> {
     content
         .lines()
-        .filter_map(|line| line.trim().strip_prefix("## ").map(|s| s.trim().to_string()))
+        .filter_map(|line| {
+            line.trim()
+                .strip_prefix("## ")
+                .map(|s| s.trim().to_string())
+        })
         .collect()
 }
 
@@ -352,14 +388,32 @@ fn extract_keywords(content: &str) -> Vec<String> {
         if token.len() < 4 {
             continue;
         }
-        if matches!(token.as_str(), "the" | "and" | "with" | "that" | "this" | "from" | "have" | "will" | "your" | "into" | "more") {
+        if matches!(
+            token.as_str(),
+            "the"
+                | "and"
+                | "with"
+                | "that"
+                | "this"
+                | "from"
+                | "have"
+                | "will"
+                | "your"
+                | "into"
+                | "more"
+        ) {
             continue;
         }
         *freq.entry(token).or_default() += 1;
     }
     let mut items: Vec<_> = freq.into_iter().collect();
     items.sort_by(|a, b| b.1.cmp(&a.1).then_with(|| a.0.cmp(&b.0)));
-    items.into_iter().filter(|(_, n)| *n >= 2).take(20).map(|(k, _)| k).collect()
+    items
+        .into_iter()
+        .filter(|(_, n)| *n >= 2)
+        .take(20)
+        .map(|(k, _)| k)
+        .collect()
 }
 
 fn count_words(s: &str) -> usize {
@@ -445,7 +499,11 @@ fn pass3_cluster(embeddings: &[Embedding], threshold: f64) -> Vec<ClusterResult>
             id: emb.id.clone(),
             cluster_id: if is_outlier { -1 } else { best_cluster },
             is_outlier,
-            distance: if best_distance.is_finite() { best_distance } else { 0.0 },
+            distance: if best_distance.is_finite() {
+                best_distance
+            } else {
+                0.0
+            },
         });
     }
     results
@@ -470,7 +528,11 @@ fn cosine_distance(a: &[f64], b: &[f64]) -> f64 {
     1.0 - (dot / (na.sqrt() * nb.sqrt()))
 }
 
-fn pass4_classify(fingerprints: &[Fingerprint], clusters: &[ClusterResult], threshold: f64) -> Vec<Classification> {
+fn pass4_classify(
+    fingerprints: &[Fingerprint],
+    clusters: &[ClusterResult],
+    threshold: f64,
+) -> Vec<Classification> {
     let mut fp_map = HashMap::new();
     for fp in fingerprints {
         fp_map.insert(fp.id.clone(), fp);
@@ -481,12 +543,20 @@ fn pass4_classify(fingerprints: &[Fingerprint], clusters: &[ClusterResult], thre
         .map(|cluster| {
             let fp = fp_map.get(&cluster.id);
             let title = fp.map(|f| f.title.as_str()).unwrap_or("");
-            let domain = infer_domain(title, fp.map(|f| f.keywords.as_slice()).unwrap_or(&[]), cluster.cluster_id);
+            let domain = infer_domain(
+                title,
+                fp.map(|f| f.keywords.as_slice()).unwrap_or(&[]),
+                cluster.cluster_id,
+            );
             Classification {
                 id: cluster.id.clone(),
                 primary_domain: domain,
                 secondary_domain: None,
-                confidence: if cluster.is_outlier { 0.35 } else { (1.0 - cluster.distance).max(0.0) },
+                confidence: if cluster.is_outlier {
+                    0.35
+                } else {
+                    (1.0 - cluster.distance).max(0.0)
+                },
                 reason: if cluster.is_outlier {
                     "low cluster confidence".to_string()
                 } else {
@@ -501,8 +571,14 @@ fn pass4_classify(fingerprints: &[Fingerprint], clusters: &[ClusterResult], thre
 fn infer_domain(title: &str, keywords: &[String], cluster_id: i32) -> String {
     let haystack = format!("{} {}", title.to_lowercase(), keywords.join(" "));
     let rules = [
-        ("technology", &["rust", "go", "python", "cli", "api", "code", "software"] as &[_]),
-        ("science", &["research", "data", "model", "analysis", "experiment"]),
+        (
+            "technology",
+            &["rust", "go", "python", "cli", "api", "code", "software"] as &[_],
+        ),
+        (
+            "science",
+            &["research", "data", "model", "analysis", "experiment"],
+        ),
         ("writing", &["essay", "write", "writing", "draft", "prose"]),
         ("product", &["product", "roadmap", "feature", "workflow"]),
         ("design", &["design", "ui", "ux", "interface"]),
@@ -530,7 +606,11 @@ fn pass5_move(fingerprints: &[Fingerprint], classifications: &[Classification]) 
     let mut plan = Vec::with_capacity(fingerprints.len());
     for c in classifications {
         if let Some(fp) = map.get(&c.id) {
-            let domain = if c.primary_domain.is_empty() { "unclear" } else { &c.primary_domain };
+            let domain = if c.primary_domain.is_empty() {
+                "unclear"
+            } else {
+                &c.primary_domain
+            };
             let target = PathBuf::from(domain).join(&fp.filename);
             plan.push(MoveEntry {
                 id: c.id.clone(),
@@ -546,7 +626,8 @@ fn pass5_move(fingerprints: &[Fingerprint], classifications: &[Classification]) 
 }
 
 fn load_json<T: for<'de> Deserialize<'de>>(path: &Path) -> Result<T> {
-    let content = fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
+    let content =
+        fs::read_to_string(path).with_context(|| format!("reading {}", path.display()))?;
     serde_json::from_str(&content).with_context(|| format!("parsing {}", path.display()))
 }
 
@@ -560,7 +641,9 @@ fn execute_move_plan(source_dir: &Path, plan: &[MoveEntry], assume_yes: bool) ->
     if !assume_yes {
         println!("Execute? [y/N]");
         let mut response = String::new();
-        std::io::stdin().read_line(&mut response).context("reading confirmation")?;
+        std::io::stdin()
+            .read_line(&mut response)
+            .context("reading confirmation")?;
         let response = response.trim().to_lowercase();
         if response != "y" && response != "yes" {
             println!("aborted.");
@@ -574,8 +657,7 @@ fn execute_move_plan(source_dir: &Path, plan: &[MoveEntry], assume_yes: bool) ->
         let source = source_dir.join(&entry.source);
         let target = source_dir.join(&entry.target);
         if let Some(parent) = target.parent() {
-            fs::create_dir_all(parent)
-                .with_context(|| format!("creating {}", parent.display()))?;
+            fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
         }
         match fs::rename(&source, &target) {
             Ok(_) => {
@@ -584,7 +666,12 @@ fn execute_move_plan(source_dir: &Path, plan: &[MoveEntry], assume_yes: bool) ->
             }
             Err(err) => {
                 failed += 1;
-                println!("  FAILED: {} -> {}: {}", source.display(), target.display(), err);
+                println!(
+                    "  FAILED: {} -> {}: {}",
+                    source.display(),
+                    target.display(),
+                    err
+                );
             }
         }
     }
