@@ -1,82 +1,88 @@
 # CLI Tools Monorepo
 
-A suite of open-source published CLI tools.
+A polyglot monorepo for independent command-line tools built in Rust, Go, and Python.
 
-## Apps
+## Overview
 
-| CLI | Language | Status | Description |
-|-----|----------|--------|-------------|
-| `chronicle` | Python | experimental | Calendar intelligence CLI for local-first Google Calendar enrichment |
-| `costlens` | Rust | active | LLM cost analysis for CSV exports |
-| `essay-classifier` | Go | active | Organize and classify markdown essays using embeddings and LLMs |
-| `geo` | Rust | active | Geolocation lookup and CSV geocoding via OpenStreetMap Nominatim |
-| `gimme` | Rust | active | Copy files from GitHub to the local filesystem |
-| `netdebug` | Rust | active | Network debugging CLI with animated diagnostics |
-| `voidline` | Rust | active | Utilities for frontmatter, calendar import, and local tooling |
+This repository contains several focused CLI applications that share a common release and development workflow.
+Each tool has its own README with full command reference, examples, and testing guidance.
 
-## Shared Packages
+## Workspace Layout
 
-| Package | Description |
-|---------|-------------|
-| `packages/cli-utils/` | Shared Rust utilities for CLI apps |
+```text
+toolbox/
+├── apps/
+│   ├── geo/
+│   ├── gimme/
+│   ├── voidline/
+│   ├── costlens/
+│   ├── netdebug/
+│   │   └── chronicle/
+├── packages/
+│   └── cli-utils/
+├── docs/
+├── tooling/
+└── justfile
+```
 
-## Local Development
+## Tool Index
 
-Requirements:
+| Tool | Language | Description |
+|------|----------|-------------|
+| [geo](./apps/geo/README.md) | Rust | Geolocation lookup and CSV geocoding |
+| [gimme](./apps/gimme/README.md) | Rust | Fetch files from GitHub |
+| [voidline](./apps/voidline/README.md) | Rust | Frontmatter, calendar, and essay classification utilities |
+| [costlens](./apps/costlens/README.md) | Rust | LLM cost analysis |
+| [netdebug](./apps/netdebug/README.md) | Rust | Network diagnostics |
+| [chronicle](./apps/chronicle/README.md) | Python | Calendar intelligence tooling |
 
-- Rust stable with `clippy` and `rustfmt`
-- `just` for task shortcuts
-- Python 3.12 (for chronicle)
-- Go 1.25+ (for essay-classifier)
+## Shared Package
 
-Rust commands:
+- `packages/cli-utils` contains shared Rust utilities used across the workspace.
+
+## Development
+
+### Build everything
 
 ```bash
-just check
-just build
-just test
-just lint
-just fmt
-just smoke
+cargo build --workspace
 ```
 
-Run one binary during development:
+### Run the test suite
 
 ```bash
-cargo run -p geo -- --help
-cargo run -p gimme -- owner/repo/path.txt@main
-cargo run -p costlens -- dashboard --help
+cargo test --workspace
 ```
 
-## Release Model
-
-Each binary keeps its own version in its `Cargo.toml` or `pyproject.toml`.
-
-- **Rust apps**: Use release-plz with GitHub Actions
-- **Python app**: Publish to PyPI, install via pip or Homebrew
-- **Go app**: Install via `go install` or Homebrew
-
-Release tags use the format `<cli>-v<version>`.
-
-Example:
+### Run a specific tool
 
 ```bash
-git tag geo-v0.1.0
-git push origin geo-v0.1.0
+cargo run -p geo -- geocode "New York"
+cargo run -p gimme -- owner/repo/file.txt@main
+cargo run -p voidline -- frontmatter walk
+cargo run -p costlens -- dashboard
+cargo run -p netdebug -- -s google.com
 ```
 
-## Distribution
+### Python tool
 
-Homebrew is the primary distribution path.
-
-- Formula templates live in `tooling/homebrew/`
-- Release workflows in `.github/workflows/release.yml`
-
-## Repo Layout
-
+```bash
+cd apps/chronicle
+pip install -e .
+pytest
 ```
-apps/                 CLI applications (Rust, Python, Go)
-packages/             Shared internal libraries
-tooling/homebrew/     Homebrew formula templates
-.github/workflows/   CI and release automation
-```
+
+## Release Notes
+
+- Rust tools are released from tags like `geo-v0.1.0`
+- `voidline` is the primary file-management and analysis CLI
+- Python tools follow their own package-specific workflows
+
+## Documentation
+
+- Tool-specific command references live in each app’s `README.md`
+- Additional CLI reference docs were consolidated into the app READMEs
+
+## License
+
+MIT

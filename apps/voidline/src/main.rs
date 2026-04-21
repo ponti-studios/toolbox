@@ -8,6 +8,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use walkdir::WalkDir;
 
 mod cal;
+mod classify;
 
 #[derive(Parser)]
 #[command(name = "voidline")]
@@ -26,6 +27,10 @@ enum Commands {
     Cal {
         #[command(subcommand)]
         cmd: cal::CalCmd,
+    },
+    Classify {
+        #[command(subcommand)]
+        cmd: classify::ClassifyCmd,
     },
 }
 
@@ -1258,6 +1263,9 @@ fn main() -> Result<()> {
             cal::CalCmd::Inspect(opts) => cal::run_inspect(opts)?,
             cal::CalCmd::Stats(opts) => cal::run_stats(opts)?,
             cal::CalCmd::Doctor(opts) => cal::run_doctor(opts)?,
+        },
+        Commands::Classify { cmd } => match cmd {
+            classify::ClassifyCmd::Essays(opts) => classify::run_essays(opts)?,
         },
     }
 
