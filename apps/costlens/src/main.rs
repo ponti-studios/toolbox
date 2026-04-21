@@ -186,20 +186,17 @@ struct AppData {
     spend: f64,
 }
 
-fn process_rows(
-    rows: &[Row],
-) -> (
-    Summary,
-    HashMap<String, ProviderData>,
-    HashMap<String, ModelData>,
-    HashMap<String, AppData>,
-    HashMap<String, i64>,
-) {
+type FinishReasons = HashMap<String, i64>;
+type ProviderMap = HashMap<String, ProviderData>;
+type ModelMap = HashMap<String, ModelData>;
+type AppMap = HashMap<String, AppData>;
+
+fn process_rows(rows: &[Row]) -> (Summary, ProviderMap, ModelMap, AppMap, FinishReasons) {
     let mut summary = Summary::default();
-    let mut providers: HashMap<String, ProviderData> = HashMap::new();
-    let mut models: HashMap<String, ModelData> = HashMap::new();
-    let mut apps: HashMap<String, AppData> = HashMap::new();
-    let mut finish_reasons: HashMap<String, i64> = HashMap::new();
+    let mut providers: ProviderMap = HashMap::new();
+    let mut models: ModelMap = HashMap::new();
+    let mut apps: AppMap = HashMap::new();
+    let mut finish_reasons: FinishReasons = HashMap::new();
 
     for r in rows {
         let spend = parse_float(&r.cost_total);
@@ -732,7 +729,7 @@ fn render_tokens(opts: &TokensOpts) -> Result<()> {
 
     for entry in entries {
         let path = entry.path();
-        if let Some(tokens) = count_tokens_in_file(path, &encoding) {
+        if let Some(tokens) = count_tokens_in_file(path, encoding) {
             let rel = path.strip_prefix(folder).unwrap_or(path);
             println!("{:>8}  {}", tokens, rel.display());
             total += tokens;

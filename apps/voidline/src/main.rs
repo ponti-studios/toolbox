@@ -409,12 +409,7 @@ fn validate_field(
         return errors;
     };
 
-    if !rules.allowed.is_empty()
-        && !rules
-            .allowed
-            .iter()
-            .any(|candidate| *candidate == value_str)
-    {
+    if !rules.allowed.is_empty() && !rules.allowed.contains(&value_str) {
         errors.push(ValidationError {
             field: field.to_string(),
             message: format!("value {:?} not in allowed set", value_str),

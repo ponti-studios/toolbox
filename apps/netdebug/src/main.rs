@@ -113,105 +113,22 @@ fn print_recommendations() {
     println!("{}", style("═══ Recommendations ═══").bold().cyan());
     println!();
     println!(
-        "  {} {}",
-        style("1.").cyan(),
-        "If DNS lookup is slow (>50ms): Switch to Cloudflare DNS (1.1.1.1)"
+        "  {} If DNS lookup is slow (>50ms): Switch to Cloudflare DNS (1.1.1.1)",
+        style("1.").cyan()
     );
     println!(
-        "  {} {}",
-        style("2.").cyan(),
-        "If TCP connect is slow: ISP routing issue - call your ISP"
+        "  {} If TCP connect is slow: ISP routing issue - call your ISP",
+        style("2.").cyan()
     );
     println!(
-        "  {} {}",
-        style("3.").cyan(),
-        "If time to first byte is slow (>200ms): CDN edge server issue"
+        "  {} If time to first byte is slow (>200ms): CDN edge server issue",
+        style("3.").cyan()
     );
     println!(
-        "  {} {}",
-        style("4.").cyan(),
-        "If total varies wildly: Try Cloudflare WARP VPN"
+        "  {} If total varies wildly: Try Cloudflare WARP VPN",
+        style("4.").cyan()
     );
     println!();
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn timing_result_calculates_total_time() {
-        let result = TimingResult::new("example.com".to_string(), 10.0, 5.0, 100.0, 200.0);
-        assert_eq!(result.total_time_ms(), 200.0);
-    }
-
-    #[test]
-    fn timing_result_detects_slow_dns() {
-        let slow_result =
-            TimingResult::new("slow.example.com".to_string(), 75.0, 10.0, 100.0, 300.0);
-        let fast_result =
-            TimingResult::new("fast.example.com".to_string(), 25.0, 10.0, 100.0, 200.0);
-
-        assert!(slow_result.is_dns_slow());
-        assert!(!fast_result.is_dns_slow());
-    }
-
-    #[test]
-    fn timing_result_boundary_dns_check() {
-        // Exactly 50ms should not be considered slow
-        let boundary_result =
-            TimingResult::new("boundary.example.com".to_string(), 50.0, 10.0, 100.0, 200.0);
-        assert!(!boundary_result.is_dns_slow());
-
-        // Just over 50ms should be slow
-        let slightly_slow = TimingResult::new(
-            "slightly-slow.example.com".to_string(),
-            50.1,
-            10.0,
-            100.0,
-            200.0,
-        );
-        assert!(slightly_slow.is_dns_slow());
-    }
-
-    #[test]
-    fn timing_result_fields_are_accessible() {
-        let result = TimingResult::new("test.example.com".to_string(), 15.5, 8.2, 120.7, 250.0);
-
-        assert_eq!(result.site, "test.example.com");
-        assert_eq!(result.dns_ms, 15.5);
-        assert_eq!(result.connect_ms, 8.2);
-        assert_eq!(result.ttfb_ms, 120.7);
-        assert_eq!(result.total_ms, 250.0);
-    }
-
-    #[test]
-    fn timing_result_clone_is_equal() {
-        let original = TimingResult::new("clone.example.com".to_string(), 10.0, 5.0, 50.0, 100.0);
-        let cloned = original.clone();
-
-        assert_eq!(original, cloned);
-    }
-
-    #[test]
-    fn timing_result_debug_format() {
-        let result = TimingResult::new("debug.example.com".to_string(), 1.0, 2.0, 3.0, 4.0);
-        let debug_str = format!("{:?}", result);
-
-        assert!(debug_str.contains("debug.example.com"));
-        assert!(debug_str.contains("dns_ms"));
-    }
-
-    #[test]
-    fn timing_result_partial_eq() {
-        let result1 = TimingResult::new("compare.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
-        let result2 = TimingResult::new("compare.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
-        let result3 =
-            TimingResult::new("different.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
-
-        assert_eq!(result1, result2);
-        assert_ne!(result1, result3);
-    }
 }
 
 #[tokio::main]
@@ -313,4 +230,83 @@ async fn main() -> Result<()> {
     print_recommendations();
 
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn timing_result_calculates_total_time() {
+        let result = TimingResult::new("example.com".to_string(), 10.0, 5.0, 100.0, 200.0);
+        assert_eq!(result.total_time_ms(), 200.0);
+    }
+
+    #[test]
+    fn timing_result_detects_slow_dns() {
+        let slow_result =
+            TimingResult::new("slow.example.com".to_string(), 75.0, 10.0, 100.0, 300.0);
+        let fast_result =
+            TimingResult::new("fast.example.com".to_string(), 25.0, 10.0, 100.0, 200.0);
+
+        assert!(slow_result.is_dns_slow());
+        assert!(!fast_result.is_dns_slow());
+    }
+
+    #[test]
+    fn timing_result_boundary_dns_check() {
+        // Exactly 50ms should not be considered slow
+        let boundary_result =
+            TimingResult::new("boundary.example.com".to_string(), 50.0, 10.0, 100.0, 200.0);
+        assert!(!boundary_result.is_dns_slow());
+
+        // Just over 50ms should be slow
+        let slightly_slow = TimingResult::new(
+            "slightly-slow.example.com".to_string(),
+            50.1,
+            10.0,
+            100.0,
+            200.0,
+        );
+        assert!(slightly_slow.is_dns_slow());
+    }
+
+    #[test]
+    fn timing_result_fields_are_accessible() {
+        let result = TimingResult::new("test.example.com".to_string(), 15.5, 8.2, 120.7, 250.0);
+
+        assert_eq!(result.site, "test.example.com");
+        assert_eq!(result.dns_ms, 15.5);
+        assert_eq!(result.connect_ms, 8.2);
+        assert_eq!(result.ttfb_ms, 120.7);
+        assert_eq!(result.total_ms, 250.0);
+    }
+
+    #[test]
+    fn timing_result_clone_is_equal() {
+        let original = TimingResult::new("clone.example.com".to_string(), 10.0, 5.0, 50.0, 100.0);
+        let cloned = original.clone();
+
+        assert_eq!(original, cloned);
+    }
+
+    #[test]
+    fn timing_result_debug_format() {
+        let result = TimingResult::new("debug.example.com".to_string(), 1.0, 2.0, 3.0, 4.0);
+        let debug_str = format!("{:?}", result);
+
+        assert!(debug_str.contains("debug.example.com"));
+        assert!(debug_str.contains("dns_ms"));
+    }
+
+    #[test]
+    fn timing_result_partial_eq() {
+        let result1 = TimingResult::new("compare.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
+        let result2 = TimingResult::new("compare.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
+        let result3 =
+            TimingResult::new("different.example.com".to_string(), 10.0, 20.0, 30.0, 40.0);
+
+        assert_eq!(result1, result2);
+        assert_ne!(result1, result3);
+    }
 }
