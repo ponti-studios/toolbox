@@ -488,7 +488,7 @@ voidline classify essays [OPTIONS]
 | `--execute` | Execute the move plan | `false` |
 | `--tui` | Launch interactive TUI mode | `false` |
 | `--resume` | Resume from the highest completed pass | `false` |
-| `--from-pass <PASS>` | Resume from a specific pass | - |
+| `--from-pass <PASS>` | Start from a specific pass (1-5) | - |
 | `--threshold <THRESHOLD>` | Confidence threshold for auto-move | `0.75` |
 | `--llm <PROVIDER>` | LLM provider | `ollama` |
 | `--api-key <KEY>` | OpenAI API key | - |
@@ -519,6 +519,7 @@ voidline classify essays --dir ./essays --csv plan.csv
 **Status:**
 - Pass 1 through Pass 5 are implemented in a deterministic scaffold form
 - Execute mode will move files into domain folders
+- `--from-pass` now controls which passes are reused vs recomputed
 - TUI and richer LLM-backed classification are still future work
 
 ---

@@ -167,8 +167,9 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
     let pass3_path = state_dir.join("pass3_clusters.json");
     let pass4_path = state_dir.join("pass4_classifications.json");
     let pass5_path = state_dir.join("move_plan.json");
+    let start_pass = opts.from_pass.unwrap_or(if opts.resume { 2 } else { 1 }).clamp(1, 5);
 
-    let fingerprints = if opts.resume && pass1_path.exists() {
+    let fingerprints = if start_pass > 1 && pass1_path.exists() {
         let state: ClassificationState = load_json(&pass1_path)?;
         println!("loaded {} fingerprints from {}", state.fingerprints.len(), pass1_path.display());
         state.fingerprints
@@ -183,7 +184,7 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
         fingerprints
     };
 
-    let embeddings = if opts.resume && pass2_path.exists() {
+    let embeddings = if start_pass > 2 && pass2_path.exists() {
         let state: EmbeddingState = load_json(&pass2_path)?;
         println!("loaded {} embeddings from {}", state.embeddings.len(), pass2_path.display());
         state.embeddings
@@ -198,7 +199,7 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
         embeddings
     };
 
-    let clusters = if opts.resume && pass3_path.exists() {
+    let clusters = if start_pass > 3 && pass3_path.exists() {
         let clusters: Vec<ClusterResult> = load_json(&pass3_path)?;
         println!("loaded {} clusters from {}", clusters.len(), pass3_path.display());
         clusters
@@ -210,7 +211,7 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
         clusters
     };
 
-    let classifications = if opts.resume && pass4_path.exists() {
+    let classifications = if start_pass > 4 && pass4_path.exists() {
         let classifications: Vec<Classification> = load_json(&pass4_path)?;
         println!("loaded {} classifications from {}", classifications.len(), pass4_path.display());
         classifications
@@ -222,7 +223,7 @@ pub fn run_essays(opts: EssayClassifyOpts) -> Result<()> {
         classifications
     };
 
-    let move_plan = if opts.resume && pass5_path.exists() {
+    let move_plan = if start_pass > 5 && pass5_path.exists() {
         let move_plan: Vec<MoveEntry> = load_json(&pass5_path)?;
         println!("loaded {} move plan entries from {}", move_plan.len(), pass5_path.display());
         move_plan
