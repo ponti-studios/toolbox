@@ -781,58 +781,65 @@ fn main() -> Result<()> {
 mod tests {
     use super::*;
 
-    fn sample_row(
-        created_at: &str,
-        provider: &str,
-        model: &str,
-        app: &str,
-        cost_total: &str,
-        cost_cache: &str,
-        prompt: &str,
-        completion: &str,
-    ) -> Row {
-        Row {
-            cost_total: cost_total.to_string(),
-            cost_cache: cost_cache.to_string(),
-            tokens_prompt: prompt.to_string(),
-            tokens_completion: completion.to_string(),
-            tokens_reasoning: Some("0".to_string()),
-            tokens_cached: Some("0".to_string()),
-            generation_time_ms: "1000".to_string(),
-            time_to_first_token_ms: Some("100".to_string()),
-            provider_name: Some(provider.to_string()),
-            model_permaslug: Some(model.to_string()),
-            app_name: Some(app.to_string()),
-            cancelled: Some("false".to_string()),
-            streamed: Some("true".to_string()),
-            finish_reason_normalized: Some("stop".to_string()),
-            created_at: Some(created_at.to_string()),
+    #[derive(Default)]
+    struct TextRow {
+        created_at: Option<String>,
+        provider: Option<String>,
+        model: Option<String>,
+        app: Option<String>,
+        cost_total: Option<String>,
+        cost_cache: Option<String>,
+        prompt: Option<String>,
+        completion: Option<String>,
+    }
+
+    impl TextRow {
+        fn build(self) -> Row {
+            Row {
+                cost_total: self.cost_total.unwrap_or_else(|| "0".to_string()),
+                cost_cache: self.cost_cache.unwrap_or_else(|| "0".to_string()),
+                tokens_prompt: self.prompt.unwrap_or_else(|| "0".to_string()),
+                tokens_completion: self.completion.unwrap_or_else(|| "0".to_string()),
+                tokens_reasoning: Some("0".to_string()),
+                tokens_cached: Some("0".to_string()),
+                generation_time_ms: "1000".to_string(),
+                time_to_first_token_ms: Some("100".to_string()),
+                provider_name: self.provider,
+                model_permaslug: self.model,
+                app_name: self.app,
+                cancelled: Some("false".to_string()),
+                streamed: Some("true".to_string()),
+                finish_reason_normalized: Some("stop".to_string()),
+                created_at: self.created_at,
+            }
         }
     }
 
     #[test]
     fn filter_rows_applies_fuzzy_filters() {
         let rows = vec![
-            sample_row(
-                "2026-03-30 02:37:51.271",
-                "Minimax",
-                "minimax/minimax-m2.7-20260318",
-                "vscode",
-                "0.1",
-                "-0.01",
-                "10",
-                "20",
-            ),
-            sample_row(
-                "2026-03-30 03:37:51.271",
-                "AtlasCloud",
-                "openai/gpt-5",
-                "opencode",
-                "0.2",
-                "0",
-                "10",
-                "20",
-            ),
+            TextRow {
+                created_at: Some("2026-03-30 02:37:51.271".to_string()),
+                provider: Some("Minimax".to_string()),
+                model: Some("minimax/minimax-m2.7-20260318".to_string()),
+                app: Some("vscode".to_string()),
+                cost_total: Some("0.1".to_string()),
+                cost_cache: Some("-0.01".to_string()),
+                prompt: Some("10".to_string()),
+                completion: Some("20".to_string()),
+            }
+            .build(),
+            TextRow {
+                created_at: Some("2026-03-30 03:37:51.271".to_string()),
+                provider: Some("AtlasCloud".to_string()),
+                model: Some("openai/gpt-5".to_string()),
+                app: Some("opencode".to_string()),
+                cost_total: Some("0.2".to_string()),
+                cost_cache: Some("0".to_string()),
+                prompt: Some("10".to_string()),
+                completion: Some("20".to_string()),
+            }
+            .build(),
         ];
 
         let filtered = filter_rows(
