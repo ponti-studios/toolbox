@@ -1,6 +1,11 @@
 # geo
 
-Geolocation lookup and CSV geocoding CLI built on OpenStreetMap Nominatim.
+Swift CLI for Apple Maps geocoding and CSV enrichment using `MapKit`.
+
+## Requirements
+
+- macOS
+- Swift 6+
 
 ## Install
 
@@ -9,7 +14,14 @@ Preferred distribution is via the studio Homebrew tap.
 For local development:
 
 ```bash
-cargo run -p geo -- --help
+cd apps/geo
+swift run geo -- --help
+```
+
+To install a global binary from this repo:
+
+```bash
+just install-geo
 ```
 
 ## Commands
@@ -17,44 +29,65 @@ cargo run -p geo -- --help
 ### `geocode` - Lookup a place name
 
 ```bash
-geo geocode <query>
+geo geocode [--limit N] <query>
+```
+
+You can also omit the subcommand and run:
+
+```bash
+geo <query>
 ```
 
 **Examples:**
 
 ```bash
-# Basic place lookup
-geo geocode "Mahopac, New York"
-
-# City lookup
+geo "Mahopac, New York"
 geo geocode "Paris, France"
-
-# Address lookup
 geo geocode "1600 Amphitheatre Parkway, Mountain View, CA"
-
-# Landmark lookup
 geo geocode "Empire State Building"
-
-# Country lookup
 geo geocode "Japan"
-
-# Postal code lookup
 geo geocode "90210"
+geo geocode --limit 3 "coffee near Apple Park"
 ```
 
-**Expected Output:**
+**Output:**
 
+`geocode` emits pretty-printed JSON so you can inspect Apple Maps result data, including:
+
+- query metadata
+- bounding region
+- all returned result payloads
+- `MKMapItem` fields like `name`, `phoneNumber`, `url`, `pointOfInterestCategory`
+- detailed `MKPlacemark` fields like coordinates, address components, timezone, areas of interest, and postal address data when available
+
+---
+
+### `geo-review` - Native macOS review UI for `place_review_candidates`
+
+A separate executable target, `geo-review`, opens a SwiftUI macOS app for browsing and editing review candidates directly from `db.sqlite`.
+
+```bash
+swift run geo-review -- --db /path/to/db.sqlite
 ```
-Mahopac, Putnam County, New York, United States
-lat=41.6006, lon=-73.7429
-```
+
+If `--db` is omitted, `geo-review` defaults to `./db.sqlite` from the current working directory.
+
+Current capabilities:
+
+- loads all rows from `place_review_candidates`
+- shows list + detail UI for records needing review
+- displays canonical place name, current query, result summary, and metadata
+- lets you edit and save `current_query` back to SQLite
+- supports in-app refresh and text filtering
+
+This is intended to be the manual review surface, while the `geo` CLI remains the automation/batch tool.
 
 ---
 
 ### `geocode-csv` - Geocode a CSV column
 
 ```bash
-geo geocode-csv -f <file> -c <column> [-o <output>]
+geo geocode-csv -f <file> -c <column> [-o <output>] [--include-json]
 ```
 
 **Options:**
@@ -64,22 +97,17 @@ geo geocode-csv -f <file> -c <column> [-o <output>]
 | `-f, --file <FILE>` | Input CSV file (required) | - |
 | `-c, --column <COLUMN>` | Column to geocode (required) | - |
 | `-o, --output <OUTPUT>` | Output CSV file | `<input>.geocoded.csv` |
+| `--include-json` | Add an `apple_maps_json` column with the full first result payload | off |
 
 **Examples:**
 
 ```bash
-# Basic CSV geocoding
 geo geocode-csv -f locations.csv -c city
-
-# Specify output file
 geo geocode-csv -f locations.csv -c city -o geocoded_locations.csv
-
-# Full path example
 geo geocode-csv -f /data/addresses.csv -c address -o /output/geocoded.csv
-
-# Different column names
 geo geocode-csv -f stores.csv -c "Store Location"
 geo geocode-csv -f customers.csv -c "Full Address"
+geo geocode-csv -f locations.csv -c city --include-json
 ```
 
 **Input CSV Format:**
@@ -92,20 +120,7 @@ Store B,"Los Angeles, CA",CA
 
 **Output CSV adds columns:** `lat,lon,city,state,country,country_code`
 
----
-
-## Environment Variables
-
-| Variable | Description | Default |
-|----------|-------------|---------|
-| `NOMINATIM_BASE_URL` | Custom Nominatim server URL | `https://nominatim.openstreetmap.org` |
-
-**Example:**
-
-```bash
-# Use custom Nominatim server
-NOMINATIM_BASE_URL="https://your-nominatim-server.com" geo geocode "Test Location"
-```
+Optional: `apple_maps_json`
 
 ---
 
@@ -113,16 +128,17 @@ NOMINATIM_BASE_URL="https://your-nominatim-server.com" geo geocode "Test Locatio
 
 ```bash
 # Build
-cargo build -p geo
+cd apps/geo && swift build
 
 # Run from source
-cargo run -p geo -- geocode "New York"
+cd apps/geo && swift run geo -- geocode "New York"
 
 # Run binary directly
-./target/debug/geo geocode "New York"
+./apps/geo/.build/debug/geo geocode "New York"
+./apps/geo/.build/debug/geo-review --db /path/to/db.sqlite
 
-# Install globally
-cargo install --path apps/geo
+# Install globally via repo helper
+just install-geo
 ```
 
 ---
@@ -137,7 +153,7 @@ cargo install --path apps/geo
 - [ ] Postal code lookup (e.g., "90210")
 - [ ] International locations (non-English characters)
 - [ ] Invalid/non-existent locations
-- [ ] Custom Nominatim server
+- [ ] Multi-result lookup with `--limit`
 
 ### geocode-csv command
 - [ ] Basic CSV with city column
@@ -148,15 +164,16 @@ cargo install --path apps/geo
 - [ ] Missing column error
 - [ ] Missing file error
 - [ ] Large CSV file (100+ rows)
+- [ ] `--include-json` output column
 
 ---
 
 ## API Notes
 
-- **Provider:** OpenStreetMap Nominatim
-- **Rate Limiting:** 1 request per second (enforced by CLI)
-- **Timeout:** 5 seconds per request
-- **User-Agent:** `geo-cli/1.0`
+- **Provider:** Apple Maps via `MKLocalSearch`
+- **Platform:** macOS only
+- **CSV pacing:** 1.1s delay between uncached lookups
+- **Result caching:** duplicate CSV queries are cached within a run
 
 ---
 
@@ -168,14 +185,8 @@ Release assets are published from tags like `geo-v0.1.0`.
 
 ## Technical Notes
 
-- Uses async Rust with `tokio` for network requests
-- `geocode` and `geocode-csv` both call OpenStreetMap Nominatim
-- CSV mode rate-limits requests with a 1.1s delay between lookups
-- Results are cached within a run to avoid duplicate geocoding requests
-- HTTP requests use a 5-second timeout and a fixed `User-Agent` header
-
-## Related Files
-
-- Source: `apps/geo/src/cli.rs`
-- Entry point: `apps/geo/src/main.rs`
-- Tests: `apps/geo/tests/cli.rs`
+- Built as a Swift Package executable
+- Uses `MapKit`, `CoreLocation`, and `Contacts`
+- `geocode` emits rich JSON payloads for capability inspection
+- `geocode-csv` uses the first Apple Maps result for enrichment
+- CSV parsing and writing are implemented in-process for portability within the Swift CLI

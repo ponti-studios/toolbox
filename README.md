@@ -1,6 +1,6 @@
 # CLI Tools Monorepo
 
-A polyglot monorepo for independent command-line tools built in Rust, Go, and Python.
+A polyglot monorepo for independent command-line tools built in Rust, Swift, Go, and Python.
 
 ## Overview
 
@@ -17,7 +17,7 @@ toolbox/
 │   ├── voidline/
 │   ├── costlens/
 │   ├── netdebug/
-│   │   └── chronicle/
+│   └── chronicle/
 ├── packages/
 │   └── cli-utils/
 ├── docs/
@@ -29,7 +29,7 @@ toolbox/
 
 | Tool | Language | Description |
 |------|----------|-------------|
-| [geo](./apps/geo/README.md) | Rust | Geolocation lookup and CSV geocoding |
+| [geo](./apps/geo/README.md) | Swift | Apple Maps geolocation lookup and CSV geocoding |
 | [gimme](./apps/gimme/README.md) | Rust | Fetch files from GitHub |
 | [voidline](./apps/voidline/README.md) | Rust | Frontmatter, calendar, and essay classification utilities |
 | [costlens](./apps/costlens/README.md) | Rust | LLM cost analysis |
@@ -38,14 +38,14 @@ toolbox/
 
 ## Shared Package
 
-- `packages/cli-utils` contains shared Rust utilities used across the workspace.
+- `packages/cli-utils` contains shared Rust utilities used across the Rust tools.
 
 ## Development
 
 ### Build everything
 
 ```bash
-cargo build --workspace
+just build
 ```
 
 ### Run the test suite
@@ -57,7 +57,7 @@ cargo test --workspace
 ### Run a specific tool
 
 ```bash
-cargo run -p geo -- geocode "New York"
+cd apps/geo && swift run geo -- geocode "New York"
 cargo run -p gimme -- owner/repo/file.txt@main
 cargo run -p voidline -- frontmatter walk
 cargo run -p costlens -- dashboard
@@ -74,7 +74,9 @@ pytest
 
 ## Release Notes
 
-- Rust tools are released from tags like `geo-v0.1.0`
+- Release tags follow the pattern `<cli>-v<version>`
+- `geo` release assets are macOS binaries built from the Swift package in `apps/geo`
+- Rust tools continue to use the Cargo workspace and shared release flow
 - `voidline` is the primary file-management and analysis CLI
 - Python tools follow their own package-specific workflows
 

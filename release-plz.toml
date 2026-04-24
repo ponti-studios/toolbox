@@ -16,10 +16,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 """
 
 [[package]]
-name = "geo"
-git_release_enable = true
-
-[[package]]
 name = "gimme"
 git_release_enable = true
 

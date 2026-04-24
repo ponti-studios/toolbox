@@ -2,6 +2,7 @@
 /debug
 /release
 /.cargo
+/dist
 Cargo.lock
 *.DS_Store
 *.swp
@@ -30,6 +31,9 @@ python/chronicle-engine/.ruff_cache/
 python/chronicle-engine/__pycache__/
 python/chronicle-engine/**/*.pyc
 python/chronicle-engine/.mypy_cache/
+
+# Swift local build artifacts
+apps/geo/.build/
 
 # Legacy archived source repos
 apps/legacy-costlens/.DS_Store

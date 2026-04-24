@@ -1,5 +1,5 @@
 class Geo < Formula
-  desc "Geolocation lookup and CSV geocoding CLI"
+  desc "Apple Maps geolocation lookup and CSV geocoding CLI"
   homepage "https://github.com/charlesponti/cli-tools"
   license "MIT"
 
@@ -15,6 +15,6 @@ class Geo < Formula
   end
 
   test do
-    assert_match "geolocation lookup", shell_output("#{bin}/geo --help")
+    assert_match "Apple Maps", shell_output("#{bin}/geo --help")
   end
 end

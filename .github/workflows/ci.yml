@@ -39,8 +39,24 @@ jobs:
       - name: Run tests
         run: cargo test --workspace
 
-      - name: Smoke test binaries
+      - name: Smoke test Rust binaries
         run: just smoke
+
+  geo:
+    name: Geo (Swift CLI)
+    runs-on: macos-14
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build geo
+        run: cd apps/geo && swift build
+
+      - name: Run geo tests
+        run: cd apps/geo && swift test
+
+      - name: Smoke test geo CLI
+        run: cd apps/geo && swift run geo -- --help
 
   chronicle:
     name: Chronicle (Python CLI)

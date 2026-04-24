@@ -7,6 +7,7 @@ use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 use walkdir::WalkDir;
 
+mod biz;
 mod cal;
 mod classify;
 
@@ -27,6 +28,10 @@ enum Commands {
     Cal {
         #[command(subcommand)]
         cmd: cal::CalCmd,
+    },
+    Biz {
+        #[command(subcommand)]
+        cmd: biz::BizCmd,
     },
     Classify {
         #[command(subcommand)]
@@ -1258,6 +1263,19 @@ fn main() -> Result<()> {
             cal::CalCmd::Inspect(opts) => cal::run_inspect(opts)?,
             cal::CalCmd::Stats(opts) => cal::run_stats(opts)?,
             cal::CalCmd::Doctor(opts) => cal::run_doctor(opts)?,
+        },
+        Commands::Biz { cmd } => match cmd {
+            biz::BizCmd::Init(opts) => biz::run_init(opts)?,
+            biz::BizCmd::Knobs(opts) => biz::run_knobs(opts)?,
+            biz::BizCmd::Scenario { cmd } => match cmd {
+                biz::ScenarioCmd::Create(opts) => biz::run_scenario_create(opts)?,
+                biz::ScenarioCmd::Set(opts) => biz::run_scenario_set(opts)?,
+                biz::ScenarioCmd::List(opts) => biz::run_scenario_list(opts)?,
+                biz::ScenarioCmd::Show(opts) => biz::run_scenario_show(opts)?,
+                biz::ScenarioCmd::Clone(opts) => biz::run_scenario_clone(opts)?,
+            },
+            biz::BizCmd::Run(opts) => biz::run_run(opts)?,
+            biz::BizCmd::Compare(opts) => biz::run_compare(opts)?,
         },
         Commands::Classify { cmd } => match cmd {
             classify::ClassifyCmd::Essays(opts) => classify::run_essays(opts)?,
