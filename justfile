@@ -6,18 +6,19 @@ build:
     cargo build --workspace
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geo ]; then (cd apps/geo && swift build); fi
 
-# Typecheck all Rust crates
-check:
-    cargo check --workspace --all-targets
+# Build specific Rust CLI
+build-cli CLI:
+    cargo build --release -p {{CLI}}
 
 # Build release for current platform
 build-release:
     cargo build --workspace --release
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geo ]; then (cd apps/geo && swift build -c release); fi
 
-# Build specific Rust CLI
-build-cli CLI:
-    cargo build --release -p {{CLI}}
+
+# Typecheck all Rust crates
+check:
+    cargo check --workspace --all-targets
 
 # Smoke test binaries via --help
 smoke:
