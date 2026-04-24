@@ -17,9 +17,23 @@ enum SQLiteCLIError: Error, LocalizedError {
     }
 }
 
+private actor SQLiteTableExistsCache {
+  private var values: [String: Bool] = [:]
+
+  func get(_ key: String) -> Bool? {
+    values[key]
+  }
+
+  func set(_ key: String, value: Bool) {
+    values[key] = value
+  }
+}
+
 enum SQLiteCLI {
-    static func fetchPlaces(dbPath: String) throws -> [PlaceRecord] {
-        guard try tableExists(dbPath: dbPath, name: "places") else {
+  private static let tableExistsCache = SQLiteTableExistsCache()
+
+  static func fetchPlaces(dbPath: String) async throws -> [PlaceRecord] {
+    guard try await tableExists(dbPath: dbPath, name: "places") else {
             GeoReviewLogger.log("places table not found; returning empty list")
             return []
         }
@@ -132,8 +146,57 @@ enum SQLiteCLI {
         }
     }
 
-    static func fetchAttempts(dbPath: String, placeID: Int) throws -> [PlaceGeocodeAttemptRecord] {
-        guard try tableExists(dbPath: dbPath, name: "place_geocode_attempts") else {
+    static func fetchPlaceSummary(dbPath: String, placeID: Int) throws -> PlaceRecord? {
+        let sql = """
+        SELECT
+          p.id,
+          p.name,
+          p.place_type,
+          p.url,
+          p.latitude,
+          p.longitude,
+          p.formatted_address,
+          p.city,
+          p.state,
+          p.postal_code,
+          p.country,
+          p.country_code,
+          p.geocoded_at,
+          NULL AS metadata,
+          p.created_at,
+          p.updated_at,
+          p.review_status,
+          p.review_reason,
+          p.review_query,
+          p.review_updated_at,
+          p.review_decision_at,
+          p.review_decision_source,
+          p.last_geocode_status,
+          p.last_geocode_query,
+          NULL AS last_geocode_result_summary,
+          (
+            SELECT COUNT(*)
+            FROM calendar_events ce
+            WHERE ce.place_id = p.id
+          ) AS event_count
+        FROM places p
+        WHERE p.id = \(placeID)
+        LIMIT 1;
+        """
+
+        let data = try run(arguments: ["-json", dbPath, sql])
+        guard !data.isEmpty else { return nil }
+
+        do {
+            return try JSONDecoder().decode([PlaceRecord].self, from: data).first
+        } catch {
+            let payload = String(data: data, encoding: .utf8) ?? "<non-utf8>"
+            throw SQLiteCLIError.invalidJSON(payload)
+        }
+    }
+
+    static func fetchAttempts(dbPath: String, placeID: Int) async throws -> [PlaceGeocodeAttemptRecord] {
+      guard try await tableExists(dbPath: dbPath, name: "place_geocode_attempts") else {
             return []
         }
 
@@ -141,7 +204,7 @@ enum SQLiteCLI {
         SELECT id, place_id, query, provider, status, result_summary, response_json, created_at
         FROM place_geocode_attempts
         WHERE place_id = \(placeID)
-        ORDER BY datetime(created_at) DESC, id DESC;
+        ORDER BY created_at DESC, id DESC;
         """
 
         let data = try run(arguments: ["-json", dbPath, sql])
@@ -291,12 +354,19 @@ enum SQLiteCLI {
         _ = try run(arguments: [dbPath, sql])
     }
 
-    static func tableExists(dbPath: String, name: String) throws -> Bool {
+    static func tableExists(dbPath: String, name: String) async throws -> Bool {
+      let key = "\(dbPath)::\(name)"
+      if let cached = await tableExistsCache.get(key) {
+        return cached
+      }
+
         let escaped = sqlLiteral(name)
         let sql = "SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = '\(escaped)' LIMIT 1;"
         let data = try run(arguments: [dbPath, sql])
         let output = String(data: data, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
-        return output == "1"
+      let exists = output == "1"
+      await tableExistsCache.set(key, value: exists)
+      return exists
     }
 
     private static func run(arguments: [String]) throws -> Data {
@@ -305,33 +375,20 @@ enum SQLiteCLI {
             throw SQLiteCLIError.sqlite3NotFound
         }
 
-        let fileManager = FileManager.default
-        let tempDirectory = fileManager.temporaryDirectory
-        let stdoutURL = tempDirectory.appendingPathComponent("geo-review-sqlite-stdout-\(UUID().uuidString).tmp")
-        let stderrURL = tempDirectory.appendingPathComponent("geo-review-sqlite-stderr-\(UUID().uuidString).tmp")
-        fileManager.createFile(atPath: stdoutURL.path, contents: nil)
-        fileManager.createFile(atPath: stderrURL.path, contents: nil)
-
-        let stdoutHandle = try FileHandle(forWritingTo: stdoutURL)
-        let stderrHandle = try FileHandle(forWritingTo: stderrURL)
-        defer {
-            try? stdoutHandle.close()
-            try? stderrHandle.close()
-            try? fileManager.removeItem(at: stdoutURL)
-            try? fileManager.removeItem(at: stderrURL)
-        }
+        let stdoutPipe = Pipe()
+        let stderrPipe = Pipe()
 
         let process = Process()
         process.executableURL = URL(fileURLWithPath: sqlite3Path)
         process.arguments = arguments
-        process.standardOutput = stdoutHandle
-        process.standardError = stderrHandle
+        process.standardOutput = stdoutPipe
+        process.standardError = stderrPipe
 
         try process.run()
         process.waitUntilExit()
 
-        let output = (try? Data(contentsOf: stdoutURL)) ?? Data()
-        let errorOutput = (try? Data(contentsOf: stderrURL)) ?? Data()
+        let output = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
+        let errorOutput = stderrPipe.fileHandleForReading.readDataToEndOfFile()
 
         guard process.terminationStatus == 0 else {
             let message = String(data: errorOutput, encoding: .utf8) ?? "sqlite3 exited with status \(process.terminationStatus)"

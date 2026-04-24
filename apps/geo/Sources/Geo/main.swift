@@ -475,75 +475,54 @@ struct Geo {
             phoneNumber: item.phoneNumber,
             url: item.url?.absoluteString,
             pointOfInterestCategory: item.pointOfInterestCategory?.rawValue,
-            placemark: placemarkPayload(from: item.placemark)
+            placemark: placemarkPayload(from: item)
         )
     }
 
-    static func placemarkPayload(from placemark: MKPlacemark) -> PlacemarkPayload {
-        let formattedAddressLines = placemark.postalAddress.map {
-            CNPostalAddressFormatter.string(from: $0, style: .mailingAddress)
-                .split(whereSeparator: \.isNewline)
-                .map(String.init)
-        }
+    static func placemarkPayload(from item: MKMapItem) -> PlacemarkPayload {
+        let addressRepresentations = item.addressRepresentations
+        let formattedAddressLines = addressRepresentations?
+            .fullAddress(includingRegion: true, singleLine: false)?
+            .split(whereSeparator: \.isNewline)
+            .map(String.init)
 
         return PlacemarkPayload(
-            title: placemark.title,
-            subtitle: placemark.subtitle,
-            coordinate: CoordinatePayload(placemark.coordinate),
-            location: placemark.location.map(LocationPayload.init),
-            timeZoneIdentifier: placemark.timeZone?.identifier,
-            region: placemark.region.map(RegionPayload.init),
-            areasOfInterest: placemark.areasOfInterest,
-            inlandWater: placemark.inlandWater,
-            ocean: placemark.ocean,
-            name: placemark.name,
-            country: placemark.country,
-            isoCountryCode: placemark.isoCountryCode,
-            administrativeArea: placemark.administrativeArea,
-            subAdministrativeArea: placemark.subAdministrativeArea,
-            locality: placemark.locality,
-            subLocality: placemark.subLocality,
-            thoroughfare: placemark.thoroughfare,
-            subThoroughfare: placemark.subThoroughfare,
-            postalCode: placemark.postalCode,
+            title: displayTitle(for: item),
+            subtitle: item.address?.shortAddress,
+            coordinate: CoordinatePayload(item.location.coordinate),
+            location: LocationPayload(item.location),
+            timeZoneIdentifier: item.timeZone?.identifier,
+            region: nil,
+            areasOfInterest: nil,
+            inlandWater: nil,
+            ocean: nil,
+            name: item.name,
+            country: addressRepresentations?.regionName,
+            isoCountryCode: nil,
+            administrativeArea: nil,
+            subAdministrativeArea: nil,
+            locality: addressRepresentations?.cityName,
+            subLocality: nil,
+            thoroughfare: item.address?.shortAddress,
+            subThoroughfare: nil,
+            postalCode: nil,
             formattedAddressLines: formattedAddressLines,
-            postalAddress: placemark.postalAddress.map(PostalAddressPayload.init)
+            postalAddress: nil
         )
     }
 
     static func displayTitle(for item: MKMapItem) -> String {
-        let placemark = item.placemark
-
-        let postalParts = [
-            placemark.subThoroughfare,
-            placemark.thoroughfare
+        let rawAddressParts: [String?] = [
+            item.address?.shortAddress,
+            item.addressRepresentations.flatMap { $0.cityWithContext(.full) }
         ]
-        .compactMap { $0 }
-        .joined(separator: " ")
-
-        let localityParts = [
-            placemark.locality,
-            placemark.administrativeArea,
-            placemark.postalCode,
-            placemark.country
-        ]
-        .compactMap { $0 }
-
-        let addressParts = [
-            postalParts.isEmpty ? nil : postalParts,
-            localityParts.isEmpty ? nil : localityParts.joined(separator: ", ")
-        ]
-        .compactMap { $0 }
+        let addressParts = rawAddressParts.compactMap { $0 }.filter { !$0.isEmpty }
 
         if let name = item.name, !name.isEmpty {
             if addressParts.isEmpty {
                 return name
             }
             return ([name] + addressParts).joined(separator: ", ")
-        }
-
-        if let title = placemark.title, !title.isEmpty {
-            return title
         }
 
         if !addressParts.isEmpty {

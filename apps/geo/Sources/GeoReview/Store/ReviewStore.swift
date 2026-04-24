@@ -20,9 +20,11 @@ final class ReviewStore: ObservableObject {
     @Published var isSaving = false
     @Published var errorMessage: String?
     @Published var successMessage: String?
-    @Published var mapRegion = MKCoordinateRegion(
-        center: CLLocationCoordinate2D(latitude: 39.5, longitude: -98.35),
-        span: MKCoordinateSpan(latitudeDelta: 55, longitudeDelta: 80)
+    @Published var mapPosition = MapCameraPosition.region(
+        MKCoordinateRegion(
+            center: CLLocationCoordinate2D(latitude: 39.5, longitude: -98.35),
+            span: MKCoordinateSpan(latitudeDelta: 55, longitudeDelta: 80)
+        )
     )
     @Published var mapRegionRevision = 0
 
@@ -49,7 +51,7 @@ final class ReviewStore: ObservableObject {
 
         Task {
             do {
-                let rows = try SQLiteCLI.fetchPlaces(dbPath: dbPath)
+                let rows = try await SQLiteCLI.fetchPlaces(dbPath: dbPath)
                 await MainActor.run {
                     self.places = rows
                     self.applyDerivedState()
@@ -99,9 +101,11 @@ final class ReviewStore: ObservableObject {
         Task {
             do {
                 try SQLiteCLI.updateReviewQuery(dbPath: dbPath, placeID: placeID, reviewQuery: trimmed)
-                let rows = try SQLiteCLI.fetchPlaces(dbPath: dbPath)
+                let updatedPlace = try SQLiteCLI.fetchPlaceSummary(dbPath: dbPath, placeID: placeID)
                 await MainActor.run {
-                    self.places = rows
+                    if let updatedPlace {
+                        self.upsertPlace(updatedPlace)
+                    }
                     self.selectedPlaceID = placeID
                     self.successMessage = "Saved review query"
                     self.isSaving = false
@@ -134,28 +138,18 @@ final class ReviewStore: ObservableObject {
         Task {
             do {
                 try SQLiteCLI.acceptResult(dbPath: dbPath, placeID: placeID, query: query, result: result)
-                let rows = try SQLiteCLI.fetchPlaces(dbPath: dbPath)
+                let updatedPlace = try SQLiteCLI.fetchPlaceSummary(dbPath: dbPath, placeID: placeID)
                 await MainActor.run {
-                    self.places = rows
+                    if let updatedPlace {
+                        self.upsertPlace(updatedPlace)
+                    }
                     self.successMessage = "Updated place from Apple Maps"
                     self.isSaving = false
                     self.applyDerivedState()
                     self.selectedPlaceID = nil
+                    self.selectedAttempts = []
+                    self.selectedPlaceDetail = nil
                     self.reconcileSelection()
-                }
-                if let selectedPlaceID = await MainActor.run(resultType: Int?.self, body: { self.selectedPlaceID }) {
-                    async let detail = SQLiteCLI.fetchPlaceDetail(dbPath: dbPath, placeID: selectedPlaceID)
-                    async let attempts = SQLiteCLI.fetchAttempts(dbPath: dbPath, placeID: selectedPlaceID)
-                    let (loadedDetail, loadedAttempts) = try await (detail, attempts)
-                    await MainActor.run {
-                        self.selectedPlaceDetail = loadedDetail
-                        self.selectedAttempts = loadedAttempts
-                    }
-                } else {
-                    await MainActor.run {
-                        self.selectedPlaceDetail = nil
-                        self.selectedAttempts = []
-                    }
                 }
             } catch {
                 await MainActor.run {
@@ -176,28 +170,18 @@ final class ReviewStore: ObservableObject {
         Task {
             do {
                 try SQLiteCLI.markNotAPlace(dbPath: dbPath, placeID: placeID, query: query)
-                let rows = try SQLiteCLI.fetchPlaces(dbPath: dbPath)
+                let updatedPlace = try SQLiteCLI.fetchPlaceSummary(dbPath: dbPath, placeID: placeID)
                 await MainActor.run {
-                    self.places = rows
+                    if let updatedPlace {
+                        self.upsertPlace(updatedPlace)
+                    }
                     self.successMessage = "Marked as not a place"
                     self.isSaving = false
                     self.applyDerivedState()
                     self.selectedPlaceID = nil
+                    self.selectedAttempts = []
+                    self.selectedPlaceDetail = nil
                     self.reconcileSelection()
-                }
-                if let selectedPlaceID = await MainActor.run(resultType: Int?.self, body: { self.selectedPlaceID }) {
-                    async let detail = SQLiteCLI.fetchPlaceDetail(dbPath: dbPath, placeID: selectedPlaceID)
-                    async let attempts = SQLiteCLI.fetchAttempts(dbPath: dbPath, placeID: selectedPlaceID)
-                    let (loadedDetail, loadedAttempts) = try await (detail, attempts)
-                    await MainActor.run {
-                        self.selectedPlaceDetail = loadedDetail
-                        self.selectedAttempts = loadedAttempts
-                    }
-                } else {
-                    await MainActor.run {
-                        self.selectedPlaceDetail = nil
-                        self.selectedAttempts = []
-                    }
                 }
             } catch {
                 await MainActor.run {
@@ -230,9 +214,11 @@ final class ReviewStore: ObservableObject {
 
     func recenterMap(on place: PlaceRecord) {
         guard let coordinate = place.coordinate else { return }
-        mapRegion = MKCoordinateRegion(
-            center: coordinate,
-            span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+        mapPosition = .region(
+            MKCoordinateRegion(
+                center: coordinate,
+                span: MKCoordinateSpan(latitudeDelta: 0.08, longitudeDelta: 0.08)
+            )
         )
         mapRegionRevision += 1
     }
@@ -241,9 +227,11 @@ final class ReviewStore: ObservableObject {
         let coords = visiblePlaces.compactMap(\.coordinate)
         guard !coords.isEmpty else { return }
         if coords.count == 1 {
-            mapRegion = MKCoordinateRegion(
-                center: coords[0],
-                span: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)
+            mapPosition = .region(
+                MKCoordinateRegion(
+                    center: coords[0],
+                    span: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)
+                )
             )
             mapRegionRevision += 1
             return
@@ -261,7 +249,7 @@ final class ReviewStore: ObservableObject {
             latitudeDelta: max((maxLat - minLat) * 1.25, 0.2),
             longitudeDelta: max((maxLon - minLon) * 1.25, 0.2)
         )
-        mapRegion = MKCoordinateRegion(center: center, span: span)
+        mapPosition = .region(MKCoordinateRegion(center: center, span: span))
         mapRegionRevision += 1
     }
 
@@ -289,7 +277,7 @@ final class ReviewStore: ObservableObject {
             matchesFilter(place) && matchesSearch(place)
         }
         visiblePlaces = filtered
-        visibleMapItems = places.compactMap { place in
+        visibleMapItems = filtered.compactMap { place in
             guard let coordinate = place.coordinate else { return nil }
             return MapMarkerItem(id: place.id, name: place.name, reviewStatus: place.reviewStatus, coordinate: coordinate)
         }
@@ -313,9 +301,11 @@ final class ReviewStore: ObservableObject {
         let coords = visibleMapItems.map(\.coordinate)
         guard !coords.isEmpty else { return }
         if coords.count == 1 {
-            mapRegion = MKCoordinateRegion(
-                center: coords[0],
-                span: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)
+            mapPosition = .region(
+                MKCoordinateRegion(
+                    center: coords[0],
+                    span: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)
+                )
             )
             mapRegionRevision += 1
             return
@@ -333,7 +323,7 @@ final class ReviewStore: ObservableObject {
             latitudeDelta: max((maxLat - minLat) * 1.25, 0.2),
             longitudeDelta: max((maxLon - minLon) * 1.25, 0.2)
         )
-        mapRegion = MKCoordinateRegion(center: center, span: span)
+        mapPosition = .region(MKCoordinateRegion(center: center, span: span))
         mapRegionRevision += 1
     }
 
@@ -355,6 +345,39 @@ final class ReviewStore: ObservableObject {
                     self.errorMessage = error.localizedDescription
                 }
             }
+        }
+    }
+
+    private func upsertPlace(_ place: PlaceRecord) {
+        if let existingIndex = places.firstIndex(where: { $0.id == place.id }) {
+            places[existingIndex] = place
+        } else {
+            places.append(place)
+        }
+        sortPlacesInMemory()
+    }
+
+    private func sortPlacesInMemory() {
+        places.sort { lhs, rhs in
+            let lhsRank = reviewStatusRank(lhs.reviewStatus)
+            let rhsRank = reviewStatusRank(rhs.reviewStatus)
+            if lhsRank != rhsRank {
+                return lhsRank < rhsRank
+            }
+            if lhs.eventCount != rhs.eventCount {
+                return lhs.eventCount > rhs.eventCount
+            }
+            return lhs.id < rhs.id
+        }
+    }
+
+    private func reviewStatusRank(_ status: String?) -> Int {
+        switch status {
+        case "needs_review": return 0
+        case "no_match": return 1
+        case "not_a_place": return 2
+        case nil: return 3
+        default: return 4
         }
     }
 

@@ -24,7 +24,7 @@ struct PlaceDetailView: View {
         .background(Color(nsColor: .textBackgroundColor))
         .clipShape(RoundedRectangle(cornerRadius: 24, style: .continuous))
         .onAppear(perform: resetState)
-        .onChange(of: place.id) { _ in resetState() }
+        .onChange(of: place.id) { resetState() }
     }
 
     private var headerSection: some View {

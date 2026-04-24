@@ -32,10 +32,10 @@ struct ContentView: View {
                 store.loadPlaces()
             }
         }
-        .onChange(of: store.reviewFilter) { _ in
+        .onChange(of: store.reviewFilter) {
             store.filterDidChange()
         }
-        .onChange(of: store.searchText) { _ in
+        .onChange(of: store.searchText) {
             store.scheduleSearchUpdate()
         }
     }
