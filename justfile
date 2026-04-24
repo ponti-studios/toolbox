@@ -4,7 +4,7 @@ default:
 # Build all CLIs
 build:
     cargo build --workspace
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geo ]; then (cd apps/geo && swift build); fi
+    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift build); fi
 
 # Build specific Rust CLI
 build-cli CLI:
@@ -13,7 +13,7 @@ build-cli CLI:
 # Build release for current platform
 build-release:
     cargo build --workspace --release
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geo ]; then (cd apps/geo && swift build -c release); fi
+    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift build -c release); fi
 
 
 # Typecheck all Rust crates
@@ -22,11 +22,11 @@ check:
 
 # Smoke test binaries via --help
 smoke:
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geo ]; then (cd apps/geo && swift run geo -- --help); else echo "Skipping geo smoke test on non-macOS"; fi
-    cargo run -p gimme -- --help
-    cargo run -p voidline -- --help
-    cargo run -p costlens -- --help
-    cargo run -p netdebug -- --help
+    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift run geokit -- --help); else echo "Skipping geokit smoke test on non-macOS"; fi
+    cargo run -p gitkit -- --help
+    cargo run -p filekit -- --help
+    cargo run -p costkit -- --help
+    cargo run -p netkit -- --help
 
 # Package a Rust binary for a specific target
 package-cli CLI TARGET:
@@ -37,7 +37,7 @@ package-cli CLI TARGET:
 # Run tests
 test:
     cargo test --workspace
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geo ]; then (cd apps/geo && swift test); fi
+    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift test); fi
 
 # Run clippy lints
 lint:
@@ -52,13 +52,13 @@ fmt-check:
     cargo fmt --all --check
 
 # Run a specific Rust CLI
-run CLI="gimme":
+run CLI="gitkit":
     cargo run -p {{CLI}} -- --help
 
 # Clean build artifacts
 clean:
     cargo clean
-    rm -rf apps/geo/.build
+    rm -rf apps/geokit/.build
 
 # Add a new Rust CLI
 new-cli NAME:
@@ -72,16 +72,16 @@ symlink:
     mise_shims="${HOME}/.local/share/mise/shims"
     mkdir -p "$mise_shims"
 
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geo ]; then
-        echo "Building geo..."
-        (cd apps/geo && swift build -c release)
-        ln -sf "$(pwd)/apps/geo/.build/release/geo" "$mise_shims/geo"
-        echo "  geo -> $mise_shims/geo"
+    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then
+        echo "Building geokit..."
+        (cd apps/geokit && swift build -c release)
+        ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
+        echo "  geokit -> $mise_shims/geokit"
     else
-        echo "Skipping geo symlink on non-macOS"
+        echo "Skipping geokit symlink on non-macOS"
     fi
 
-    clis="gimme voidline costlens netdebug"
+    clis="gitkit filekit costkit netkit"
     for cli in $clis; do
         source="target/release/$cli"
         destination="$mise_shims/$cli"
@@ -94,7 +94,7 @@ symlink:
         echo "  $cli -> $destination"
     done
 
-# Build and link the unified CLI setup (voidline + chronicle)
+# Build and link the unified CLI setup (filekit + timekit)
 setup:
     #!/usr/bin/env bash
     set -e
@@ -105,35 +105,35 @@ setup:
     mise_shims="${HOME}/.local/share/mise/shims"
     mkdir -p "$mise_shims"
 
-    echo "Building voidline..."
-    cargo build -p voidline --release
-    ln -sf "$(pwd)/target/release/voidline" "$mise_shims/voidline"
-    echo "  voidline -> $mise_shims/voidline"
+    echo "Building filekit..."
+    cargo build -p filekit --release
+    ln -sf "$(pwd)/target/release/filekit" "$mise_shims/filekit"
+    echo "  filekit -> $mise_shims/filekit"
 
-    echo "Setting up chronicle..."
-    if [ ! -d "apps/chronicle/.venv" ]; then
-        python3 -m venv apps/chronicle/.venv
+    echo "Setting up timekit..."
+    if [ ! -d "apps/timekit/.venv" ]; then
+        python3 -m venv apps/timekit/.venv
     fi
-    (cd apps/chronicle && . .venv/bin/activate && python -m pip install -e .)
-    ln -sf "$(pwd)/apps/chronicle/.venv/bin/chronicle" "$mise_shims/chronicle"
-    echo "  chronicle -> $mise_shims/chronicle"
+    (cd apps/timekit && . .venv/bin/activate && python -m pip install -e .)
+    ln -sf "$(pwd)/apps/timekit/.venv/bin/timekit" "$mise_shims/timekit"
+    echo "  timekit -> $mise_shims/timekit"
 
-# Build geo in release mode
-build-geo:
-    cd apps/geo && swift build -c release
+# Build geokit in release mode
+build-geokit:
+    cd apps/geokit && swift build -c release
 
-# Run geo with a query
-run-geo QUERY:
-    cd apps/geo && swift run geo -- {{QUERY}}
+# Run geokit with a query
+run-geokit QUERY:
+    cd apps/geokit && swift run geokit -- {{QUERY}}
 
-# Package geo for the current macOS architecture
-package-geo:
+# Package geokit for the current macOS architecture
+package-geokit:
     #!/usr/bin/env bash
     set -e
-    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for package-geo"; exit 1; }
+    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for package-geokit"; exit 1; }
 
     mkdir -p dist
-    (cd apps/geo && swift build -c release)
+    (cd apps/geokit && swift build -c release)
 
     case "$(uname -m)" in
       arm64) target="aarch64-apple-darwin" ;;
@@ -141,23 +141,23 @@ package-geo:
       *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
     esac
 
-    artifact="dist/geo-${target}.tar.gz"
-    tar -C apps/geo/.build/release -czf "$artifact" geo
+    artifact="dist/geokit-${target}.tar.gz"
+    tar -C apps/geokit/.build/release -czf "$artifact" geokit
     echo "Wrote $artifact"
 
-# Install geo to mise shims
-install-geo:
+# Install geokit to mise shims
+install-geokit:
     #!/usr/bin/env bash
     set -e
-    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for install-geo"; exit 1; }
+    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for install-geokit"; exit 1; }
 
     mise_shims="${HOME}/.local/share/mise/shims"
     mkdir -p "$mise_shims"
 
-    echo "Building geo..."
-    (cd apps/geo && swift build -c release)
-    ln -sf "$(pwd)/apps/geo/.build/release/geo" "$mise_shims/geo"
-    echo "  geo -> $mise_shims/geo"
+    echo "Building geokit..."
+    (cd apps/geokit && swift build -c release)
+    ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
+    echo "  geokit -> $mise_shims/geokit"
 
 # Alias for setup
 install: setup
@@ -166,8 +166,8 @@ install: setup
 clean-setup:
     #!/usr/bin/env bash
     set -e
-    rm -f "${HOME}/.local/share/mise/shims/voidline"
-    rm -f "${HOME}/.local/share/mise/shims/chronicle"
-    rm -f "${HOME}/.local/share/mise/shims/geo"
-    rm -rf apps/chronicle/.venv
-    echo "Removed setup artifacts for voidline, chronicle, and geo"
+    rm -f "${HOME}/.local/share/mise/shims/filekit"
+    rm -f "${HOME}/.local/share/mise/shims/timekit"
+    rm -f "${HOME}/.local/share/mise/shims/geokit"
+    rm -rf apps/timekit/.venv
+    echo "Removed setup artifacts for filekit, timekit, and geokit"

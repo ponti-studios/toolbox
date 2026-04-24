@@ -1,4 +1,6 @@
 .tmp
+.ruff_cache
+
 /target
 /debug
 /release
@@ -18,29 +20,29 @@ Cargo.lock
 # Chronicle local artifacts
 /research/
 /Formula/
-apps/chronicle/.env
-apps/chronicle/*.db
-apps/chronicle/*.sqlite
-apps/chronicle/*.sqlite3
-apps/chronicle/*.json
-apps/chronicle/.credentials/
-apps/chronicle/.ruff_cache/
-apps/chronicle/.venv/
-python/chronicle-engine/.venv/
-python/chronicle-engine/.pytest_cache/
-python/chronicle-engine/.ruff_cache/
-python/chronicle-engine/__pycache__/
-python/chronicle-engine/**/*.pyc
-python/chronicle-engine/.mypy_cache/
+apps/timekit/.env
+apps/timekit/*.db
+apps/timekit/*.sqlite
+apps/timekit/*.sqlite3
+apps/timekit/*.json
+apps/timekit/.credentials/
+apps/timekit/.ruff_cache/
+apps/timekit/.venv/
+python/timekit-engine/.venv/
+python/timekit-engine/.pytest_cache/
+python/timekit-engine/.ruff_cache/
+python/timekit-engine/__pycache__/
+python/timekit-engine/**/*.pyc
+python/timekit-engine/.mypy_cache/
 
 # Swift local build artifacts
-apps/geo/.build/
+apps/geokit/.build/
 
 # Legacy archived source repos
-apps/legacy-costlens/.DS_Store
-apps/legacy-costlens/_data/.DS_Store
-apps/legacy-costlens/src/costlens/__pycache__/
-apps/legacy-voidline/.data/
-apps/legacy-voidline/.env.local
-apps/legacy-voidline/bin/
-apps/legacy-voidline/.vscode/
+apps/legacy-costkit/.DS_Store
+apps/legacy-costkit/_data/.DS_Store
+apps/legacy-costkit/src/costkit/__pycache__/
+apps/legacy-filekit/.data/
+apps/legacy-filekit/.env.local
+apps/legacy-filekit/bin/
+apps/legacy-filekit/.vscode/

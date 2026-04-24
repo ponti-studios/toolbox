@@ -42,24 +42,24 @@ jobs:
       - name: Smoke test Rust binaries
         run: just smoke
 
-  geo:
-    name: Geo (Swift CLI)
+  geokit:
+    name: Geokit (Swift CLI)
     runs-on: macos-14
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build geo
-        run: cd apps/geo && swift build
+      - name: Build geokit
+        run: cd apps/geokit && swift build
 
-      - name: Run geo tests
-        run: cd apps/geo && swift test
+      - name: Run geokit tests
+        run: cd apps/geokit && swift test
 
-      - name: Smoke test geo CLI
-        run: cd apps/geo && swift run geo -- --help
+      - name: Smoke test geokit CLI
+        run: cd apps/geokit && swift run geokit -- --help
 
-  chronicle:
-    name: Chronicle (Python CLI)
+  timekit:
+    name: Timekit (Python CLI)
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -70,11 +70,11 @@ jobs:
         with:
           python-version: '3.12'
 
-      - name: Install chronicle
-        run: python -m pip install ./apps/chronicle
+      - name: Install timekit
+        run: python -m pip install ./apps/timekit
 
-      - name: Smoke test chronicle CLI
-        run: chronicle --help
+      - name: Smoke test timekit CLI
+        run: timekit --help
 
   essay-classifier:
     name: Essay Classifier (Go)

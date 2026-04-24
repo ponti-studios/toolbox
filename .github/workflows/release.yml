@@ -42,30 +42,30 @@ jobs:
         uses: actions/checkout@v4
 
       - name: Install Rust
-        if: needs.prepare.outputs.package != 'geo'
+        if: needs.prepare.outputs.package != 'geokit'
         uses: dtolnay/rust-toolchain@stable
         with:
           targets: ${{ matrix.target }}
 
       - name: Cache cargo
-        if: needs.prepare.outputs.package != 'geo'
+        if: needs.prepare.outputs.package != 'geokit'
         uses: Swatinem/rust-cache@v2
 
       - name: Build release binary (Rust)
-        if: needs.prepare.outputs.package != 'geo'
+        if: needs.prepare.outputs.package != 'geokit'
         run: cargo build -p ${{ needs.prepare.outputs.package }} --release --target ${{ matrix.target }}
 
-      - name: Build release binary (geo Swift)
-        if: needs.prepare.outputs.package == 'geo'
-        run: cd apps/geo && swift build -c release
+      - name: Build release binary (geokit Swift)
+        if: needs.prepare.outputs.package == 'geokit'
+        run: cd apps/geokit && swift build -c release
 
       - name: Archive release binary (Rust)
-        if: needs.prepare.outputs.package != 'geo'
+        if: needs.prepare.outputs.package != 'geokit'
         run: tar -C target/${{ matrix.target }}/release -czf ${{ needs.prepare.outputs.package }}-${{ matrix.target }}.tar.gz ${{ needs.prepare.outputs.package }}
 
-      - name: Archive release binary (geo Swift)
-        if: needs.prepare.outputs.package == 'geo'
-        run: tar -C apps/geo/.build/release -czf geo-${{ matrix.target }}.tar.gz geo
+      - name: Archive release binary (geokit Swift)
+        if: needs.prepare.outputs.package == 'geokit'
+        run: tar -C apps/geokit/.build/release -czf geokit-${{ matrix.target }}.tar.gz geokit
 
       - name: Generate checksum
         run: shasum -a 256 ${{ needs.prepare.outputs.package }}-${{ matrix.target }}.tar.gz > ${{ needs.prepare.outputs.package }}-${{ matrix.target }}.tar.gz.sha256

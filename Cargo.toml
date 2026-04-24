@@ -1,11 +1,11 @@
 [workspace]
 resolver = "2"
 members = [
-    "apps/gimme",
-    "apps/voidline",
-    "apps/costlens",
-    "apps/netdebug",
-    "packages/cli-utils",
+    "apps/gitkit",
+    "apps/filekit",
+    "apps/costkit",
+    "apps/netkit",
+    "packages/files",
 ]
 
 [workspace.package]
@@ -23,6 +23,6 @@ serde_json = "1"
 tokio = { version = "1", features = ["full"] }
 reqwest = { version = "0.12", features = ["json"] }
 thiserror = "2"
-cli-utils = { path = "packages/cli-utils" }
+files = { path = "packages/files" }
 walkdir = "2"
 refinery = { version = "0.9", features = ["rusqlite", "rusqlite-bundled"] }
