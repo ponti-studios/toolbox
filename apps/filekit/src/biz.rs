@@ -5,7 +5,7 @@ use serde::Serialize;
 use sha2::{Digest, Sha256};
 use std::collections::BTreeMap;
 use std::fs;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(clap::Subcommand)]
@@ -513,7 +513,7 @@ fn get_db_path(cli_override: &Option<PathBuf>) -> PathBuf {
     base.join(".hominem").join("db.sqlite")
 }
 
-fn ensure_parent_dir(path: &PathBuf) -> Result<()> {
+fn ensure_parent_dir(path: &Path) -> Result<()> {
     if let Some(parent) = path.parent() {
         fs::create_dir_all(parent)?;
     }
