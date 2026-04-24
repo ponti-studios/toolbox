@@ -64,23 +64,28 @@ geo geocode --limit 3 "coffee near Apple Park"
 
 ### `geo-review` - Native macOS review UI for `place_review_candidates`
 
-A separate executable target, `geo-review`, opens a SwiftUI macOS app for browsing and editing review candidates directly from `db.sqlite`.
+A separate executable target, `geo-review`, opens a SwiftUI macOS app for browsing and curating places directly from `~/.hominem/db.sqlite`.
 
 ```bash
-swift run geo-review -- --db /path/to/db.sqlite
+swift run geo-review
 ```
 
-If `--db` is omitted, `geo-review` defaults to `./db.sqlite` from the current working directory.
+`geo-review` always uses `$HOME/.hominem/db.sqlite` and creates the file if it does not already exist.
 
 Current capabilities:
 
-- loads all rows from `place_review_candidates`
-- shows list + detail UI for records needing review
-- displays canonical place name, current query, result summary, and metadata
-- lets you edit and save `current_query` back to SQLite
-- supports in-app refresh and text filtering
+- reads directly from `places`
+- filters by review state (`needs_review`, `ok`, `no_match`, `not_a_place`, `unknown`)
+- supports text search across names, queries, and addresses
+- shows filtered places on a MapKit map with markers
+- displays an editorial place detail view
+- lets you edit and save `places.review_query`
+- retries Apple Maps geocoding for the selected place
+- renders Apple Maps matches as selection cards
+- `Use This Place` writes the selected result back to `places`
+- accepted matches are logged in `place_geocode_attempts`
 
-This is intended to be the manual review surface, while the `geo` CLI remains the automation/batch tool.
+This is now the main manual review and curation surface, while the `geo` CLI remains the automation/batch tool.
 
 ---
 
@@ -135,7 +140,7 @@ cd apps/geo && swift run geo -- geocode "New York"
 
 # Run binary directly
 ./apps/geo/.build/debug/geo geocode "New York"
-./apps/geo/.build/debug/geo-review --db /path/to/db.sqlite
+./apps/geo/.build/debug/geo-review
 
 # Install globally via repo helper
 just install-geo
