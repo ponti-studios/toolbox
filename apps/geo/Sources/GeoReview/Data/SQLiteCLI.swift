@@ -132,7 +132,7 @@ enum SQLiteCLI {
         }
     }
 
-    static func fetchAttempts(dbPath: String, placeID: Int) throws -> [PlaceGeocodeAttempt] {
+    static func fetchAttempts(dbPath: String, placeID: Int) throws -> [PlaceGeocodeAttemptRecord] {
         guard try tableExists(dbPath: dbPath, name: "place_geocode_attempts") else {
             return []
         }
@@ -148,7 +148,7 @@ enum SQLiteCLI {
         guard !data.isEmpty else { return [] }
 
         do {
-            return try JSONDecoder().decode([PlaceGeocodeAttempt].self, from: data)
+            return try JSONDecoder().decode([PlaceGeocodeAttemptRecord].self, from: data)
         } catch {
             let payload = String(data: data, encoding: .utf8) ?? "<non-utf8>"
             throw SQLiteCLIError.invalidJSON(payload)

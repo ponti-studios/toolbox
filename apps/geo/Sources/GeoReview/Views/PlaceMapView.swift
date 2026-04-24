@@ -11,9 +11,9 @@ struct PlaceMapView: View {
                     Image(systemName: "map")
                         .font(.system(size: 28))
                         .foregroundStyle(.secondary)
-                    Text("No mapped places in this filter")
+                    Text("No geocoded places available")
                         .font(.headline)
-                    Text("Try changing the review filter or resolve more places to add coordinates.")
+                    Text("Places will appear here once records have coordinates.")
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)

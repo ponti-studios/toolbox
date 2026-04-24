@@ -12,10 +12,10 @@ final class ReviewStore: ObservableObject {
     @Published var selectedPlaceID: Int?
     @Published var hoveredPlaceID: Int?
     @Published var selectedPlaceDetail: PlaceRecord?
-    @Published var selectedAttempts: [PlaceGeocodeAttempt] = []
+    @Published var selectedAttempts: [PlaceGeocodeAttemptRecord] = []
     @Published var searchText = ""
     @Published var debouncedSearchText = ""
-    @Published var reviewFilter: ReviewFilter = .needsReview
+    @Published var reviewFilter: ReviewFilter = .all
     @Published var isLoading = false
     @Published var isSaving = false
     @Published var errorMessage: String?
@@ -55,8 +55,8 @@ final class ReviewStore: ObservableObject {
                     self.applyDerivedState()
                     self.reconcileSelection()
                     self.isLoading = false
-                    if let selected = self.selectedPlace, selected.coordinate == nil {
-                        self.recenterMapToFilteredPlaces()
+                    if self.selectedPlace == nil {
+                        self.recenterMapToAllMappablePlaces()
                     }
                 }
                 if let selectedPlaceID = await MainActor.run(resultType: Int?.self, body: { self.selectedPlaceID }) {
@@ -226,7 +226,6 @@ final class ReviewStore: ObservableObject {
         hoveredPlaceID = nil
         selectedPlaceDetail = nil
         selectedAttempts = []
-        recenterMapToFilteredPlaces()
     }
 
     func recenterMap(on place: PlaceRecord) {
@@ -276,11 +275,6 @@ final class ReviewStore: ObservableObject {
                 self.debouncedSearchText = latest
                 self.applyDerivedState()
                 self.reconcileSelection()
-                if let selectedPlace = self.selectedPlace, selectedPlace.coordinate != nil {
-                    self.recenterMap(on: selectedPlace)
-                } else {
-                    self.recenterMapToFilteredPlaces()
-                }
             }
         }
     }
@@ -288,11 +282,6 @@ final class ReviewStore: ObservableObject {
     func filterDidChange() {
         applyDerivedState()
         reconcileSelection()
-        if let selectedPlace, selectedPlace.coordinate != nil {
-            recenterMap(on: selectedPlace)
-        } else {
-            recenterMapToFilteredPlaces()
-        }
     }
 
     private func applyDerivedState() {
@@ -300,7 +289,7 @@ final class ReviewStore: ObservableObject {
             matchesFilter(place) && matchesSearch(place)
         }
         visiblePlaces = filtered
-        visibleMapItems = filtered.compactMap { place in
+        visibleMapItems = places.compactMap { place in
             guard let coordinate = place.coordinate else { return nil }
             return MapMarkerItem(id: place.id, name: place.name, reviewStatus: place.reviewStatus, coordinate: coordinate)
         }
@@ -312,15 +301,40 @@ final class ReviewStore: ObservableObject {
 
     private func reconcileSelection() {
         if let selectedPlaceID, visiblePlaces.contains(where: { $0.id == selectedPlaceID }) {
-            if let selectedPlace = places.first(where: { $0.id == selectedPlaceID }), let _ = selectedPlace.coordinate {
-                recenterMap(on: selectedPlace)
-            }
             return
         }
 
         selectedPlaceID = nil
         selectedAttempts = []
         selectedPlaceDetail = nil
+    }
+
+    func recenterMapToAllMappablePlaces() {
+        let coords = visibleMapItems.map(\.coordinate)
+        guard !coords.isEmpty else { return }
+        if coords.count == 1 {
+            mapRegion = MKCoordinateRegion(
+                center: coords[0],
+                span: MKCoordinateSpan(latitudeDelta: 0.12, longitudeDelta: 0.12)
+            )
+            mapRegionRevision += 1
+            return
+        }
+
+        let latitudes = coords.map(\.latitude)
+        let longitudes = coords.map(\.longitude)
+        let minLat = latitudes.min() ?? 0
+        let maxLat = latitudes.max() ?? 0
+        let minLon = longitudes.min() ?? 0
+        let maxLon = longitudes.max() ?? 0
+
+        let center = CLLocationCoordinate2D(latitude: (minLat + maxLat) / 2, longitude: (minLon + maxLon) / 2)
+        let span = MKCoordinateSpan(
+            latitudeDelta: max((maxLat - minLat) * 1.25, 0.2),
+            longitudeDelta: max((maxLon - minLon) * 1.25, 0.2)
+        )
+        mapRegion = MKCoordinateRegion(center: center, span: span)
+        mapRegionRevision += 1
     }
 
     private func loadSelectedData(for placeID: Int) {

@@ -2,19 +2,31 @@ import SwiftUI
 
 struct ContentView: View {
     @EnvironmentObject private var store: ReviewStore
-    @State private var columnVisibility: NavigationSplitViewVisibility = .doubleColumn
 
     var body: some View {
-        NavigationSplitView(columnVisibility: $columnVisibility) {
-            sidebarPanel
-        } content: {
-            PlaceMapView()
-                .environmentObject(store)
-                .navigationTitle("Atlas")
-        } detail: {
-            detailPanel
+        Group {
+            if store.selectedPlace != nil {
+                NavigationSplitView {
+                    sidebarPanel
+                } content: {
+                    PlaceMapView()
+                        .environmentObject(store)
+                        .navigationTitle("Atlas")
+                } detail: {
+                    detailPanel
+                }
+                .navigationSplitViewStyle(.balanced)
+            } else {
+                NavigationSplitView {
+                    sidebarPanel
+                } detail: {
+                    PlaceMapView()
+                        .environmentObject(store)
+                        .navigationTitle("Atlas")
+                }
+                .navigationSplitViewStyle(.balanced)
+            }
         }
-        .navigationSplitViewStyle(.balanced)
         .task {
             if store.places.isEmpty && !store.isLoading {
                 store.loadPlaces()
@@ -25,9 +37,6 @@ struct ContentView: View {
         }
         .onChange(of: store.searchText) { _ in
             store.scheduleSearchUpdate()
-        }
-        .onChange(of: store.selectedPlaceID) { newValue in
-            columnVisibility = newValue == nil ? .doubleColumn : .all
         }
     }
 
@@ -70,6 +79,8 @@ struct ContentView: View {
             List(selection: Binding(get: { store.selectedPlaceID }, set: { newValue in
                 if let newValue {
                     store.selectPlace(newValue, source: .sidebar)
+                } else {
+                    store.clearSelection()
                 }
             })) {
                 ForEach(store.visiblePlaces) { place in
@@ -104,21 +115,12 @@ struct ContentView: View {
             } else if store.isLoading {
                 VStack(spacing: 12) {
                     ProgressView()
-                    Text("Loading places…")
+                    Text("Loading place…")
                         .foregroundStyle(.secondary)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
             } else {
-                VStack(spacing: 12) {
-                    Image(systemName: "mappin.and.ellipse")
-                        .font(.system(size: 32))
-                        .foregroundStyle(.secondary)
-                    Text("No places available")
-                        .font(.headline)
-                    Text("The app reads directly from ~/.hominem/db.sqlite.")
-                        .foregroundStyle(.secondary)
-                }
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                EmptyView()
             }
         }
         .navigationTitle(store.selectedPlace?.name ?? "Place")
