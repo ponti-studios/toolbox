@@ -24,10 +24,3 @@ dist/
 # Environment files
 .env
 .env.local
-
-# Timekit local artifacts
-apps/timekit/*.db
-apps/timekit/*.sqlite
-apps/timekit/*.sqlite3
-apps/timekit/*.json
-apps/timekit/.credentials/
