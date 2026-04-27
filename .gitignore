@@ -1,3 +1,4 @@
+.build
 .tmp
 .ruff_cache
 
@@ -37,6 +38,8 @@ python/timekit-engine/.mypy_cache/
 
 # Swift local build artifacts
 apps/geokit/.build/
+apps/timekit/.build/
+apps/timekit/.swiftpm/
 
 # Legacy archived source repos
 apps/legacy-costkit/.DS_Store

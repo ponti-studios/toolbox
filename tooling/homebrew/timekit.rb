@@ -1,14 +1,13 @@
 class Timekit < Formula
-  desc "Calendar intelligence CLI for local-first Google Calendar enrichment"
+  desc "Apple Calendar intelligence CLI for local-first enrichment"
   homepage "https://github.com/charlesponti/cli-tools"
   license "MIT"
-  url "https://files.pythonhosted.org/packages/source/c/timekit/timekit-0.1.0.tar.gz"
+  url "https://github.com/charlesponti/cli-tools/archive/refs/tags/timekit-v0.1.0.tar.gz"
   sha256 "REPLACE_WITH_SHA256"
 
-  depends_on "python@3.12"
-
   def install
-    system "python3", "-m", "pip", "install", ".", "--prefix=#{prefix}"
+    system "swift", "build", "-c", "release"
+    bin.install ".build/release/timekit"
   end
 
   test do

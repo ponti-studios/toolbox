@@ -5,6 +5,8 @@ default:
 build:
     cargo build --workspace
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift build); fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then (cd apps/timekit && swift build); fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then (cd apps/mediakit && swift build); fi
 
 # Build specific Rust CLI
 build-cli CLI:
@@ -14,6 +16,8 @@ build-cli CLI:
 build-release:
     cargo build --workspace --release
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift build -c release); fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then (cd apps/timekit && swift build -c release); fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then (cd apps/mediakit && swift build -c release); fi
 
 
 # Typecheck all Rust crates
@@ -23,7 +27,10 @@ check:
 # Smoke test binaries via --help
 smoke:
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift run geokit -- --help); else echo "Skipping geokit smoke test on non-macOS"; fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then (cd apps/timekit && swift run timekit -- --help); else echo "Skipping timekit smoke test on non-macOS"; fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then (cd apps/mediakit && swift run mediakit -- --help); else echo "Skipping mediakit smoke test on non-macOS"; fi
     cargo run -p gitkit -- --help
+    cargo run -p bizkit -- --help
     cargo run -p filekit -- --help
     cargo run -p costkit -- --help
     cargo run -p netkit -- --help
@@ -38,6 +45,8 @@ package-cli CLI TARGET:
 test:
     cargo test --workspace
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift test); fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then (cd apps/timekit && swift build); fi
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then (cd apps/mediakit && swift build); fi
 
 # Run clippy lints
 lint:
@@ -59,64 +68,59 @@ run CLI="gitkit":
 clean:
     cargo clean
     rm -rf apps/geokit/.build
+    rm -rf apps/timekit/.build apps/timekit/.swiftpm
+    rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
 
 # Add a new Rust CLI
 new-cli NAME:
     cargo new --bin apps/{{NAME}}
     @echo "Add to Cargo.toml workspace members: \"apps/{{NAME}}\""
 
-# Symlink all CLI binaries to mise shims
-symlink:
+# Build and install all CLI binaries to mise shims
+install-all:
     #!/usr/bin/env bash
-    set -e
+    set -euo pipefail
+
+    command -v cargo >/dev/null 2>&1 || { echo "Error: cargo is required for install-all"; exit 1; }
+    command -v mise >/dev/null 2>&1 || { echo "Error: mise is required for install-all"; exit 1; }
+
     mise_shims="${HOME}/.local/share/mise/shims"
     mkdir -p "$mise_shims"
 
+    rust_clis="gitkit bizkit filekit costkit netkit"
+    for cli in $rust_clis; do
+        echo "Building $cli..."
+        cargo build -p "$cli" --release
+        ln -sf "$(pwd)/target/release/$cli" "$mise_shims/$cli"
+        echo "  $cli -> $mise_shims/$cli"
+    done
+
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then
+        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for geokit"; exit 1; }
         echo "Building geokit..."
         (cd apps/geokit && swift build -c release)
         ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
         echo "  geokit -> $mise_shims/geokit"
-    else
-        echo "Skipping geokit symlink on non-macOS"
     fi
 
-    clis="gitkit filekit costkit netkit"
-    for cli in $clis; do
-        source="target/release/$cli"
-        destination="$mise_shims/$cli"
-        if [ ! -f "$source" ]; then
-            echo "Building $cli..."
-            cargo build -p "$cli" --release
-        fi
-        echo "Symlinking $cli to mise shims..."
-        ln -sf "$(pwd)/$source" "$destination"
-        echo "  $cli -> $destination"
-    done
-
-# Build and link the unified CLI setup (filekit + timekit)
-setup:
-    #!/usr/bin/env bash
-    set -e
-    command -v go >/dev/null 2>&1 || { echo "Error: go is required for setup"; exit 1; }
-    command -v python3 >/dev/null 2>&1 || { echo "Error: python3 is required for setup"; exit 1; }
-    command -v mise >/dev/null 2>&1 || { echo "Error: mise is required for setup"; exit 1; }
-
-    mise_shims="${HOME}/.local/share/mise/shims"
-    mkdir -p "$mise_shims"
-
-    echo "Building filekit..."
-    cargo build -p filekit --release
-    ln -sf "$(pwd)/target/release/filekit" "$mise_shims/filekit"
-    echo "  filekit -> $mise_shims/filekit"
-
-    echo "Setting up timekit..."
-    if [ ! -d "apps/timekit/.venv" ]; then
-        python3 -m venv apps/timekit/.venv
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then
+        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for timekit"; exit 1; }
+        echo "Building timekit..."
+        (cd apps/timekit && swift build -c release)
+        ln -sf "$(pwd)/apps/timekit/.build/release/timekit" "$mise_shims/timekit"
+        echo "  timekit -> $mise_shims/timekit"
     fi
-    (cd apps/timekit && . .venv/bin/activate && python -m pip install -e .)
-    ln -sf "$(pwd)/apps/timekit/.venv/bin/timekit" "$mise_shims/timekit"
-    echo "  timekit -> $mise_shims/timekit"
+
+    if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then
+        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for mediakit"; exit 1; }
+        echo "Building mediakit..."
+        (cd apps/mediakit && swift build -c release)
+        ln -sf "$(pwd)/apps/mediakit/.build/release/mediakit" "$mise_shims/mediakit"
+        echo "  mediakit -> $mise_shims/mediakit"
+    fi
+
+# Symlink all CLI binaries to mise shims
+symlink: install-all
 
 # Build geokit in release mode
 build-geokit:
@@ -159,8 +163,22 @@ install-geokit:
     ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
     echo "  geokit -> $mise_shims/geokit"
 
-# Alias for setup
-install: setup
+# Install mediakit to mise shims
+install-mediakit:
+    #!/usr/bin/env bash
+    set -e
+    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for install-mediakit"; exit 1; }
+
+    mise_shims="${HOME}/.local/share/mise/shims"
+    mkdir -p "$mise_shims"
+
+    echo "Building mediakit..."
+    (cd apps/mediakit && swift build -c release)
+    ln -sf "$(pwd)/apps/mediakit/.build/release/mediakit" "$mise_shims/mediakit"
+    echo "  mediakit -> $mise_shims/mediakit"
+
+# Install all CLI binaries
+install: install-all
 
 # Remove setup artifacts
 clean-setup:
@@ -169,5 +187,7 @@ clean-setup:
     rm -f "${HOME}/.local/share/mise/shims/filekit"
     rm -f "${HOME}/.local/share/mise/shims/timekit"
     rm -f "${HOME}/.local/share/mise/shims/geokit"
-    rm -rf apps/timekit/.venv
-    echo "Removed setup artifacts for filekit, timekit, and geokit"
+    rm -f "${HOME}/.local/share/mise/shims/mediakit"
+    rm -rf apps/timekit/.build apps/timekit/.swiftpm
+    rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
+    echo "Removed setup artifacts for filekit, timekit, geokit, and mediakit"

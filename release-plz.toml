@@ -26,7 +26,3 @@ git_release_enable = true
 [[package]]
 name = "costkit"
 git_release_enable = true
-
-[[package]]
-name = "timekit"
-git_release_enable = true

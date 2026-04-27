@@ -1,5 +1,6 @@
 use anyhow::{Context, Result};
-use clap::{Parser, Subcommand};
+use clap::{CommandFactory, Parser, Subcommand};
+use clap_complete::{generate, Shell};
 use files::get_files_with_extensions;
 use files::{build_yaml_frontmatter, parse_yaml_frontmatter, ParsedFrontmatter};
 use serde::{Deserialize, Serialize};
@@ -8,9 +9,10 @@ use std::fs;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
-mod biz;
 mod cal;
 mod classify;
+mod fileops;
+mod kernel;
 
 #[derive(Parser)]
 #[command(name = "filekit")]
@@ -30,14 +32,49 @@ enum Commands {
         #[command(subcommand)]
         cmd: cal::CalCmd,
     },
-    Biz {
-        #[command(subcommand)]
-        cmd: biz::BizCmd,
-    },
     Classify {
         #[command(subcommand)]
         cmd: classify::ClassifyCmd,
     },
+    Analyze(kernel::AnalyzeOpts),
+    Files {
+        #[command(subcommand)]
+        cmd: fileops::FileOpsCmd,
+    },
+    Completions {
+        #[command(subcommand)]
+        cmd: CompletionCmd,
+    },
+}
+
+#[derive(Subcommand)]
+enum CompletionCmd {
+    /// Generate completions to stdout.
+    Generate(CompletionOpts),
+    /// Install completions to the standard location for a shell.
+    Install(CompletionInstallOpts),
+}
+
+#[derive(Parser, Debug)]
+struct CompletionOpts {
+    /// Shell to generate completions for.
+    #[arg(value_enum)]
+    shell: Shell,
+}
+
+#[derive(Parser, Debug)]
+struct CompletionInstallOpts {
+    /// Shell to install completions for.
+    #[arg(value_enum)]
+    shell: Shell,
+
+    /// Write the completion file even if it already exists.
+    #[arg(long)]
+    force: bool,
+
+    /// Do not write files; print the destination path instead.
+    #[arg(long)]
+    dry_run: bool,
 }
 
 #[derive(Subcommand)]
@@ -1163,6 +1200,67 @@ fn run_update(opts: UpdateOpts) -> Result<()> {
     Ok(())
 }
 
+fn run_completions(opts: CompletionOpts) -> Result<()> {
+    let mut cmd = Cli::command();
+    generate(opts.shell, &mut cmd, "filekit", &mut std::io::stdout());
+    Ok(())
+}
+
+fn completion_install_path(shell: Shell) -> Result<PathBuf> {
+    let home = dirs::home_dir().context("could not determine home directory")?;
+
+    let path = match shell {
+        Shell::Zsh => {
+            if let Ok(prefix) = std::env::var("HOMEBREW_PREFIX") {
+                PathBuf::from(prefix).join("share/zsh/site-functions/_filekit")
+            } else if let Ok(prefix) = std::env::var("HOMEBREW_CELLAR") {
+                let prefix = PathBuf::from(prefix)
+                    .parent()
+                    .map(Path::to_path_buf)
+                    .unwrap_or_else(|| home.clone());
+                prefix.join("share/zsh/site-functions/_filekit")
+            } else {
+                home.join(".zsh/completions/_filekit")
+            }
+        }
+        Shell::Bash => home.join(".local/share/bash-completion/completions/filekit"),
+        Shell::Fish => home.join(".config/fish/completions/filekit.fish"),
+        Shell::PowerShell => home.join("Documents/PowerShell/Completions/_filekit.ps1"),
+        Shell::Elvish => home.join(".elvish/lib/filekit.elv"),
+        _ => home.join(".local/share/filekit/completions/filekit"),
+    };
+
+    Ok(path)
+}
+
+fn run_completion_install(opts: CompletionInstallOpts) -> Result<()> {
+    let path = completion_install_path(opts.shell)?;
+    if opts.dry_run {
+        println!("{}", path.display());
+        return Ok(());
+    }
+
+    if path.exists() && !opts.force {
+        anyhow::bail!("completion file already exists: {} (use --force to overwrite)", path.display());
+    }
+
+    if let Some(parent) = path.parent() {
+        std::fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
+    }
+
+    let mut cmd = Cli::command();
+    let mut buf = Vec::new();
+    generate(opts.shell, &mut cmd, "filekit", &mut buf);
+    std::fs::write(&path, buf).with_context(|| format!("writing {}", path.display()))?;
+
+    println!("installed completions to {}", path.display());
+    if matches!(opts.shell, Shell::Zsh) {
+        println!("If needed, ensure that directory is on your fpath and run compinit.");
+    }
+
+    Ok(())
+}
+
 fn main() -> Result<()> {
     let cli = Cli::parse();
 
@@ -1183,21 +1281,20 @@ fn main() -> Result<()> {
             cal::CalCmd::Stats(opts) => cal::run_stats(opts)?,
             cal::CalCmd::Doctor(opts) => cal::run_doctor(opts)?,
         },
-        Commands::Biz { cmd } => match cmd {
-            biz::BizCmd::Init(opts) => biz::run_init(opts)?,
-            biz::BizCmd::Knobs(opts) => biz::run_knobs(opts)?,
-            biz::BizCmd::Scenario { cmd } => match cmd {
-                biz::ScenarioCmd::Create(opts) => biz::run_scenario_create(opts)?,
-                biz::ScenarioCmd::Set(opts) => biz::run_scenario_set(opts)?,
-                biz::ScenarioCmd::List(opts) => biz::run_scenario_list(opts)?,
-                biz::ScenarioCmd::Show(opts) => biz::run_scenario_show(opts)?,
-                biz::ScenarioCmd::Clone(opts) => biz::run_scenario_clone(opts)?,
-            },
-            biz::BizCmd::Run(opts) => biz::run_run(opts)?,
-            biz::BizCmd::Compare(opts) => biz::run_compare(opts)?,
-        },
         Commands::Classify { cmd } => match cmd {
             classify::ClassifyCmd::Essays(opts) => classify::run_essays(opts)?,
+        },
+        Commands::Analyze(opts) => kernel::run_analyze(opts)?,
+        Commands::Files { cmd } => match cmd {
+            fileops::FileOpsCmd::MergeMarkdown(opts) => fileops::run_merge_markdown(opts)?,
+            fileops::FileOpsCmd::FindDuplicates(opts) => fileops::run_find_duplicates(opts)?,
+            fileops::FileOpsCmd::BulkRename(opts) => fileops::run_bulk_rename(opts)?,
+            fileops::FileOpsCmd::Convert(opts) => fileops::run_convert(opts)?,
+            fileops::FileOpsCmd::XlsxToCsv(opts) => fileops::run_xlsx_to_csv(opts)?,
+        },
+        Commands::Completions { cmd } => match cmd {
+            CompletionCmd::Generate(opts) => run_completions(opts)?,
+            CompletionCmd::Install(opts) => run_completion_install(opts)?,
         },
     }
 

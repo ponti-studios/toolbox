@@ -13,6 +13,7 @@ Each tool has its own README with full command reference, examples, and testing 
 toolbox/
 ├── apps/
 │   ├── geokit/
+│   ├── mediakit/
 │   ├── gitkit/
 │   ├── filekit/
 │   ├── costkit/
@@ -31,10 +32,12 @@ toolbox/
 |------|----------|-------------|
 | [geokit](./apps/geokit/README.md) | Swift | Apple Maps geolocation lookup and CSV geocoding |
 | [gitkit](./apps/gitkit/README.md) | Rust | Fetch files from GitHub |
-| [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, and essay classification utilities |
+| [bizkit](./apps/bizkit/README.md) | Rust | Business modeling and scenario analysis |
+| [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
 | [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
 | [netkit](./apps/netkit/README.md) | Rust | Network diagnostics |
-| [timekit](./apps/timekit/README.md) | Python | Calendar intelligence tooling |
+| [timekit](./apps/timekit/README.md) | Swift | Apple Calendar intelligence tooling |
+| [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
 
 ## Shared Packages
 
@@ -48,6 +51,12 @@ toolbox/
 just build
 ```
 
+### Build and install all CLI binaries
+
+```bash
+just install
+```
+
 ### Run the test suite
 
 ```bash
@@ -59,17 +68,21 @@ cargo test --workspace
 ```bash
 cd apps/geokit && swift run geokit -- geocode "New York"
 cargo run -p gitkit -- owner/repo/file.txt@main
+cargo run -p bizkit -- init
 cargo run -p filekit -- frontmatter walk
 cargo run -p costkit -- dashboard
 cargo run -p netkit -- -s google.com
 ```
 
-### Python tool
+### Swift tools
 
 ```bash
-cd apps/timekit
-pip install -e .
-pytest
+cd apps/timekit && swift build
+cd apps/timekit && swift run timekit -- --help
+cd apps/mediakit && swift build
+cd apps/mediakit && swift run mediakit -- --help
+just install-geokit
+just install-mediakit
 ```
 
 ## Release Notes
@@ -78,7 +91,7 @@ pytest
 - `geokit` release assets are macOS binaries built from the Swift package in `apps/geokit`
 - Rust tools continue to use the Cargo workspace and shared release flow
 - `filekit` is the primary file-management and analysis CLI
-- Python tools follow their own package-specific workflows
+- Swift tools build from their package directories; Rust tools continue to use the Cargo workspace and shared release flow
 
 ## Documentation
 

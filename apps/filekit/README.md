@@ -25,6 +25,9 @@ cargo run -p filekit -- --help
    - [update](#frontmatter-update)
 2. [Calendar Commands](#calendar-commands)
 3. [Classification Commands](#classification-commands)
+4. [Files Commands](#files-commands)
+5. [Analyze Commands](#analyze-commands)
+6. [Completions](#completions)
 
 ---
 
@@ -521,6 +524,159 @@ filekit classify essays --dir ./essays --csv plan.csv
 - Execute mode will move files into domain folders
 - `--from-pass` now controls which passes are reused vs recomputed
 - TUI and richer LLM-backed classification are still future work
+
+---
+
+## Files Commands
+
+### `files merge-markdown` - Merge markdown files into one document
+
+```bash
+filekit files merge-markdown output.md input1.md input2.md [--toc] [--with-filenames]
+```
+
+### `files find-duplicates` - Find duplicate files by content hash
+
+```bash
+filekit files find-duplicates /path/to/dir [--algorithm md5|sha1|sha256] [--min-size N] [--extensions .jpg .png] [--show-hashes]
+```
+
+### `files bulk-rename` - Rename files in bulk with regex
+
+```bash
+filekit files bulk-rename /path/to/dir --pattern '^test_(.+)$' --replacement 'spec_$1' [--apply]
+```
+
+### `files convert` - Convert between JSON and CSV
+
+```bash
+filekit files convert input.json output.csv
+filekit files convert input.csv output.json
+```
+
+### `files xlsx-to-csv` - Convert Excel workbooks to CSV
+
+```bash
+filekit files xlsx-to-csv --file workbook.xlsx
+filekit files xlsx-to-csv --directory ./spreadsheets
+filekit files xlsx-to-csv --all-sheets
+```
+
+**Options:**
+- `--file` - Convert one workbook
+- `--directory` - Convert all `.xlsx` files in a directory
+- `--all-sheets` - Export every sheet to its own CSV
+- `--keep-formulas` - Best-effort formula preservation (cached values are usually exported)
+
+**Notes:**
+- `merge-markdown` supports glob patterns for inputs
+- `find-duplicates` is optimized by grouping by size before hashing
+- `bulk-rename` is dry-run by default
+- `convert` auto-detects direction from input extension, or you can force CSV→JSON with `--csv-to-json`
+- `xlsx-to-csv` writes one CSV per workbook or per sheet, matching the workbook filename and sheet name
+
+---
+
+## Analyze Commands
+
+### `analyze` - Analyze a directory and report file stats
+
+```bash
+filekit analyze [OPTIONS]
+```
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `-r, --root <ROOT>` | Root directory to analyze | `.` |
+| `--files` | Show individual file breakdown | `false` |
+| `--extensions <EXTS>` | File extensions to include, comma-separated | `.md,.txt,.py,.js,.json,.yaml,.yml,.sh` |
+| `--include-hidden` | Include hidden files/directories when no ignore file is present | `false` |
+| `--ignore-file <FILE>` | Additional ignore file to load (gitignore format) | - |
+| `--no-gitignore` | Do not read `.gitignore` | `false` |
+| `--output <FORMAT>` | Output format: `text` or `json` | `text` |
+
+**Ignore Files:**
+
+The analyzer loads ignore rules from:
+
+1. `.kernelignore`
+2. `.gitignore` (unless `--no-gitignore` is set)
+3. Any extra files passed via `--ignore-file`
+
+Use gitignore-style patterns:
+
+```gitignore
+.obsidian/
+*.json
+*.png
+*.jpg
+node_modules/
+!keep.json
+```
+
+**Examples:**
+
+```bash
+# Analyze current directory
+filekit analyze
+
+# Analyze a specific project
+filekit analyze -r ~/Documents/vault
+
+# Show individual files
+filekit analyze --files
+
+# Analyze only markdown and text files
+filekit analyze --extensions ".md,.txt"
+
+# Machine-readable output
+filekit analyze --output json
+
+# Use a custom ignore file
+filekit analyze --ignore-file .kernelignore
+```
+
+**Notes:**
+- If no ignore file is present, the command falls back to hidden-file filtering unless `--include-hidden` is set
+- Token counts are rough estimates in the Rust implementation
+- JSON output is structured for scripting and downstream automation
+
+---
+
+## Completions
+
+`filekit` can generate shell completions via `clap_complete`.
+
+### Generate completions
+
+```bash
+filekit completions generate zsh > _filekit
+```
+
+### Install completions
+
+```bash
+filekit completions install zsh
+```
+
+### Other supported shells
+
+- `bash`
+- `elvish`
+- `fish`
+- `powershell`
+- `zsh`
+
+### Manual zsh install example
+
+```bash
+mkdir -p ~/.zsh/completions
+filekit completions generate zsh > ~/.zsh/completions/_filekit
+```
+
+If you use Oh My Zsh or another zsh setup that reads `fpath`, place `_filekit` in a directory that is already on `fpath`.
 
 ---
 

@@ -59,22 +59,17 @@ jobs:
         run: cd apps/geokit && swift run geokit -- --help
 
   timekit:
-    name: Timekit (Python CLI)
-    runs-on: ubuntu-latest
+    name: Timekit (Swift CLI)
+    runs-on: macos-14
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
-        with:
-          python-version: '3.12'
-
-      - name: Install timekit
-        run: python -m pip install ./apps/timekit
+      - name: Build timekit
+        run: cd apps/timekit && swift build
 
       - name: Smoke test timekit CLI
-        run: timekit --help
+        run: cd apps/timekit && swift run timekit -- --help
 
   essay-classifier:
     name: Essay Classifier (Go)

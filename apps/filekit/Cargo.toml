@@ -27,11 +27,15 @@ anyhow = { workspace = true }
 rusqlite = { version = "0.32", features = ["bundled"] }
 refinery = { workspace = true }
 sha2 = "0.10"
+sha1 = "0.10"
+md-5 = "0.10"
 hex = "0.4"
 chrono-tz = "0.10"
 dirs = "5"
 regex = "1"
 csv = "1"
+clap_complete = "4"
+calamine = "0.31"
 files = { workspace = true }
 
 [dev-dependencies]
