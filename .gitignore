@@ -1,51 +1,33 @@
-.build
-.tmp
-.ruff_cache
-
-/target
-/debug
-/release
-/.cargo
-/dist
-Cargo.lock
-*.DS_Store
+# Editor and OS noise
+.DS_Store
 *.swp
 *.swo
 *~
 .vscode/
 .idea/
 *.iml
+
+# Rust build and local config
+target/
+debug/
+release/
+.cargo/
+Cargo.lock
+
+# Shared build outputs and local state
+.build/
+.swiftpm/
+.tmp/
+.ruff_cache/
+dist/
+
+# Environment files
 .env
 .env.local
 
-# Chronicle local artifacts
-/research/
-/Formula/
-apps/timekit/.env
+# Timekit local artifacts
 apps/timekit/*.db
 apps/timekit/*.sqlite
 apps/timekit/*.sqlite3
 apps/timekit/*.json
 apps/timekit/.credentials/
-apps/timekit/.ruff_cache/
-apps/timekit/.venv/
-python/timekit-engine/.venv/
-python/timekit-engine/.pytest_cache/
-python/timekit-engine/.ruff_cache/
-python/timekit-engine/__pycache__/
-python/timekit-engine/**/*.pyc
-python/timekit-engine/.mypy_cache/
-
-# Swift local build artifacts
-apps/geokit/.build/
-apps/timekit/.build/
-apps/timekit/.swiftpm/
-
-# Legacy archived source repos
-apps/legacy-costkit/.DS_Store
-apps/legacy-costkit/_data/.DS_Store
-apps/legacy-costkit/src/costkit/__pycache__/
-apps/legacy-filekit/.data/
-apps/legacy-filekit/.env.local
-apps/legacy-filekit/bin/
-apps/legacy-filekit/.vscode/
