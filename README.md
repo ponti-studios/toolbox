@@ -14,7 +14,6 @@ toolbox/
 ├── apps/
 │   ├── geokit/
 │   ├── mediakit/
-│   ├── gitkit/
 │   ├── filekit/
 │   ├── costkit/
 │   ├── netkit/
@@ -31,7 +30,6 @@ toolbox/
 | Tool | Language | Description |
 |------|----------|-------------|
 | [geokit](./apps/geokit/README.md) | Swift | Apple Maps geolocation lookup and CSV geocoding |
-| [gitkit](./apps/gitkit/README.md) | Rust | Fetch files from GitHub |
 | [bizkit](./apps/bizkit/README.md) | Rust | Business modeling and scenario analysis |
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
 | [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
@@ -67,7 +65,6 @@ cargo test --workspace
 
 ```bash
 cd apps/geokit && swift run geokit -- geocode "New York"
-cargo run -p gitkit -- owner/repo/file.txt@main
 cargo run -p bizkit -- init
 cargo run -p filekit -- frontmatter walk
 cargo run -p costkit -- dashboard

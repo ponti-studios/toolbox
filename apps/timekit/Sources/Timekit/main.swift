@@ -1,8 +1,8 @@
 import SwiftData
 import EventKit
 import Foundation
+import Darwin
 
-@main
 struct TimekitApp {
     static func main() async {
         do {
@@ -71,11 +71,22 @@ struct TimekitApp {
         try calendarService.requireAccess()
 
         let dateRange = try resolveDedupeRange(from: options.from, to: options.to)
+        let searchProgress = ProgressBar(label: "Search", total: 1)
         let liveEvents = try calendarService.fetchLiveEvents(
             start: dateRange.start,
             end: dateRange.end,
-            calendarTitle: options.calendarTitle
+            calendarTitle: options.calendarTitle,
+            progress: { snapshot in
+                searchProgress.setTotal(max(snapshot.totalSteps, 1))
+                let detail = "\(snapshot.currentCalendarTitle) \(snapshot.currentCalendarIndex)/\(snapshot.totalCalendars) · \(snapshot.currentChunkLabel) · \(snapshot.eventCount) events"
+                searchProgress.update(current: snapshot.processedSteps, detail: detail)
+                if snapshot.processedSteps == snapshot.totalSteps {
+                    searchProgress.finish(detail: detail)
+                }
+            }
         )
+
+        print(searchCalendarCountsSummary(events: liveEvents))
 
         let recurringEvents = liveEvents.filter(isRecurringEvent)
         let plan = buildDedupePlan(events: liveEvents, strictness: options.strictness)
@@ -95,7 +106,14 @@ struct TimekitApp {
         }
 
         if options.apply {
-            try calendarService.remove(events: plan.eventsToDelete)
+            let applyProgress = ProgressBar(label: "Apply", total: max(plan.eventsToDelete.count, 1))
+            try calendarService.remove(events: plan.eventsToDelete) { snapshot in
+                let detail = "\(snapshot.currentCalendarTitle) · \(snapshot.processed)/\(snapshot.total) deleted"
+                applyProgress.update(current: snapshot.processed, detail: detail)
+                if snapshot.processed == snapshot.total {
+                    applyProgress.finish(detail: detail)
+                }
+            }
             print("Deleted \(plan.eventsToDelete.count) duplicate event\(plan.eventsToDelete.count == 1 ? "" : "s") from Apple Calendar.")
         } else {
             print("Dry run only. Re-run with --apply to delete \(plan.eventsToDelete.count) event\(plan.eventsToDelete.count == 1 ? "" : "s").")
@@ -477,122 +495,12 @@ struct CLI {
     }
 }
 
-enum CLIError: Error, CustomStringConvertible {
-    case unknownCommand(String)
-    case unknownOption(String)
-    case missingValue(String)
-    case invalidLimit
-    case invalidFormat(String)
-    case invalidStrictness(String)
-    case invalidDate(String)
-    case invalidDateRange
-    case calendarAccessDenied
-    case snapshotMissing
-    case encodingFailed
-
-    var description: String {
-        switch self {
-        case .unknownCommand(let command):
-            return "unknown command: \(command)"
-        case .unknownOption(let option):
-            return "unknown option: \(option)"
-        case .missingValue(let option):
-            return "missing value for \(option)"
-        case .invalidLimit:
-            return "--limit must be a positive integer"
-        case .invalidFormat(let format):
-            return "invalid format: \(format)"
-        case .invalidStrictness(let strictness):
-            return "invalid strictness: \(strictness) (expected strict, medium, or loose)"
-        case .invalidDate(let value):
-            return "invalid date: \(value) (expected YYYY-MM-DD)"
-        case .invalidDateRange:
-            return "--from must be earlier than or equal to --to"
-        case .calendarAccessDenied:
-            return "calendar access was denied"
-        case .snapshotMissing:
-            return "no local events found; run `timekit sync` first"
-        case .encodingFailed:
-            return "failed to encode export data"
-        }
-    }
-}
-
 struct TimekitSnapshot: Codable {
     let createdAt: Date
     let rangeStart: Date
     let rangeEnd: Date
     let calendars: [CalendarSnapshot]
     let events: [EventSnapshot]
-}
-
-@Model
-final class EventRecord {
-    @Attribute(.unique) var identifier: String
-    var calendarIdentifier: String
-    var calendarTitle: String
-    var title: String
-    var startDate: Date
-    var endDate: Date
-    var isAllDay: Bool
-    var location: String?
-    var notes: String?
-    var url: String?
-    var timeZoneIdentifier: String?
-    var isRecurring: Bool
-    var attendeeCount: Int
-    var syncedAt: Date
-
-    init(snapshot: EventSnapshot, syncedAt: Date) {
-        self.identifier = snapshot.identifier
-        self.calendarIdentifier = snapshot.calendarIdentifier
-        self.calendarTitle = snapshot.calendarTitle
-        self.title = snapshot.title
-        self.startDate = snapshot.startDate
-        self.endDate = snapshot.endDate
-        self.isAllDay = snapshot.isAllDay
-        self.location = snapshot.location
-        self.notes = snapshot.notes
-        self.url = snapshot.url
-        self.timeZoneIdentifier = snapshot.timeZoneIdentifier
-        self.isRecurring = snapshot.isRecurring
-        self.attendeeCount = snapshot.attendeeCount
-        self.syncedAt = syncedAt
-    }
-
-    func update(from snapshot: EventSnapshot, syncedAt: Date) {
-        calendarIdentifier = snapshot.calendarIdentifier
-        calendarTitle = snapshot.calendarTitle
-        title = snapshot.title
-        startDate = snapshot.startDate
-        endDate = snapshot.endDate
-        isAllDay = snapshot.isAllDay
-        location = snapshot.location
-        notes = snapshot.notes
-        url = snapshot.url
-        timeZoneIdentifier = snapshot.timeZoneIdentifier
-        isRecurring = snapshot.isRecurring
-        attendeeCount = snapshot.attendeeCount
-        self.syncedAt = syncedAt
-    }
-
-    func snapshot() -> EventSnapshot {
-        EventSnapshot(
-            identifier: identifier,
-            calendarIdentifier: calendarIdentifier,
-            calendarTitle: calendarTitle,
-            title: title,
-            startDate: startDate,
-            endDate: endDate,
-            isAllDay: isAllDay,
-            location: location,
-            notes: notes,
-            url: url,
-            timeZoneIdentifier: timeZoneIdentifier,
-            isRecurring: isRecurring,
-            attendeeCount: attendeeCount
-        )
-    }
 }
 
 struct CalendarSnapshot: Codable {
@@ -711,7 +619,12 @@ final class CalendarService {
         )
     }
 
-    func fetchLiveEvents(start: Date, end: Date, calendarTitle: String?) throws -> [EKEvent] {
+    func fetchLiveEvents(
+        start: Date,
+        end: Date,
+        calendarTitle: String?,
+        progress: ((SearchProgressSnapshot) -> Void)? = nil
+    ) throws -> [EKEvent] {
         try requireAccess()
 
         let calendars = store.calendars(for: .event)
@@ -722,29 +635,53 @@ final class CalendarService {
                 }
                 return calendar.title.localizedCaseInsensitiveCompare(calendarTitle) == .orderedSame
             }
+            .sorted { $0.title.localizedCaseInsensitiveCompare($1.title) == .orderedAscending }
 
         guard !calendars.isEmpty, start < end else {
+            progress?(
+                SearchProgressSnapshot(
+                    processedSteps: 0,
+                    totalSteps: 0,
+                    eventCount: 0,
+                    currentCalendarTitle: "no calendars",
+                    currentCalendarIndex: 0,
+                    totalCalendars: 0,
+                    currentChunkLabel: "n/a"
+                )
+            )
             return []
         }
 
+        let chunks = makeYearChunks(start: start, end: end)
+        let totalSteps = calendars.count * max(chunks.count, 1)
         var results: [EKEvent] = []
         var seenOccurrences = Set<String>()
-        var cursor = start
-        let calendar = Calendar(identifier: .gregorian)
+        var processedSteps = 0
 
-        while cursor < end {
-            let next = calendar.date(byAdding: .year, value: 1, to: cursor) ?? end
-            let chunkEnd = min(next, end)
-            let predicate = store.predicateForEvents(withStart: cursor, end: chunkEnd, calendars: calendars)
+        for (calendarIndex, calendar) in calendars.enumerated() {
+            for chunk in chunks {
+                let predicate = store.predicateForEvents(withStart: chunk.start, end: chunk.end, calendars: [calendar])
 
-            for event in store.events(matching: predicate) {
-                let occurrenceKey = liveEventOccurrenceKey(event)
-                if seenOccurrences.insert(occurrenceKey).inserted {
-                    results.append(event)
+                for event in store.events(matching: predicate) {
+                    let occurrenceKey = liveEventOccurrenceKey(event)
+                    if seenOccurrences.insert(occurrenceKey).inserted {
+                        results.append(event)
+                    }
                 }
-            }
 
-            cursor = chunkEnd
+                processedSteps += 1
+                progress?(
+                    SearchProgressSnapshot(
+                        processedSteps: processedSteps,
+                        totalSteps: totalSteps,
+                        eventCount: results.count,
+                        currentCalendarTitle: calendar.title,
+                        currentCalendarIndex: calendarIndex + 1,
+                        totalCalendars: calendars.count,
+                        currentChunkLabel: chunkRangeLabel(start: chunk.start, endExclusive: chunk.end)
+                    )
+                )
+            }
         }
 
         return results.sorted {
@@ -755,14 +692,22 @@ final class CalendarService {
         }
     }
 
-    func remove(events: [EKEvent]) throws {
+    func remove(events: [EKEvent], progress: ((ApplyProgressSnapshot) -> Void)? = nil) throws {
         guard !events.isEmpty else {
+            progress?(ApplyProgressSnapshot(processed: 0, total: 0, currentCalendarTitle: "no calendars"))
             return
         }
 
         do {
-            for event in events {
+            for (index, event) in events.enumerated() {
                 try store.remove(event, span: .thisEvent, commit: false)
+                progress?(
+                    ApplyProgressSnapshot(
+                        processed: index + 1,
+                        total: events.count,
+                        currentCalendarTitle: event.calendar.title
+                    )
+                )
             }
             try store.commit()
         } catch {
@@ -935,343 +880,93 @@ enum TimekitDateCoder {
     }
 }
 
-private let legacyDayFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-}()
 
-private let previewDateFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = .autoupdatingCurrent
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-}()
+private final class ProgressBar {
+    private let label: String
+    private let width: Int
+    private let interactive: Bool
+    private let startedAt = Date()
+    private var total: Int
+    private var finished = false
 
-private let previewTimeFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = .autoupdatingCurrent
-    formatter.dateFormat = "HH:mm"
-    return formatter
-}()
-
-private let exportDateFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss'Z'"
-    return formatter
-}()
-
-private let icsDateTimeFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyyMMdd'T'HHmmss'Z'"
-    return formatter
-}()
-
-private let icsDayFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = TimeZone(secondsFromGMT: 0)
-    formatter.dateFormat = "yyyyMMdd"
-    return formatter
-}()
-
-private let dedupeDayFormatter: DateFormatter = {
-    let formatter = DateFormatter()
-    formatter.locale = Locale(identifier: "en_US_POSIX")
-    formatter.timeZone = .autoupdatingCurrent
-    formatter.dateFormat = "yyyy-MM-dd"
-    return formatter
-}()
-
-private struct DedupeDateRange {
-    let start: Date
-    let end: Date
-    let usedDefaultStart: Bool
-    let usedDefaultEnd: Bool
-}
-
-private struct DedupeGroup {
-    let key: String
-    let keeper: EKEvent
-    let duplicates: [EKEvent]
-}
-
-private struct DedupePlan {
-    let groups: [DedupeGroup]
-
-    var eventsToDelete: [EKEvent] {
-        groups.flatMap(\.duplicates)
-    }
-}
-
-private func resolveDedupeRange(from: String?, to: String?) throws -> DedupeDateRange {
-    let start = try from.map(parseCLIStartDate) ?? defaultDedupeStartDate()
-    let end = try to.map(parseCLIInclusiveEndDate) ?? defaultDedupeEndDateExclusive()
-
-    guard start <= end else {
-        throw CLIError.invalidDateRange
+    init(label: String, total: Int, width: Int = 28) {
+        self.label = label
+        self.total = max(total, 1)
+        self.width = max(width, 10)
+        self.interactive = isatty(STDOUT_FILENO) != 0
     }
 
-    return DedupeDateRange(
-        start: start,
-        end: end,
-        usedDefaultStart: from == nil,
-        usedDefaultEnd: to == nil
-    )
-}
-
-private func defaultDedupeStartDate() -> Date {
-    makeFixedGregorianDate(year: 1900, month: 1, day: 1)
-}
-
-private func defaultDedupeEndDateExclusive() -> Date {
-    makeFixedGregorianDate(year: 2101, month: 1, day: 1)
-}
-
-private func makeFixedGregorianDate(year: Int, month: Int, day: Int) -> Date {
-    var calendar = Calendar(identifier: .gregorian)
-    calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .autoupdatingCurrent
-
-    return calendar.date(from: DateComponents(year: year, month: month, day: day)) ?? Date()
-}
-
-private func parseCLIStartDate(_ value: String) throws -> Date {
-    guard let day = legacyDayFormatter.date(from: value) else {
-        throw CLIError.invalidDate(value)
-    }
-    return day
-}
-
-private func parseCLIInclusiveEndDate(_ value: String) throws -> Date {
-    let day = try parseCLIStartDate(value)
-    guard let end = Calendar.autoupdatingCurrent.date(byAdding: .day, value: 1, to: day) else {
-        throw CLIError.invalidDate(value)
-    }
-    return end
-}
-
-private func isRecurringEvent(_ event: EKEvent) -> Bool {
-    !(event.recurrenceRules?.isEmpty ?? true)
-}
-
-private func liveEventOccurrenceKey(_ event: EKEvent) -> String {
-    [
-        event.calendarItemIdentifier,
-        TimekitDateCoder.string(from: event.startDate),
-        TimekitDateCoder.string(from: event.endDate),
-        normalizedDedupeText(event.title)
-    ].joined(separator: "|")
-}
-
-private func buildDedupePlan(events: [EKEvent], strictness: DedupeStrictness) -> DedupePlan {
-    let grouped = Dictionary(grouping: events, by: { dedupeKey(for: $0, strictness: strictness) })
-
-    let groups = grouped
-        .filter { $0.value.count > 1 }
-        .map { key, events -> DedupeGroup in
-            let ordered = events.sorted(by: dedupeKeeperSort)
-            return DedupeGroup(key: key, keeper: ordered[0], duplicates: Array(ordered.dropFirst()))
+    func setTotal(_ total: Int) {
+        guard !finished else {
+            return
         }
-        .sorted { lhs, rhs in
-            if lhs.keeper.startDate != rhs.keeper.startDate {
-                return lhs.keeper.startDate < rhs.keeper.startDate
-            }
-            if lhs.keeper.calendar.title != rhs.keeper.calendar.title {
-                return lhs.keeper.calendar.title.localizedCaseInsensitiveCompare(rhs.keeper.calendar.title) == .orderedAscending
-            }
-            return (lhs.keeper.title ?? "").localizedCaseInsensitiveCompare(rhs.keeper.title ?? "") == .orderedAscending
+        self.total = max(total, 1)
+    }
+
+    func update(current: Int, detail: String? = nil) {
+        guard !finished else {
+            return
         }
 
-    return DedupePlan(groups: groups)
-}
+        let clamped = min(max(current, 0), total)
+        let ratio = Double(clamped) / Double(total)
+        let filled = min(width, Int((ratio * Double(width)).rounded(.down)))
+        let bar = String(repeating: "#", count: filled) + String(repeating: "-", count: max(width - filled, 0))
+        let percent = Int((ratio * 100).rounded(.down))
+        let etaSuffix = progressTimingSuffix(current: clamped)
+        let suffixParts = [detail, etaSuffix].compactMap { $0 }.filter { !$0.isEmpty }
+        let suffix = suffixParts.isEmpty ? "" : " " + suffixParts.joined(separator: " · ")
+        let line = String(format: "%@ [%@] %3d%% (%d/%d)%@", label, bar, percent, clamped, total, suffix)
 
-private func dedupeSummary(
-    plan: DedupePlan,
-    options: DedupeOptions,
-    scannedEvents: Int,
-    recurringEvents: Int,
-    dateRange: DedupeDateRange
-) -> String {
-    let formatter = exportDateFormatter
-    var lines = [
-        "Timekit Dedupe",
-        "Strictness: \(options.strictness.rawValue)",
-        "Mode: \(options.apply ? "apply" : "dry-run")",
-        "Calendar filter: \(options.calendarTitle ?? "all writable calendars")",
-        "Range: \(formatter.string(from: dateRange.start)) to \(formatter.string(from: dateRange.end))"
-    ]
-
-    if dateRange.usedDefaultStart || dateRange.usedDefaultEnd {
-        lines.append("Range defaults: start=\(dateRange.usedDefaultStart ? "default" : "explicit"), end=\(dateRange.usedDefaultEnd ? "default" : "explicit")")
-    }
-
-    lines.append("Scanned writable events: \(scannedEvents)")
-    if recurringEvents > 0 {
-        lines.append("Recurring occurrences in scan: \(recurringEvents)")
-    }
-
-    let duplicateCount = plan.eventsToDelete.count
-    lines.append("Duplicate groups: \(plan.groups.count)")
-    lines.append("Duplicate events to delete: \(duplicateCount)")
-
-    if plan.groups.isEmpty {
-        lines.append("No duplicates found.")
-        return lines.joined(separator: "\n")
-    }
-
-    for (index, group) in plan.groups.enumerated() {
-        lines.append("")
-        lines.append("Group \(index + 1): \(dedupeEventSummary(group.keeper))")
-        lines.append("  keep   \(dedupeEventIdentity(group.keeper))")
-        for duplicate in group.duplicates {
-            lines.append("  delete \(dedupeEventIdentity(duplicate))")
+        if interactive {
+            fputs("\r\(line)", stdout)
+            fflush(stdout)
+        } else {
+            print(line)
         }
     }
 
-    return lines.joined(separator: "\n")
-}
+    func finish(detail: String? = nil) {
+        guard !finished else {
+            return
+        }
+        finished = true
+        updateFinalLine(detail: detail)
+    }
 
-private func dedupeKeeperSort(_ lhs: EKEvent, _ rhs: EKEvent) -> Bool {
-    let lhsScore = dedupeRetentionScore(lhs)
-    let rhsScore = dedupeRetentionScore(rhs)
-    if lhsScore != rhsScore {
-        return lhsScore > rhsScore
-    }
-    if lhs.startDate != rhs.startDate {
-        return lhs.startDate < rhs.startDate
-    }
-    return lhs.calendarItemIdentifier < rhs.calendarItemIdentifier
-}
+    private func progressTimingSuffix(current: Int) -> String? {
+        guard current > 0, current < total else {
+            return current >= total ? elapsedLabel() : nil
+        }
 
-private func dedupeRetentionScore(_ event: EKEvent) -> Int {
-    var score = 0
-    if !normalizedDedupeText(event.location).isEmpty {
-        score += 3
-    }
-    if !normalizedDedupeText(event.notes).isEmpty {
-        score += 3
-    }
-    if let url = event.url?.absoluteString, !normalizedDedupeText(url).isEmpty {
-        score += 2
-    }
-    if !(event.attendees?.isEmpty ?? true) {
-        score += 1
-    }
-    return score
-}
+        let elapsed = Date().timeIntervalSince(startedAt)
+        guard elapsed > 0 else {
+            return nil
+        }
 
-private func dedupeKey(for event: EKEvent, strictness: DedupeStrictness) -> String {
-    let calendarIdentifier = event.calendar.calendarIdentifier
-    let title = normalizedDedupeText(event.title)
-    let start = TimekitDateCoder.string(from: event.startDate)
-    let end = TimekitDateCoder.string(from: event.endDate)
-    let isAllDay = event.isAllDay ? "1" : "0"
+        let rate = elapsed / Double(current)
+        let remaining = max(Double(total - current) * rate, 0)
+        return "eta \(formatDuration(remaining))"
+    }
 
-    switch strictness {
-    case .strict:
-        let location = normalizedDedupeText(event.location)
-        let notes = normalizedDedupeText(event.notes)
-        let url = normalizedDedupeText(event.url?.absoluteString)
-        return [calendarIdentifier, title, start, end, isAllDay, location, notes, url].joined(separator: "|")
-    case .medium:
-        return [calendarIdentifier, title, start, end, isAllDay].joined(separator: "|")
-    case .loose:
-        let day = dedupeDayFormatter.string(from: event.startDate)
-        return [calendarIdentifier, title, day, isAllDay].joined(separator: "|")
+    private func elapsedLabel() -> String {
+        "elapsed \(formatDuration(Date().timeIntervalSince(startedAt)))"
+    }
+
+    private func updateFinalLine(detail: String?) {
+        let suffixParts = [detail, elapsedLabel()].compactMap { $0 }.filter { !$0.isEmpty }
+        let suffix = suffixParts.isEmpty ? "" : " " + suffixParts.joined(separator: " · ")
+        let line = String(format: "%@ [%@] 100%% (%d/%d)%@", label, String(repeating: "#", count: width), total, total, suffix)
+        if interactive {
+            fputs("\r\(line)\n", stdout)
+            fflush(stdout)
+        } else {
+            print(line)
+        }
     }
 }
 
-private func normalizedDedupeText(_ value: String?) -> String {
-    let collapsed = (value ?? "")
-        .components(separatedBy: .whitespacesAndNewlines)
-        .filter { !$0.isEmpty }
-        .joined(separator: " ")
-        .trimmingCharacters(in: .whitespacesAndNewlines)
 
-    return collapsed
-        .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .autoupdatingCurrent)
-        .lowercased()
-}
-
-private func dedupeEventSummary(_ event: EKEvent) -> String {
-    let title = event.title?.isEmpty == false ? event.title! : "Untitled"
-    let date = event.isAllDay
-        ? dedupeDayFormatter.string(from: event.startDate)
-        : exportDateFormatter.string(from: event.startDate)
-    let recurringMarker = isRecurringEvent(event) ? " [recurring]" : ""
-    return "[\(event.calendar.title)] \(title) @ \(date)\(recurringMarker)"
-}
-
-private func dedupeEventIdentity(_ event: EKEvent) -> String {
-    let title = event.title?.isEmpty == false ? event.title! : "Untitled"
-    let date = event.isAllDay
-        ? dedupeDayFormatter.string(from: event.startDate)
-        : exportDateFormatter.string(from: event.startDate)
-    let recurringMarker = isRecurringEvent(event) ? " | recurring" : ""
-    return "\(event.calendarItemIdentifier) | \(event.calendar.title) | \(title) | \(date)\(recurringMarker)"
-}
-
-private func doctorReport(calendarService: CalendarService) -> String {
-    let status = calendarService.authorizationStatus()
-    let databaseExists = FileManager.default.fileExists(atPath: TimekitPaths.databaseURL.path)
-    let databaseLabel = databaseExists ? "present" : "missing"
-
-    return """
-    Timekit Health Check
-    Platform: \(ProcessInfo.processInfo.operatingSystemVersionString)
-    EventKit: available
-    Calendar access: \(calendarService.statusDescription(status))
-    SwiftData store: \(databaseLabel)
-    Support root: \(TimekitPaths.supportRoot.path)
-    Cache root: \(TimekitPaths.cacheRoot.path)
-    Exports root: \(TimekitPaths.exportsRoot.path)
-    """
-}
-
-private func syncSummary(snapshot: TimekitSnapshot) -> String {
-    let groupedEvents = Dictionary(grouping: snapshot.events, by: { $0.calendarTitle })
-    let sortedCalendars = groupedEvents.keys.sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
-    let calendarCount = snapshot.calendars.count
-    let eventCount = snapshot.events.count
-
-    var lines = [
-        "Synced \(eventCount) events from \(calendarCount) calendars.",
-        "Cached range: \(exportDateFormatter.string(from: snapshot.rangeStart)) to \(exportDateFormatter.string(from: snapshot.rangeEnd))"
-    ]
-
-    for calendarTitle in sortedCalendars {
-        lines.append("- \(calendarTitle): \(groupedEvents[calendarTitle]?.count ?? 0) events")
-    }
-
-    lines.append("SwiftData store at \(TimekitPaths.databaseURL.path)")
-    return lines.joined(separator: "\n")
-}
-
-private func csvEscape(_ value: String) -> String {
-    if value.contains(",") || value.contains("\"") || value.contains("\n") || value.contains("\r") {
-        let escaped = value.replacingOccurrences(of: "\"", with: "\"\"")
-        return "\"\(escaped)\""
-    }
-
-    return value
-}
-
-private func icsEscape(_ value: String) -> String {
-    value
-        .replacingOccurrences(of: "\\", with: "\\\\")
-        .replacingOccurrences(of: ";", with: "\\;")
-        .replacingOccurrences(of: ",", with: "\\,")
-        .replacingOccurrences(of: "\n", with: "\\n")
-        .replacingOccurrences(of: "\r", with: "")
-}
 
 private extension CalendarSnapshot {
     init(_ calendar: EKCalendar) {
@@ -1299,3 +994,5 @@ private extension EventSnapshot {
         self.attendeeCount = event.attendees?.count ?? 0
     }
 }
+
+await TimekitApp.main()

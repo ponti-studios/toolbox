@@ -1,7 +1,6 @@
 [workspace]
 resolver = "2"
 members = [
-    "apps/gitkit",
     "apps/bizkit",
     "apps/filekit",
     "apps/costkit",

@@ -662,13 +662,8 @@ fn xlsx_output_path(input: &Path, sheet_name: Option<&str>) -> PathBuf {
     }
 }
 
-fn cell_to_string<T: ToString>(cell: &T, keep_formulas: bool) -> String {
-    let s = cell.to_string();
-    if keep_formulas && s.starts_with('=') {
-        s
-    } else {
-        s
-    }
+fn cell_to_string<T: ToString>(cell: &T, _keep_formulas: bool) -> String {
+    cell.to_string()
 }
 
 fn write_sheet_csv<T: ToString>(rows: &[Vec<T>], output: &Path, keep_formulas: bool) -> Result<()> {
