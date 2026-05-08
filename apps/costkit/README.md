@@ -4,7 +4,7 @@ Analyze CSV exports of LLM usage and costs.
 
 ## Install
 
-Preferred distribution is via the studio Homebrew tap.
+Preferred distribution is via the Ponti Studios Homebrew tap.
 
 For local development:
 

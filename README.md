@@ -1,6 +1,8 @@
-# CLI Tools Monorepo
+# toolbox
 
 A polyglot monorepo for independent command-line tools built in Rust, Swift, Go, and Python.
+
+Repository: https://github.com/ponti-studios/toolbox
 
 ## Overview
 
@@ -17,7 +19,8 @@ toolbox/
 │   ├── filekit/
 │   ├── costkit/
 │   ├── netkit/
-│   └── timekit/
+│   ├── timekit/
+│   └── xkit/
 ├── packages/
 │   └── files/
 ├── docs/
@@ -36,6 +39,7 @@ toolbox/
 | [netkit](./apps/netkit/README.md) | Rust | Network diagnostics |
 | [timekit](./apps/timekit/README.md) | Swift | Apple Calendar intelligence tooling |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
+| [xkit](./apps/xkit/README.md) | Go | X post deletion CLI |
 
 ## Shared Packages
 
@@ -69,6 +73,7 @@ cargo run -p bizkit -- init
 cargo run -p filekit -- frontmatter walk
 cargo run -p costkit -- dashboard
 cargo run -p netkit -- -s google.com
+cd apps/xkit && go run . delete-posts --help
 ```
 
 ### Swift tools
@@ -89,6 +94,8 @@ just install-mediakit
 - Rust tools continue to use the Cargo workspace and shared release flow
 - `filekit` is the primary file-management and analysis CLI
 - Swift tools build from their package directories; Rust tools continue to use the Cargo workspace and shared release flow
+- `xkit` is a standalone Go CLI built from `apps/xkit`
+- GitHub releases and Homebrew formula templates are wired to `ponti-studios/toolbox`
 
 ## Documentation
 

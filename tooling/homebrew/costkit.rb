@@ -1,11 +1,11 @@
 class Costkit < Formula
   desc "LLM cost analysis CLI"
-  homepage "https://github.com/charlesponti/cli-tools"
+  homepage "https://github.com/ponti-studios/toolbox"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/charlesponti/cli-tools/releases/download/costkit-v0.1.0/costkit-aarch64-apple-darwin.tar.gz"
+      url "https://github.com/ponti-studios/toolbox/releases/download/costkit-v0.1.0/costkit-aarch64-apple-darwin.tar.gz"
       sha256 "REPLACE_WITH_AARCH64_SHA256"
     end
   end

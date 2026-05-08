@@ -9,7 +9,7 @@ Swift CLI for Apple Maps geocoding and CSV enrichment using `MapKit`.
 
 ## Install
 
-Preferred distribution is via the studio Homebrew tap.
+Preferred distribution is via the Ponti Studios Homebrew tap.
 
 For local development:
 

@@ -1,11 +1,11 @@
 class Geokit < Formula
   desc "Apple Maps geolocation lookup and CSV geocoding CLI"
-  homepage "https://github.com/charlesponti/cli-tools"
+  homepage "https://github.com/ponti-studios/toolbox"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/charlesponti/cli-tools/releases/download/geokit-v0.1.0/geokit-aarch64-apple-darwin.tar.gz"
+      url "https://github.com/ponti-studios/toolbox/releases/download/geokit-v0.1.0/geokit-aarch64-apple-darwin.tar.gz"
       sha256 "REPLACE_WITH_AARCH64_SHA256"
     end
   end

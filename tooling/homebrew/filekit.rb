@@ -1,11 +1,11 @@
 class Filekit < Formula
   desc "Utility CLI for frontmatter, calendar, and local tooling workflows"
-  homepage "https://github.com/charlesponti/cli-tools"
+  homepage "https://github.com/ponti-studios/toolbox"
   license "MIT"
 
   on_macos do
     on_arm do
-      url "https://github.com/charlesponti/cli-tools/releases/download/filekit-v0.1.0/filekit-aarch64-apple-darwin.tar.gz"
+      url "https://github.com/ponti-studios/toolbox/releases/download/filekit-v0.1.0/filekit-aarch64-apple-darwin.tar.gz"
       sha256 "REPLACE_WITH_AARCH64_SHA256"
     end
   end

@@ -12,8 +12,8 @@ members = [
 edition = "2021"
 license = "MIT"
 authors = ["Charles Ponti"]
-repository = "https://github.com/charlesponti/cli-tools"
-homepage = "https://github.com/charlesponti/cli-tools"
+repository = "https://github.com/ponti-studios/toolbox"
+homepage = "https://github.com/ponti-studios/toolbox"
 
 [workspace.dependencies]
 anyhow = "1"

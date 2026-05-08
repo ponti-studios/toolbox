@@ -10,7 +10,7 @@ Swift CLI for transcribing video files into Markdown using Apple's Speech framew
 
 ## Install
 
-Preferred distribution is via the studio Homebrew tap.
+Preferred distribution is via the Ponti Studios Homebrew tap.
 
 For local development:
 

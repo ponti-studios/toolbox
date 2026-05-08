@@ -7,6 +7,7 @@ build:
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
+    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
 
 # Build specific Rust CLI
 build-cli CLI:
@@ -18,6 +19,7 @@ build-release:
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build -c release; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release; fi
+    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
 
 
 # Typecheck all Rust crates
@@ -33,6 +35,7 @@ smoke:
     cargo run -p filekit -- --help
     cargo run -p costkit -- --help
     cargo run -p netkit -- --help
+    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go run . --help); else echo "Skipping xkit smoke test (go not installed)"; fi
 
 # Package a Rust binary for a specific target
 package-cli CLI TARGET:
@@ -46,6 +49,7 @@ test:
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift test; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
+    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go test ./...); else echo "Skipping xkit tests (go not installed)"; fi
 
 # Run clippy lints
 lint:
@@ -93,6 +97,13 @@ install-all:
         ln -sf "$(pwd)/target/release/$cli" "$mise_shims/$cli"
         echo "  $cli -> $mise_shims/$cli"
     done
+
+    if command -v go >/dev/null 2>&1; then
+        echo "Building xkit..."
+        (cd apps/xkit && go build -o ../../target/xkit .)
+        ln -sf "$(pwd)/target/xkit" "$mise_shims/xkit"
+        echo "  xkit -> $mise_shims/xkit"
+    fi
 
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then
         command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for geokit"; exit 1; }
@@ -187,6 +198,7 @@ clean-setup:
     rm -f "${HOME}/.local/share/mise/shims/timekit"
     rm -f "${HOME}/.local/share/mise/shims/geokit"
     rm -f "${HOME}/.local/share/mise/shims/mediakit"
+    rm -f "${HOME}/.local/share/mise/shims/xkit"
     rm -rf apps/timekit/.build apps/timekit/.swiftpm
     rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
     echo "Removed setup artifacts for filekit, timekit, geokit, and mediakit"

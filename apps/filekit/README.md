@@ -4,7 +4,7 @@ General-purpose utility CLI for frontmatter, calendar import, and local tooling 
 
 ## Install
 
-Preferred distribution is via the studio Homebrew tap.
+Preferred distribution is via the Ponti Studios Homebrew tap.
 
 For local development:
 

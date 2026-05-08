@@ -1,8 +1,8 @@
 class Timekit < Formula
   desc "Apple Calendar intelligence CLI for local-first enrichment"
-  homepage "https://github.com/charlesponti/cli-tools"
+  homepage "https://github.com/ponti-studios/toolbox"
   license "MIT"
-  url "https://github.com/charlesponti/cli-tools/archive/refs/tags/timekit-v0.1.0.tar.gz"
+  url "https://github.com/ponti-studios/toolbox/archive/refs/tags/timekit-v0.1.0.tar.gz"
   sha256 "REPLACE_WITH_SHA256"
 
   def install
