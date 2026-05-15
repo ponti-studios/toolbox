@@ -37,6 +37,10 @@ smoke:
     cargo run -p netkit -- --help
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go run . --help); else echo "Skipping xkit smoke test (go not installed)"; fi
 
+# Print the xkit dev license server public key
+xkit-license-public-key:
+    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go run ./cmd/xkit-license-server public-key); else echo "Skipping xkit license server key (go not installed)"; fi
+
 # Package a Rust binary for a specific target
 package-cli CLI TARGET:
     mkdir -p dist

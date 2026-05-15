@@ -1,13 +1,13 @@
 # toolbox
 
-A polyglot monorepo for independent command-line tools built in Rust, Swift, Go, and Python.
+A monorepo for command-line tools built in Rust, Swift, and Go.
 
 Repository: https://github.com/ponti-studios/toolbox
 
 ## Overview
 
-This repository contains several focused CLI applications that share a common release and development workflow.
-Each tool has its own README with full command reference, examples, and testing guidance.
+This repository contains several CLI applications with a shared development and release workflow.
+Each tool has its own README.
 
 ## Workspace Layout
 
@@ -39,7 +39,7 @@ toolbox/
 | [netkit](./apps/netkit/README.md) | Rust | Network diagnostics |
 | [timekit](./apps/timekit/README.md) | Swift | Apple Calendar intelligence tooling |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
-| [xkit](./apps/xkit/README.md) | Go | X post deletion CLI |
+| [xkit](./apps/xkit/README.md) | Go | Local-first paid X post deletion CLI |
 
 ## Shared Packages
 
@@ -87,20 +87,19 @@ just install-geokit
 just install-mediakit
 ```
 
-## Release Notes
+## Releases
 
 - Release tags follow the pattern `<cli>-v<version>`
 - `geokit` release assets are macOS binaries built from the Swift package in `apps/geokit`
-- Rust tools continue to use the Cargo workspace and shared release flow
 - `filekit` is the primary file-management and analysis CLI
-- Swift tools build from their package directories; Rust tools continue to use the Cargo workspace and shared release flow
+- Rust tools use the Cargo workspace
+- Swift tools build from their package directories
 - `xkit` is a standalone Go CLI built from `apps/xkit`
 - GitHub releases and Homebrew formula templates are wired to `ponti-studios/toolbox`
 
 ## Documentation
 
 - Tool-specific command references live in each app’s `README.md`
-- Additional CLI reference docs were consolidated into the app READMEs
 
 ## License
 
