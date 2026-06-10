@@ -19,6 +19,7 @@ toolbox/
 │   ├── filekit/
 │   ├── costkit/
 │   ├── netkit/
+│   ├── resume/
 │   ├── timekit/
 │   └── xkit/
 ├── packages/
@@ -37,6 +38,7 @@ toolbox/
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
 | [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
 | [netkit](./apps/netkit/README.md) | Rust | Network diagnostics |
+| [resume](./apps/resume/README.md) | Go | Markdown-to-DOCX resume builder, verifier, and reviewer |
 | [timekit](./apps/timekit/README.md) | Swift | Apple Calendar intelligence tooling |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
 | [xkit](./apps/xkit/README.md) | Go | Local-first paid X post deletion CLI |
@@ -59,6 +61,13 @@ just build
 just install
 ```
 
+### Build and install resume
+
+```bash
+just build-resume
+just install-resume
+```
+
 ### Run the test suite
 
 ```bash
@@ -73,6 +82,7 @@ cargo run -p bizkit -- init
 cargo run -p filekit -- frontmatter walk
 cargo run -p costkit -- dashboard
 cargo run -p netkit -- -s google.com
+cd apps/resume && go run ./cmd/resume --help
 cd apps/xkit && go run . delete-posts --help
 ```
 
@@ -95,6 +105,7 @@ just install-mediakit
 - Rust tools use the Cargo workspace
 - Swift tools build from their package directories
 - `xkit` is a standalone Go CLI built from `apps/xkit`
+- `resume` is a standalone Go CLI built from `apps/resume/cmd/resume`
 - GitHub releases and Homebrew formula templates are wired to `ponti-studios/toolbox`
 
 ## Documentation
