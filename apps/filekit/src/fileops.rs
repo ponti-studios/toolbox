@@ -221,7 +221,10 @@ pub fn run_merge_markdown(opts: MergeMarkdownOpts) -> Result<()> {
 
     if opts.with_filenames {
         merged.push_str("# Merged Document\n\n");
-        merged.push_str(&format!("Generated: {}\n\n---\n\n", chrono::Local::now().format("%Y-%m-%d %H:%M:%S")));
+        merged.push_str(&format!(
+            "Generated: {}\n\n---\n\n",
+            chrono::Local::now().format("%Y-%m-%d %H:%M:%S")
+        ));
     }
 
     for file_path in &input_files {
@@ -270,7 +273,11 @@ pub fn run_merge_markdown(opts: MergeMarkdownOpts) -> Result<()> {
 
     let lines = final_content.lines().count();
     let words = final_content.split_whitespace().count();
-    println!("✅ Merged {} files into {}", merged_count, opts.output.display());
+    println!(
+        "✅ Merged {} files into {}",
+        merged_count,
+        opts.output.display()
+    );
     println!("   Lines: {}", lines);
     println!("   Words: {}", words);
     Ok(())
@@ -285,7 +292,9 @@ fn hash_file(path: &Path, algorithm: &HashAlgorithm) -> Result<String> {
             let mut hasher = Md5::new();
             loop {
                 let n = file.read(&mut buf)?;
-                if n == 0 { break; }
+                if n == 0 {
+                    break;
+                }
                 hasher.update(&buf[..n]);
             }
             Ok(format!("{:x}", hasher.finalize()))
@@ -294,7 +303,9 @@ fn hash_file(path: &Path, algorithm: &HashAlgorithm) -> Result<String> {
             let mut hasher = Sha1::new();
             loop {
                 let n = file.read(&mut buf)?;
-                if n == 0 { break; }
+                if n == 0 {
+                    break;
+                }
                 hasher.update(&buf[..n]);
             }
             Ok(format!("{:x}", hasher.finalize()))
@@ -303,7 +314,9 @@ fn hash_file(path: &Path, algorithm: &HashAlgorithm) -> Result<String> {
             let mut hasher = Sha256::new();
             loop {
                 let n = file.read(&mut buf)?;
-                if n == 0 { break; }
+                if n == 0 {
+                    break;
+                }
                 hasher.update(&buf[..n]);
             }
             Ok(format!("{:x}", hasher.finalize()))
@@ -315,7 +328,10 @@ pub fn run_find_duplicates(opts: FindDuplicatesOpts) -> Result<()> {
     let allowed = normalize_extensions(&opts.extensions);
     let mut size_groups: BTreeMap<u64, Vec<PathBuf>> = BTreeMap::new();
 
-    for entry in WalkDir::new(&opts.directory).into_iter().filter_map(|e| e.ok()) {
+    for entry in WalkDir::new(&opts.directory)
+        .into_iter()
+        .filter_map(|e| e.ok())
+    {
         if !entry.file_type().is_file() {
             continue;
         }
@@ -327,7 +343,10 @@ pub fn run_find_duplicates(opts: FindDuplicatesOpts) -> Result<()> {
             Ok(meta) if meta.len() >= opts.min_size => meta.len(),
             _ => continue,
         };
-        size_groups.entry(size).or_default().push(path.to_path_buf());
+        size_groups
+            .entry(size)
+            .or_default()
+            .push(path.to_path_buf());
     }
 
     let mut groups: BTreeMap<String, Vec<PathBuf>> = BTreeMap::new();
@@ -378,8 +397,17 @@ pub fn run_find_duplicates(opts: FindDuplicatesOpts) -> Result<()> {
         sizes.sort_by(|a, b| b.0.cmp(&a.0).then_with(|| a.1.cmp(b.1)));
 
         for (idx, (size, path)) in sizes.iter().enumerate() {
-            let marker = if idx == 0 { "  ✓ KEEP" } else { "  ✗ DELETE" };
-            println!("    {}: {} ({:.2} MB)", marker, path, *size as f64 / (1024.0 * 1024.0));
+            let marker = if idx == 0 {
+                "  ✓ KEEP"
+            } else {
+                "  ✗ DELETE"
+            };
+            println!(
+                "    {}: {} ({:.2} MB)",
+                marker,
+                path,
+                *size as f64 / (1024.0 * 1024.0)
+            );
         }
 
         if let Some((size, _)) = sizes.first() {
@@ -391,7 +419,10 @@ pub fn run_find_duplicates(opts: FindDuplicatesOpts) -> Result<()> {
 
     println!("📊 Summary:");
     println!("  Total duplicate files: {}", total_duplicate_files);
-    println!("  Potential space to free: {:.2} MB", total_wasted_space as f64 / (1024.0 * 1024.0));
+    println!(
+        "  Potential space to free: {:.2} MB",
+        total_wasted_space as f64 / (1024.0 * 1024.0)
+    );
     Ok(())
 }
 
@@ -419,7 +450,11 @@ fn normalize_backrefs(replacement: &str) -> String {
 }
 
 fn apply_template_vars(filepath: &Path, template: &str) -> String {
-    let name = filepath.file_stem().and_then(|s| s.to_str()).unwrap_or("").to_string();
+    let name = filepath
+        .file_stem()
+        .and_then(|s| s.to_str())
+        .unwrap_or("")
+        .to_string();
     let ext = filepath
         .extension()
         .and_then(|s| s.to_str())
@@ -459,7 +494,8 @@ pub fn run_bulk_rename(opts: BulkRenameOpts) -> Result<()> {
     if !opts.directory.exists() {
         anyhow::bail!("directory not found: {}", opts.directory.display());
     }
-    let regex = Regex::new(&opts.pattern).with_context(|| format!("invalid regex: {}", opts.pattern))?;
+    let regex =
+        Regex::new(&opts.pattern).with_context(|| format!("invalid regex: {}", opts.pattern))?;
     let allowed = normalize_extensions(&opts.extensions);
     let replacement = normalize_backrefs(&opts.replacement);
 
@@ -513,8 +549,9 @@ pub fn run_bulk_rename(opts: BulkRenameOpts) -> Result<()> {
         }
 
         if opts.apply {
-            fs::rename(filepath, &new_path)
-                .with_context(|| format!("renaming {} to {}", filepath.display(), new_path.display()))?;
+            fs::rename(filepath, &new_path).with_context(|| {
+                format!("renaming {} to {}", filepath.display(), new_path.display())
+            })?;
             println!("✅ {} → {}", old_name, new_name);
         } else {
             println!("→ {}", old_name);
@@ -528,26 +565,42 @@ pub fn run_bulk_rename(opts: BulkRenameOpts) -> Result<()> {
     Ok(())
 }
 
-fn flatten_json_value(value: &serde_json::Value, prefix: &str, sep: &str, out: &mut BTreeMap<String, String>) {
+fn flatten_json_value(
+    value: &serde_json::Value,
+    prefix: &str,
+    sep: &str,
+    out: &mut BTreeMap<String, String>,
+) {
     match value {
         serde_json::Value::Object(map) => {
             for (k, v) in map {
-                let next = if prefix.is_empty() { k.clone() } else { format!("{}{}{}", prefix, sep, k) };
+                let next = if prefix.is_empty() {
+                    k.clone()
+                } else {
+                    format!("{}{}{}", prefix, sep, k)
+                };
                 flatten_json_value(v, &next, sep, out);
             }
         }
         serde_json::Value::Array(items) => {
             for (i, v) in items.iter().enumerate() {
-                let next = if prefix.is_empty() { i.to_string() } else { format!("{}{}{}", prefix, sep, i) };
+                let next = if prefix.is_empty() {
+                    i.to_string()
+                } else {
+                    format!("{}{}{}", prefix, sep, i)
+                };
                 flatten_json_value(v, &next, sep, out);
             }
         }
         _ => {
-            out.insert(prefix.to_string(), match value {
-                serde_json::Value::String(s) => s.clone(),
-                serde_json::Value::Null => String::new(),
-                _ => value.to_string(),
-            });
+            out.insert(
+                prefix.to_string(),
+                match value {
+                    serde_json::Value::String(s) => s.clone(),
+                    serde_json::Value::Null => String::new(),
+                    _ => value.to_string(),
+                },
+            );
         }
     }
 }
@@ -557,9 +610,16 @@ pub fn run_convert(opts: ConvertOpts) -> Result<()> {
         anyhow::bail!("input file not found: {}", opts.input.display());
     }
 
-    let force_csv_to_json = opts.csv_to_json || opts.input.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("csv")).unwrap_or(false);
+    let force_csv_to_json = opts.csv_to_json
+        || opts
+            .input
+            .extension()
+            .and_then(|s| s.to_str())
+            .map(|s| s.eq_ignore_ascii_case("csv"))
+            .unwrap_or(false);
     if force_csv_to_json {
-        let mut rdr = ReaderBuilder::new().from_path(&opts.input)
+        let mut rdr = ReaderBuilder::new()
+            .from_path(&opts.input)
             .with_context(|| format!("reading {}", opts.input.display()))?;
         let headers = rdr.headers()?.clone();
         let mut rows = Vec::new();
@@ -571,14 +631,21 @@ pub fn run_convert(opts: ConvertOpts) -> Result<()> {
             }
             rows.push(serde_json::Value::Object(obj));
         }
-        fs::write(&opts.output, serde_json::to_string_pretty(&rows)?).with_context(|| format!("writing {}", opts.output.display()))?;
-        println!("✅ Converted {} to {}", opts.input.display(), opts.output.display());
+        fs::write(&opts.output, serde_json::to_string_pretty(&rows)?)
+            .with_context(|| format!("writing {}", opts.output.display()))?;
+        println!(
+            "✅ Converted {} to {}",
+            opts.input.display(),
+            opts.output.display()
+        );
         println!("   Rows: {}", rows.len());
         return Ok(());
     }
 
-    let content = fs::read_to_string(&opts.input).with_context(|| format!("reading {}", opts.input.display()))?;
-    let data: serde_json::Value = serde_json::from_str(&content).with_context(|| format!("parsing JSON {}", opts.input.display()))?;
+    let content = fs::read_to_string(&opts.input)
+        .with_context(|| format!("reading {}", opts.input.display()))?;
+    let data: serde_json::Value = serde_json::from_str(&content)
+        .with_context(|| format!("parsing JSON {}", opts.input.display()))?;
     let items: Vec<serde_json::Value> = match data {
         serde_json::Value::Array(items) => items,
         serde_json::Value::Object(_) => vec![data],
@@ -591,11 +658,14 @@ pub fn run_convert(opts: ConvertOpts) -> Result<()> {
         if opts.no_flatten {
             if let serde_json::Value::Object(obj) = item {
                 for (k, v) in obj {
-                    map.insert(k, match v {
-                        serde_json::Value::String(s) => s,
-                        serde_json::Value::Null => String::new(),
-                        _ => v.to_string(),
-                    });
+                    map.insert(
+                        k,
+                        match v {
+                            serde_json::Value::String(s) => s,
+                            serde_json::Value::Null => String::new(),
+                            _ => v.to_string(),
+                        },
+                    );
                 }
             } else {
                 map.insert("value".to_string(), item.to_string());
@@ -619,16 +689,24 @@ pub fn run_convert(opts: ConvertOpts) -> Result<()> {
     }
     let keys: Vec<String> = keys.into_iter().collect();
 
-    let mut wtr = WriterBuilder::new().from_path(&opts.output)
+    let mut wtr = WriterBuilder::new()
+        .from_path(&opts.output)
         .with_context(|| format!("writing {}", opts.output.display()))?;
     wtr.write_record(&keys)?;
     for row in &flattened {
-        let record: Vec<String> = keys.iter().map(|k| row.get(k).cloned().unwrap_or_default()).collect();
+        let record: Vec<String> = keys
+            .iter()
+            .map(|k| row.get(k).cloned().unwrap_or_default())
+            .collect();
         wtr.write_record(&record)?;
     }
     wtr.flush()?;
 
-    println!("✅ Converted {} to {}", opts.input.display(), opts.output.display());
+    println!(
+        "✅ Converted {} to {}",
+        opts.input.display(),
+        opts.output.display()
+    );
     println!("   Rows: {}", flattened.len());
     println!("   Columns: {}", keys.len());
     Ok(())
@@ -683,7 +761,10 @@ fn write_sheet_csv<T: ToString>(rows: &[Vec<T>], output: &Path, keep_formulas: b
     writer.write_record(&headers)?;
 
     for row in &rows[1..] {
-        let record: Vec<String> = row.iter().map(|cell| cell_to_string(cell, keep_formulas)).collect();
+        let record: Vec<String> = row
+            .iter()
+            .map(|cell| cell_to_string(cell, keep_formulas))
+            .collect();
         writer.write_record(&record)?;
     }
 
@@ -698,12 +779,22 @@ pub fn run_xlsx_to_csv(opts: XlsxToCsvOpts) -> Result<()> {
         fs::read_dir(&dir)
             .with_context(|| format!("reading {}", dir.display()))?
             .filter_map(|entry| entry.ok().map(|e| e.path()))
-            .filter(|path| path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("xlsx")).unwrap_or(false))
+            .filter(|path| {
+                path.extension()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.eq_ignore_ascii_case("xlsx"))
+                    .unwrap_or(false)
+            })
             .collect()
     } else {
         fs::read_dir(".")?
             .filter_map(|entry| entry.ok().map(|e| e.path()))
-            .filter(|path| path.extension().and_then(|s| s.to_str()).map(|s| s.eq_ignore_ascii_case("xlsx")).unwrap_or(false))
+            .filter(|path| {
+                path.extension()
+                    .and_then(|s| s.to_str())
+                    .map(|s| s.eq_ignore_ascii_case("xlsx"))
+                    .unwrap_or(false)
+            })
             .collect()
     };
 
@@ -712,7 +803,9 @@ pub fn run_xlsx_to_csv(opts: XlsxToCsvOpts) -> Result<()> {
     }
 
     if opts.keep_formulas {
-        eprintln!("⚠️  --keep-formulas is best-effort; xlsx exports typically use cached cell values");
+        eprintln!(
+            "⚠️  --keep-formulas is best-effort; xlsx exports typically use cached cell values"
+        );
     }
 
     for workbook_path in workbook_paths {
@@ -722,32 +815,56 @@ pub fn run_xlsx_to_csv(opts: XlsxToCsvOpts) -> Result<()> {
 
         if opts.all_sheets {
             for sheet_name in sheet_names {
-                let range = workbook
-                    .worksheet_range(&sheet_name)
-                    .with_context(|| format!("reading sheet '{}' in {}", sheet_name, workbook_path.display()))?;
+                let range = workbook.worksheet_range(&sheet_name).with_context(|| {
+                    format!(
+                        "reading sheet '{}' in {}",
+                        sheet_name,
+                        workbook_path.display()
+                    )
+                })?;
                 let rows: Vec<Vec<String>> = range
                     .rows()
-                    .map(|row| row.iter().map(|cell| cell_to_string(cell, opts.keep_formulas)).collect())
+                    .map(|row| {
+                        row.iter()
+                            .map(|cell| cell_to_string(cell, opts.keep_formulas))
+                            .collect()
+                    })
                     .collect();
                 let output = xlsx_output_path(&workbook_path, Some(&sheet_name));
                 write_sheet_csv(&rows, &output, opts.keep_formulas)?;
-                println!("Converted: {} [{}] -> {}", workbook_path.display(), sheet_name, output.display());
+                println!(
+                    "Converted: {} [{}] -> {}",
+                    workbook_path.display(),
+                    sheet_name,
+                    output.display()
+                );
             }
         } else {
-            let sheet_name = sheet_names
-                .first()
-                .cloned()
-                .ok_or_else(|| anyhow::anyhow!("workbook has no sheets: {}", workbook_path.display()))?;
-            let range = workbook
-                .worksheet_range(&sheet_name)
-                .with_context(|| format!("reading sheet '{}' in {}", sheet_name, workbook_path.display()))?;
+            let sheet_name = sheet_names.first().cloned().ok_or_else(|| {
+                anyhow::anyhow!("workbook has no sheets: {}", workbook_path.display())
+            })?;
+            let range = workbook.worksheet_range(&sheet_name).with_context(|| {
+                format!(
+                    "reading sheet '{}' in {}",
+                    sheet_name,
+                    workbook_path.display()
+                )
+            })?;
             let rows: Vec<Vec<String>> = range
                 .rows()
-                .map(|row| row.iter().map(|cell| cell_to_string(cell, opts.keep_formulas)).collect())
+                .map(|row| {
+                    row.iter()
+                        .map(|cell| cell_to_string(cell, opts.keep_formulas))
+                        .collect()
+                })
                 .collect();
             let output = xlsx_output_path(&workbook_path, None);
             write_sheet_csv(&rows, &output, opts.keep_formulas)?;
-            println!("Converted: {} -> {}", workbook_path.display(), output.display());
+            println!(
+                "Converted: {} -> {}",
+                workbook_path.display(),
+                output.display()
+            );
         }
     }
 

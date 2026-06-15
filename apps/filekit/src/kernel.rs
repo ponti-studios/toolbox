@@ -174,7 +174,8 @@ fn load_ignore_patterns(root: &Path, opts: &AnalyzeOpts) -> Result<Vec<IgnorePat
 
         if path.exists() {
             patterns.extend(parse_ignore_file(
-                &fs::read_to_string(&path).with_context(|| format!("reading {}", path.display()))?,
+                &fs::read_to_string(&path)
+                    .with_context(|| format!("reading {}", path.display()))?,
             ));
         }
     }
@@ -349,7 +350,10 @@ fn analyze_directory(
     let mut files = Vec::new();
     let mut ignored = 0usize;
 
-    for entry in WalkDir::new(root).into_iter().filter_map(|entry| entry.ok()) {
+    for entry in WalkDir::new(root)
+        .into_iter()
+        .filter_map(|entry| entry.ok())
+    {
         let path = entry.path();
         if path == root {
             continue;
@@ -366,7 +370,11 @@ fn analyze_directory(
             continue;
         }
 
-        if rel.file_name().map(|n| n == ".kernelignore").unwrap_or(false) {
+        if rel
+            .file_name()
+            .map(|n| n == ".kernelignore")
+            .unwrap_or(false)
+        {
             continue;
         }
 
@@ -449,7 +457,10 @@ fn print_text_report(report: &AnalyzeReport, show_files: bool) {
 
     println!("\n📁 By File Type:");
     println!("{}", "-".repeat(80));
-    println!("{:<12} {:>8} {:>12} {:>12} {:>12} {:>12}", "Type", "Files", "Lines", "Words", "Size", "Tokens");
+    println!(
+        "{:<12} {:>8} {:>12} {:>12} {:>12} {:>12}",
+        "Type", "Files", "Lines", "Words", "Size", "Tokens"
+    );
     println!("{}", "-".repeat(80));
 
     for item in &report.by_extension {
@@ -480,7 +491,10 @@ fn print_text_report(report: &AnalyzeReport, show_files: bool) {
             if !files.is_empty() {
                 println!("\n📄 Individual Files:");
                 println!("{}", "-".repeat(80));
-                println!("{:<50} {:>10} {:>10} {:>10} {:>10}", "File", "Lines", "Words", "Size", "Tokens");
+                println!(
+                    "{:<50} {:>10} {:>10} {:>10} {:>10}",
+                    "File", "Lines", "Words", "Size", "Tokens"
+                );
                 println!("{}", "-".repeat(80));
 
                 for file in files {
@@ -506,7 +520,10 @@ fn print_text_report(report: &AnalyzeReport, show_files: bool) {
     println!("⚠️  Using rough estimation (~1 token per 4 characters)");
     println!("Total tokens: {}", report.summary.tokens);
     if report.summary.files > 0 {
-        println!("Average tokens per file: {:.0}", report.summary.average_tokens_per_file);
+        println!(
+            "Average tokens per file: {:.0}",
+            report.summary.average_tokens_per_file
+        );
         println!(
             "Approx input cost (GPT-3.5-turbo): ${:.4}",
             report.summary.estimated_input_cost_usd
@@ -531,8 +548,20 @@ mod tests {
     #[test]
     fn ignores_json_and_obsidian_paths() {
         let patterns = parse_ignore_file(".obsidian/\n*.json\n");
-        assert!(should_ignore(Path::new(".obsidian/workspace.json"), &patterns, false));
-        assert!(should_ignore(Path::new("notes/data.json"), &patterns, false));
-        assert!(!should_ignore(Path::new("notes/readme.md"), &patterns, false));
+        assert!(should_ignore(
+            Path::new(".obsidian/workspace.json"),
+            &patterns,
+            false
+        ));
+        assert!(should_ignore(
+            Path::new("notes/data.json"),
+            &patterns,
+            false
+        ));
+        assert!(!should_ignore(
+            Path::new("notes/readme.md"),
+            &patterns,
+            false
+        ));
     }
 }

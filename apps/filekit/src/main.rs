@@ -1241,11 +1241,15 @@ fn run_completion_install(opts: CompletionInstallOpts) -> Result<()> {
     }
 
     if path.exists() && !opts.force {
-        anyhow::bail!("completion file already exists: {} (use --force to overwrite)", path.display());
+        anyhow::bail!(
+            "completion file already exists: {} (use --force to overwrite)",
+            path.display()
+        );
     }
 
     if let Some(parent) = path.parent() {
-        std::fs::create_dir_all(parent).with_context(|| format!("creating {}", parent.display()))?;
+        std::fs::create_dir_all(parent)
+            .with_context(|| format!("creating {}", parent.display()))?;
     }
 
     let mut cmd = Cli::command();
