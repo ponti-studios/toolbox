@@ -8,7 +8,7 @@ build:
     if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/resume ]; then (cd apps/resume && go build -o ../../target/resume ./cmd/resume); else echo "Skipping resume (go not installed or app missing)"; fi
+    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
 
 # Build specific Rust CLI
 build-cli CLI:
@@ -21,7 +21,7 @@ build-release:
     if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build -c release; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/resume ]; then (cd apps/resume && go build -o ../../target/resume ./cmd/resume); else echo "Skipping resume (go not installed or app missing)"; fi
+    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
 
 
 # Typecheck all Rust crates
@@ -38,7 +38,7 @@ smoke:
     cargo run -p costkit -- --help
     cargo run -p netkit -- --help
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go run . --help); else echo "Skipping xkit smoke test (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/resume ]; then (cd apps/resume && go run ./cmd/resume --help); else echo "Skipping resume smoke test (go not installed or app missing)"; fi
+    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go run ./cmd/careerkit --help); else echo "Skipping careerkit smoke test (go not installed or app missing)"; fi
 
 # Print the xkit dev license server public key
 xkit-license-public-key:
@@ -57,7 +57,7 @@ test:
     if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go test ./...); else echo "Skipping xkit tests (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/resume ]; then (cd apps/resume && go test ./...); else echo "Skipping resume tests (go not installed or app missing)"; fi
+    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go test ./...); else echo "Skipping careerkit tests (go not installed or app missing)"; fi
 
 # Run clippy lints
 lint:
@@ -140,28 +140,25 @@ install-all:
 # Symlink all CLI binaries to mise shims
 symlink: install-all
 
-# Build resume in release-ready mode
-build-resume:
+# Build careerkit in release-ready mode
+build-careerkit:
     #!/usr/bin/env bash
     set -euo pipefail
-    command -v go >/dev/null 2>&1 || { echo "Error: go is required for build-resume"; exit 1; }
+    command -v go >/dev/null 2>&1 || { echo "Error: go is required for build-careerkit"; exit 1; }
     mkdir -p target
-    (cd apps/resume && go build -o ../../target/resume ./cmd/resume)
-    echo "Built target/resume"
+    (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
+    echo "Built target/careerkit"
 
-# Install resume to dotfiles bin
-install-resume:
+# Install careerkit to dotfiles bin
+install-careerkit:
     #!/usr/bin/env bash
     set -euo pipefail
-    command -v go >/dev/null 2>&1 || { echo "Error: go is required for install-resume"; exit 1; }
+    command -v go >/dev/null 2>&1 || { echo "Error: go is required for install-careerkit"; exit 1; }
     dotfiles_bin="${HOME}/.dotfiles/stow/bin/bin"
     mkdir -p "$dotfiles_bin" target
-    (cd apps/resume && go build -o ../../target/resume ./cmd/resume)
-    ln -sf "$(pwd)/target/resume" "$dotfiles_bin/resume"
-    echo "  resume -> $dotfiles_bin/resume"
-
-# Symlink resume into dotfiles bin
-symlink-resume: install-resume
+    (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
+    ln -sf "$(pwd)/target/careerkit" "$dotfiles_bin/careerkit"
+    echo "  careerkit -> $dotfiles_bin/careerkit"
 
 # Build geokit in release mode
 build-geokit:
