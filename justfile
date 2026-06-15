@@ -33,10 +33,8 @@ smoke:
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift run geokit -- --help); else echo "Skipping geokit smoke test on non-macOS"; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then (cd apps/timekit && swift run timekit -- --help); else echo "Skipping timekit smoke test on non-macOS"; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then (cd apps/mediakit && swift run mediakit -- --help); else echo "Skipping mediakit smoke test on non-macOS"; fi
-    cargo run -p bizkit -- --help
     cargo run -p filekit -- --help
     cargo run -p costkit -- --help
-    cargo run -p netkit -- --help
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go run . --help); else echo "Skipping xkit smoke test (go not installed)"; fi
     if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go run ./cmd/careerkit --help); else echo "Skipping careerkit smoke test (go not installed or app missing)"; fi
 
@@ -98,7 +96,7 @@ install-all:
     mise_shims="${HOME}/.local/share/mise/shims"
     mkdir -p "$mise_shims"
 
-    rust_clis="bizkit filekit costkit netkit"
+    rust_clis="filekit costkit"
     for cli in $rust_clis; do
         echo "Building $cli..."
         cargo build -p "$cli" --release

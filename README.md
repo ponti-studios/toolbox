@@ -18,7 +18,6 @@ toolbox/
 │   ├── mediakit/
 │   ├── filekit/
 │   ├── costkit/
-│   ├── netkit/
 │   ├── careerkit/
 │   ├── timekit/
 │   └── xkit/
@@ -34,10 +33,8 @@ toolbox/
 | Tool | Language | Description |
 |------|----------|-------------|
 | [geokit](./apps/geokit/README.md) | Swift | Apple Maps geolocation lookup and CSV geocoding |
-| [bizkit](./apps/bizkit/README.md) | Rust | Business modeling and scenario analysis |
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
 | [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
-| [netkit](./apps/netkit/README.md) | Rust | Network diagnostics |
 | [careerkit](./apps/careerkit/README.md) | Go | Markdown-to-DOCX resume builder, verifier, and reviewer |
 | [timekit](./apps/timekit/README.md) | Swift | Apple Calendar intelligence tooling |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
@@ -78,10 +75,8 @@ cargo test --workspace
 
 ```bash
 cd apps/geokit && swift run geokit -- geocode "New York"
-cargo run -p bizkit -- init
 cargo run -p filekit -- frontmatter walk
 cargo run -p costkit -- dashboard
-cargo run -p netkit -- -s google.com
 cd apps/careerkit && go run ./cmd/careerkit --help
 cd apps/xkit && go run . delete-posts --help
 ```
