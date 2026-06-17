@@ -383,9 +383,7 @@ pub fn bucket_key(ts: &str, interval: &str) -> Option<String> {
     }
 }
 
-fn aggregate(
-    rows: &[ActivityRow],
-) -> AggregateState {
+fn aggregate(rows: &[ActivityRow]) -> AggregateState {
     let mut summary = SummaryAccumulator::default();
     let mut providers = HashMap::new();
     let mut models = HashMap::new();
