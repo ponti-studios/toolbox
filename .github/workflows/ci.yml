@@ -4,13 +4,56 @@ on:
   push:
     branches: [main, master]
   pull_request:
+  workflow_dispatch:
 
 env:
   CARGO_TERM_COLOR: always
 
 jobs:
-  rust:
-    name: Rust Workspace
+  prepare-matrix:
+    name: Prepare CLI Matrices
+    runs-on: ubuntu-latest
+    outputs:
+      unit_matrix: ${{ steps.matrix.outputs.unit_matrix }}
+      smoke_matrix: ${{ steps.matrix.outputs.smoke_matrix }}
+      integration_matrix: ${{ steps.matrix.outputs.integration_matrix }}
+      release_smoke_matrix: ${{ steps.matrix.outputs.release_smoke_matrix }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Build manifest matrices
+        id: matrix
+        run: |
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+
+          manifest = json.loads(Path("tooling/cli-test-manifest.json").read_text())
+          tools = manifest["tools"]
+
+          def matrix_for(field):
+              include = []
+              for tool in tools:
+                  if tool.get(field):
+                      include.append(
+                          {
+                              "name": tool["name"],
+                              "language": tool["language"],
+                              "os": tool["os"],
+                              "path": tool["path"],
+                          }
+                      )
+              return json.dumps({"include": include})
+
+          print(f"unit_matrix={matrix_for('unit_command')}")
+          print(f"smoke_matrix={matrix_for('smoke_command')}")
+          print(f"integration_matrix={matrix_for('integration_command')}")
+          print(f"release_smoke_matrix={matrix_for('release_smoke_command')}")
+          PY
+
+  rust-quality:
+    name: Rust Quality
     runs-on: ubuntu-latest
     steps:
       - name: Checkout repository
@@ -20,9 +63,6 @@ jobs:
         uses: dtolnay/rust-toolchain@stable
         with:
           components: clippy, rustfmt
-
-      - name: Install just
-        uses: taiki-e/install-action@just
 
       - name: Cache cargo
         uses: Swatinem/rust-cache@v2
@@ -36,58 +76,119 @@ jobs:
       - name: Run clippy
         run: cargo clippy --workspace --all-targets -- -D warnings
 
-      - name: Run tests
-        run: cargo test --workspace
-
-      - name: Smoke test Rust binaries
-        run: just smoke
-
-  geokit:
-    name: Geokit (Swift CLI)
-    runs-on: macos-14
+  unit:
+    name: Unit ${{ matrix.name }}
+    needs: prepare-matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.unit_matrix) }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Build geokit
-        run: cd apps/geokit && swift build
+      - name: Install Rust
+        if: matrix.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
 
-      - name: Run geokit tests
-        run: cd apps/geokit && swift test
-
-      - name: Smoke test geokit CLI
-        run: cd apps/geokit && swift run geokit -- --help
-
-  timekit:
-    name: Timekit (Swift CLI)
-    runs-on: macos-14
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-
-      - name: Build timekit
-        run: cd apps/timekit && swift build
-
-      - name: Smoke test timekit CLI
-        run: cd apps/timekit && swift run timekit -- --help
-
-  essay-classifier:
-    name: Essay Classifier (Go)
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
+      - name: Cache cargo
+        if: matrix.language == 'rust'
+        uses: Swatinem/rust-cache@v2
 
       - name: Set up Go
+        if: matrix.language == 'go'
         uses: actions/setup-go@v5
         with:
-          go-version: '1.25'
+          go-version: '1.26.4'
           cache: true
 
-      - name: Build essay-classifier
-        working-directory: apps/essay-classifier
-        run: go build -o essay-classifier ./cmd
+      - name: Run unit phase
+        run: ./scripts/test-clis.sh --phase unit --tool "${{ matrix.name }}"
 
-      - name: Smoke test essay-classifier
-        working-directory: apps/essay-classifier
-        run: ./essay-classifier --help
+  smoke:
+    name: Smoke ${{ matrix.name }}
+    needs: [prepare-matrix, rust-quality]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.smoke_matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        if: matrix.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        if: matrix.language == 'rust'
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.4'
+          cache: true
+
+      - name: Run smoke phase
+        run: ./scripts/test-clis.sh --phase smoke --tool "${{ matrix.name }}"
+
+  integration:
+    name: Integration ${{ matrix.name }}
+    needs: [prepare-matrix, unit, smoke]
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.integration_matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        if: matrix.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        if: matrix.language == 'rust'
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.4'
+          cache: true
+
+      - name: Run integration phase
+        run: ./scripts/test-clis.sh --phase integration --tool "${{ matrix.name }}"
+
+  release-smoke:
+    name: Release Smoke ${{ matrix.name }}
+    if: github.event_name == 'workflow_dispatch'
+    needs: prepare-matrix
+    runs-on: ${{ matrix.os }}
+    strategy:
+      fail-fast: false
+      matrix: ${{ fromJson(needs.prepare-matrix.outputs.release_smoke_matrix) }}
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Install Rust
+        if: matrix.language == 'rust'
+        uses: dtolnay/rust-toolchain@stable
+
+      - name: Cache cargo
+        if: matrix.language == 'rust'
+        uses: Swatinem/rust-cache@v2
+
+      - name: Set up Go
+        if: matrix.language == 'go'
+        uses: actions/setup-go@v5
+        with:
+          go-version: '1.26.4'
+          cache: true
+
+      - name: Run release-smoke phase
+        run: ./scripts/test-clis.sh --phase release-smoke --tool "${{ matrix.name }}"

@@ -1,0 +1,83 @@
+{
+  "schema_version": 1,
+  "tools": [
+    {
+      "name": "filekit",
+      "language": "rust",
+      "path": "apps/filekit",
+      "os": "ubuntu-latest",
+      "build_command": "cargo build -p filekit",
+      "unit_command": "cargo test -p filekit",
+      "smoke_command": "./target/debug/filekit --help",
+      "integration_command": "./scripts/cli/integration/filekit.sh",
+      "release_smoke_command": "cargo build -p filekit --release && ./target/release/filekit --help",
+      "allows_network_integration": false,
+      "allows_system_integration": false
+    },
+    {
+      "name": "costkit",
+      "language": "rust",
+      "path": "apps/costkit",
+      "os": "ubuntu-latest",
+      "build_command": "cargo build -p costkit",
+      "unit_command": "cargo test -p costkit",
+      "smoke_command": "./target/debug/costkit --help",
+      "integration_command": "./scripts/cli/integration/costkit.sh",
+      "release_smoke_command": "cargo build -p costkit --release && ./target/release/costkit --help",
+      "allows_network_integration": false,
+      "allows_system_integration": false
+    },
+    {
+      "name": "careerkit",
+      "language": "go",
+      "path": "apps/careerkit",
+      "os": "ubuntu-latest",
+      "build_command": "cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit",
+      "unit_command": "cd apps/careerkit && go test ./...",
+      "smoke_command": "./target/careerkit --help",
+      "integration_command": "./scripts/cli/integration/careerkit.sh",
+      "release_smoke_command": "cd apps/careerkit && go build -o ../../target/careerkit-release ./cmd/careerkit && ../../target/careerkit-release --help",
+      "allows_network_integration": false,
+      "allows_system_integration": false
+    },
+    {
+      "name": "xkit",
+      "language": "go",
+      "path": "apps/xkit",
+      "os": "ubuntu-latest",
+      "build_command": "cd apps/xkit && go build -o ../../target/xkit .",
+      "unit_command": "cd apps/xkit && go test ./...",
+      "smoke_command": "./target/xkit --help && ./target/xkit version",
+      "integration_command": "./scripts/cli/integration/xkit.sh",
+      "release_smoke_command": "cd apps/xkit && go build -o ../../target/xkit-release . && ../../target/xkit-release --help && ../../target/xkit-release version",
+      "allows_network_integration": false,
+      "allows_system_integration": false
+    },
+    {
+      "name": "geokit",
+      "language": "swift",
+      "path": "apps/geokit",
+      "os": "macos-14",
+      "build_command": "./scripts/swift-package-clean-run.sh apps/geokit swift build",
+      "unit_command": "./scripts/swift-package-clean-run.sh apps/geokit swift test",
+      "smoke_command": "./apps/geokit/.build/debug/geokit --help",
+      "integration_command": "./scripts/cli/integration/geokit.sh",
+      "release_smoke_command": "./scripts/swift-package-clean-run.sh apps/geokit swift build -c release && ./apps/geokit/.build/release/geokit --help",
+      "allows_network_integration": false,
+      "allows_system_integration": false
+    },
+    {
+      "name": "mediakit",
+      "language": "swift",
+      "path": "apps/mediakit",
+      "os": "macos-14",
+      "build_command": "./scripts/swift-package-clean-run.sh apps/mediakit swift build",
+      "unit_command": null,
+      "smoke_command": "./apps/mediakit/.build/debug/mediakit --help",
+      "integration_command": "./scripts/cli/integration/mediakit.sh",
+      "release_smoke_command": "./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release && ./apps/mediakit/.build/release/mediakit --help",
+      "allows_network_integration": false,
+      "allows_system_integration": false
+    }
+  ]
+}

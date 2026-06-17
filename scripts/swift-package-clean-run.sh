@@ -15,6 +15,11 @@ if [[ ! -d "$package_dir" ]]; then
 fi
 
 rm -rf "$package_dir/.build" "$package_dir/.swiftpm"
+
+if [[ "$1" == "swift" ]]; then
+    set -- xcrun swift "${@:2}"
+fi
+
 (
     cd "$package_dir"
     "$@"

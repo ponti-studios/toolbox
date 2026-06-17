@@ -28,12 +28,23 @@ check:
 
 # Smoke test binaries via --help
 smoke:
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift run geokit -- --help); else echo "Skipping geokit smoke test on non-macOS"; fi
-    if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then (cd apps/mediakit && swift run mediakit -- --help); else echo "Skipping mediakit smoke test on non-macOS"; fi
-    cargo run -p filekit -- --help
-    cargo run -p costkit -- --help
-    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go run . --help); else echo "Skipping xkit smoke test (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go run ./cmd/careerkit --help); else echo "Skipping careerkit smoke test (go not installed or app missing)"; fi
+    ./scripts/test-clis.sh --phase smoke
+
+# Manifest-driven CLI smoke tests
+smoke-clis:
+    ./scripts/test-clis.sh --phase smoke
+
+# Manifest-driven CLI unit, build, smoke, and integration checks
+test-clis:
+    ./scripts/test-clis.sh --phase all
+
+# Run all CLI checks for one tool
+test-cli NAME:
+    ./scripts/test-clis.sh --phase all --tool {{NAME}}
+
+# Run one CLI phase for one tool
+test-cli-phase NAME PHASE:
+    ./scripts/test-clis.sh --phase {{PHASE}} --tool {{NAME}}
 
 # Print the xkit dev license server public key
 xkit-license-public-key:

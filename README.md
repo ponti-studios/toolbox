@@ -69,6 +69,29 @@ just install-careerkit
 cargo test --workspace
 ```
 
+### Run manifest-driven CLI checks
+
+```bash
+just smoke-clis
+just test-clis
+just test-cli filekit
+just test-cli-phase geokit integration
+```
+
+The checked-in manifest at `tooling/cli-test-manifest.json` is the source of truth for:
+
+- tool metadata (`name`, `language`, `path`, and CI OS)
+- build/unit/smoke/integration/release-smoke commands
+- whether a CLI is allowed to rely on network or system integration during automation
+
+CLI fixtures should stay tool-local. Existing tools use app-owned fixture directories such as
+`apps/costkit/tests/fixtures` and `apps/careerkit/fixtures`, and new CLI fixture work should
+follow the same pattern instead of introducing machine-local dependencies.
+
+The CLI runner activates `mise` automatically when it is available so local Go and other managed
+toolchains match the versions you have configured. Swift package automation is executed through
+`xcrun swift` to use the active Xcode toolchain instead of any ambient shell shim.
+
 ### Run a specific tool
 
 ```bash
@@ -102,6 +125,7 @@ just install-mediakit
 ## Documentation
 
 - Tool-specific command references live in each app’s `README.md`
+- The manifest-driven CLI test runner lives at `scripts/test-clis.sh`
 
 ## License
 
