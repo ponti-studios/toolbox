@@ -385,13 +385,7 @@ pub fn bucket_key(ts: &str, interval: &str) -> Option<String> {
 
 fn aggregate(
     rows: &[ActivityRow],
-) -> (
-    SummaryAccumulator,
-    HashMap<String, ProviderAccumulator>,
-    HashMap<String, ModelAccumulator>,
-    HashMap<String, AppAccumulator>,
-    HashMap<String, i64>,
-) {
+) -> AggregateState {
     let mut summary = SummaryAccumulator::default();
     let mut providers = HashMap::new();
     let mut models = HashMap::new();
@@ -452,6 +446,14 @@ fn aggregate(
     (summary, providers, models, apps, finish_reasons)
 }
 
+type AggregateState = (
+    SummaryAccumulator,
+    HashMap<String, ProviderAccumulator>,
+    HashMap<String, ModelAccumulator>,
+    HashMap<String, AppAccumulator>,
+    HashMap<String, i64>,
+);
+
 fn fuzzy_match(text: &str, pattern: &str) -> bool {
     let text = text.to_lowercase();
     let pattern = pattern.to_lowercase();
@@ -504,7 +506,7 @@ fn sorted_apps(apps: &HashMap<String, AppAccumulator>) -> Vec<(String, &AppAccum
 
 fn sorted_finish_reasons(reasons: &HashMap<String, i64>) -> Vec<(String, i64)> {
     let mut items: Vec<_> = reasons.iter().map(|(k, v)| (k.clone(), *v)).collect();
-    items.sort_by(|a, b| b.1.cmp(&a.1));
+    items.sort_by_key(|item| std::cmp::Reverse(item.1));
     items
 }
 

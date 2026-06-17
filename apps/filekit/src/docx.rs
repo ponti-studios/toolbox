@@ -194,7 +194,7 @@ mod tests {
         let path = dir.path().join("resume.docx");
         fs::write(&path, "placeholder").expect("write file");
 
-        let files = collect_docx_files(&[path.clone()]).expect("collect files");
+        let files = collect_docx_files(std::slice::from_ref(&path)).expect("collect files");
 
         assert_eq!(files, vec![path]);
     }
