@@ -5,7 +5,6 @@ default:
 build:
     cargo build --workspace
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift build; fi
-    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
     if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
@@ -18,7 +17,6 @@ build-cli CLI:
 build-release:
     cargo build --workspace --release
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release; fi
-    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build -c release; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
     if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
@@ -31,7 +29,6 @@ check:
 # Smoke test binaries via --help
 smoke:
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then (cd apps/geokit && swift run geokit -- --help); else echo "Skipping geokit smoke test on non-macOS"; fi
-    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then (cd apps/timekit && swift run timekit -- --help); else echo "Skipping timekit smoke test on non-macOS"; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then (cd apps/mediakit && swift run mediakit -- --help); else echo "Skipping mediakit smoke test on non-macOS"; fi
     cargo run -p filekit -- --help
     cargo run -p costkit -- --help
@@ -52,7 +49,6 @@ package-cli CLI TARGET:
 test:
     cargo test --workspace
     if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift test; fi
-    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/timekit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go test ./...); else echo "Skipping xkit tests (go not installed)"; fi
     if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go test ./...); else echo "Skipping careerkit tests (go not installed or app missing)"; fi
@@ -77,7 +73,6 @@ run CLI="filekit":
 clean:
     cargo clean
     rm -rf apps/geokit/.build
-    rm -rf apps/timekit/.build apps/timekit/.swiftpm
     rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
 
 # Add a new Rust CLI
@@ -117,14 +112,6 @@ install-all:
         ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
         ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
         echo "  geokit -> $mise_shims/geokit"
-    fi
-
-    if [ "$(uname)" = "Darwin" ] && [ -f apps/timekit/Package.swift ]; then
-        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for timekit"; exit 1; }
-        echo "Building timekit..."
-        ./scripts/swift-package-clean-run.sh apps/timekit swift build -c release
-        ln -sf "$(pwd)/apps/timekit/.build/release/timekit" "$mise_shims/timekit"
-        echo "  timekit -> $mise_shims/timekit"
     fi
 
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then
@@ -221,10 +208,8 @@ clean-setup:
     #!/usr/bin/env bash
     set -e
     rm -f "${HOME}/.local/share/mise/shims/filekit"
-    rm -f "${HOME}/.local/share/mise/shims/timekit"
     rm -f "${HOME}/.local/share/mise/shims/geokit"
     rm -f "${HOME}/.local/share/mise/shims/mediakit"
     rm -f "${HOME}/.local/share/mise/shims/xkit"
-    rm -rf apps/timekit/.build apps/timekit/.swiftpm
     rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
-    echo "Removed setup artifacts for filekit, timekit, geokit, and mediakit"
+    echo "Removed setup artifacts for filekit, geokit, and mediakit"

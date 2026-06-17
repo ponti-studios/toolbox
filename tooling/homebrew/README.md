@@ -19,4 +19,3 @@ This directory holds formula templates for toolbox binaries from https://github.
 ## Notes
 
 - These formula files are templates until checksums are filled in
-- `timekit` remains experimental even though a formula template exists

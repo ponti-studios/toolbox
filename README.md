@@ -19,7 +19,6 @@ toolbox/
 │   ├── filekit/
 │   ├── costkit/
 │   ├── careerkit/
-│   ├── timekit/
 │   └── xkit/
 ├── packages/
 │   └── files/
@@ -36,7 +35,6 @@ toolbox/
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
 | [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
 | [careerkit](./apps/careerkit/README.md) | Go | Markdown-to-DOCX resume builder, verifier, and reviewer |
-| [timekit](./apps/timekit/README.md) | Swift | Apple Calendar intelligence tooling |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
 | [xkit](./apps/xkit/README.md) | Go | Local-first paid X post deletion CLI |
 
@@ -84,8 +82,6 @@ cd apps/xkit && go run . delete-posts --help
 ### Swift tools
 
 ```bash
-cd apps/timekit && swift build
-cd apps/timekit && swift run timekit -- --help
 cd apps/mediakit && swift build
 cd apps/mediakit && swift run mediakit -- --help
 just install-geokit
