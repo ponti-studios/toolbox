@@ -25,9 +25,10 @@ cargo run -p filekit -- --help
    - [update](#frontmatter-update)
 2. [Calendar Commands](#calendar-commands)
 3. [Classification Commands](#classification-commands)
-4. [Files Commands](#files-commands)
-5. [Analyze Commands](#analyze-commands)
-6. [Completions](#completions)
+4. [DOCX Commands](#docx-commands)
+5. [Files Commands](#files-commands)
+6. [Analyze Commands](#analyze-commands)
+7. [Completions](#completions)
 
 ---
 
@@ -524,6 +525,46 @@ filekit classify essays --dir ./essays --csv plan.csv
 - Execute mode will move files into domain folders
 - `--from-pass` now controls which passes are reused vs recomputed
 - TUI and richer LLM-backed classification are still future work
+
+---
+
+## DOCX Commands
+
+### `docx to-md` - Convert DOCX files to Markdown
+
+```bash
+filekit docx to-md [OPTIONS] [PATH]...
+```
+
+Converts one or more `.docx` files to Markdown with `pandoc`. Directory inputs are searched
+recursively. Output files are written beside the source document as `*.md`, with optional media
+extraction into `*_media/`.
+
+**Options:**
+
+| Option | Description | Default |
+|--------|-------------|---------|
+| `[PATH]...` | One or more DOCX files or directories | `.` |
+| `-o, --overwrite` | Replace existing `.md` outputs | `false` |
+| `--no-media` | Skip extracting embedded media | `false` |
+
+**Examples:**
+
+```bash
+# Convert DOCX files in the current directory tree
+filekit docx to-md
+
+# Convert a single file
+filekit docx to-md ~/Documents/resume.docx
+
+# Convert a directory recursively and replace existing Markdown outputs
+filekit docx to-md ~/Documents/research --overwrite
+
+# Convert without extracting embedded images/media
+filekit docx to-md ~/Documents/source.docx --no-media
+```
+
+`pandoc` is required and can be installed with `brew install pandoc`.
 
 ---
 

@@ -11,6 +11,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 
 mod cal;
 mod classify;
+mod docx;
 mod fileops;
 mod kernel;
 
@@ -35,6 +36,10 @@ enum Commands {
     Classify {
         #[command(subcommand)]
         cmd: classify::ClassifyCmd,
+    },
+    Docx {
+        #[command(subcommand)]
+        cmd: docx::DocxCmd,
     },
     Analyze(kernel::AnalyzeOpts),
     Files {
@@ -1288,6 +1293,7 @@ fn main() -> Result<()> {
         Commands::Classify { cmd } => match cmd {
             classify::ClassifyCmd::Essays(opts) => classify::run_essays(opts)?,
         },
+        Commands::Docx { cmd } => docx::run_docx(cmd)?,
         Commands::Analyze(opts) => kernel::run_analyze(opts)?,
         Commands::Files { cmd } => match cmd {
             fileops::FileOpsCmd::MergeMarkdown(opts) => fileops::run_merge_markdown(opts)?,
