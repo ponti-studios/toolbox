@@ -108,6 +108,13 @@ jobs:
             apps/xkit/go.sum
             apps/careerkit/go.mod
 
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+
       - name: Run unit phase
         run: ./scripts/test-clis.sh --phase unit --tool "${{ matrix.name }}"
 
@@ -141,6 +148,13 @@ jobs:
           cache-dependency-path: |
             apps/xkit/go.sum
             apps/careerkit/go.mod
+
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
 
       - name: Run smoke phase
         run: ./scripts/test-clis.sh --phase smoke --tool "${{ matrix.name }}"
@@ -176,6 +190,13 @@ jobs:
             apps/xkit/go.sum
             apps/careerkit/go.mod
 
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
+
       - name: Run integration phase
         run: ./scripts/test-clis.sh --phase integration --tool "${{ matrix.name }}"
 
@@ -210,6 +231,13 @@ jobs:
           cache-dependency-path: |
             apps/xkit/go.sum
             apps/careerkit/go.mod
+
+      - name: Set up Python
+        if: matrix.language == 'python'
+        uses: actions/setup-python@v6
+        with:
+          python-version: '3.11'
+          cache: pip
 
       - name: Run release-smoke phase
         run: ./scripts/test-clis.sh --phase release-smoke --tool "${{ matrix.name }}"

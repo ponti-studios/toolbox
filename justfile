@@ -164,6 +164,10 @@ build-geokit:
 run-geokit QUERY:
     cd apps/geokit && swift run geokit -- {{QUERY}}
 
+# Scrape the DatPiff collection from Internet Archive
+scrape-datpiff:
+    cd apps/datpiff && python3 -m datpiff scrape archiveorg --query "collection:hiphopmixtapes"
+
 # Package geokit for the current macOS architecture
 package-geokit:
     #!/usr/bin/env bash

@@ -6,6 +6,8 @@
 .vscode/
 .idea/
 *.iml
+*.egg-info
+**/datpiff/*.txt
 
 # Rust build and local config
 target/
@@ -19,7 +21,13 @@ Cargo.lock
 .swiftpm/
 .tmp/
 .ruff_cache/
+.pytest_cache/
+.mypy_cache/
+.pytype/
+__pycache__/
+*.pyc
 dist/
+.data
 
 # Environment files
 .env

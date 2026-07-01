@@ -1,12 +1,12 @@
 # toolbox
 
-A monorepo for command-line tools built in Rust, Swift, and Go.
+A monorepo for command-line tools and small local apps built in Rust, Swift, Go, and Python.
 
 Repository: https://github.com/ponti-studios/toolbox
 
 ## Overview
 
-This repository contains several CLI applications with a shared development and release workflow.
+This repository contains several CLI applications and local proof apps with a shared development workflow.
 Each tool has its own README.
 
 ## Workspace Layout
@@ -19,6 +19,7 @@ toolbox/
 │   ├── filekit/
 │   ├── costkit/
 │   ├── careerkit/
+│   ├── datpiff/
 │   └── xkit/
 ├── packages/
 │   └── files/
@@ -35,6 +36,7 @@ toolbox/
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
 | [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
 | [careerkit](./apps/careerkit/README.md) | Go | Markdown-to-DOCX resume builder, verifier, and reviewer |
+| [datpiff](./apps/datpiff/) | Python | Typer/Rich Internet Archive scraper for DatPiff-style collection listings |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
 | [xkit](./apps/xkit/README.md) | Go | Local-first paid X post deletion CLI |
 
@@ -99,6 +101,7 @@ cd apps/geokit && swift run geokit -- geocode "New York"
 cargo run -p filekit -- frontmatter walk
 cargo run -p costkit -- dashboard
 cd apps/careerkit && go run ./cmd/careerkit --help
+cd apps/datpiff && python3 -m datpiff scrape archiveorg --help
 cd apps/xkit && go run . delete-posts --help
 ```
 
