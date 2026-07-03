@@ -1,0 +1,6 @@
+"date","name","amount","status","category","parent category","excluded","tags","type","account","account mask","note","recurring"
+"2024-01-05","Tesco",12.34,"posted","Groceries","Food & Drink",false,,"regular","Test Checking Account",,,
+"2024-01-06","Starbucks",4.50,"posted","Dining Out","Food & Drink",false,,"regular","Test Checking Account",,,
+"2024-01-06","Starbucks",4.50,"posted","Dining Out","Food & Drink",false,,"regular","Test Checking Account",,,
+"2024-01-07","Weird Bank Deposit",-100.00,"posted","","",false,,"internal transfer","Some Unknown Bank",,,
+"2024-01-08","Bad Row",not-a-number,"posted","","",false,,"regular","Test Checking Account",,,

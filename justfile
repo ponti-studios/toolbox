@@ -133,6 +133,11 @@ install-all:
         echo "  mediakit -> $mise_shims/mediakit"
     fi
 
+    echo "Installing warehouse..."
+    uv tool install --editable apps/warehouse --force 2>/dev/null || \
+        uv tool install --editable apps/warehouse
+    echo "  warehouse -> uv tool"
+
 # Symlink all CLI binaries to mise shims
 symlink: install-all
 
@@ -228,3 +233,19 @@ clean-setup:
     rm -f "${HOME}/.local/share/mise/shims/xkit"
     rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
     echo "Removed setup artifacts for filekit, geokit, and mediakit"
+
+# Install warehouse CLI for personal use
+install-warehouse:
+    uv tool install --editable apps/warehouse --force
+
+# Run warehouse tests
+test-warehouse:
+    cd apps/warehouse && uv run pytest tests/ -v
+
+# Lint warehouse
+lint-warehouse:
+    cd apps/warehouse && uv run ruff check warehouse tests && uv run mypy warehouse
+
+# Show warehouse CLI help
+warehouse-help:
+    cd apps/warehouse && uv run warehouse --help

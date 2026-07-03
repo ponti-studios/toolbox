@@ -78,6 +78,19 @@
       "release_smoke_command": "./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release && ./apps/mediakit/.build/release/mediakit --help",
       "allows_network_integration": false,
       "allows_system_integration": false
+    },
+    {
+      "name": "warehouse",
+      "language": "python",
+      "path": "apps/warehouse",
+      "os": "ubuntu-latest",
+      "build_command": "cd apps/warehouse && pip install -e \".[dev]\"",
+      "unit_command": "cd apps/warehouse && pytest tests/ -v",
+      "smoke_command": "warehouse --help",
+      "integration_command": "./scripts/cli/integration/warehouse.sh",
+      "release_smoke_command": "pip install -e apps/warehouse && warehouse --help",
+      "allows_network_integration": false,
+      "allows_system_integration": false
     }
   ]
 }
