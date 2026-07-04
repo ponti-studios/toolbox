@@ -9,6 +9,11 @@ Repository: https://github.com/ponti-studios/toolbox
 This repository contains several CLI applications and local proof apps with a shared development workflow.
 Each tool has its own README.
 
+Two tools now have standalone upstream homes and are synced into this monorepo:
+
+- `geokit` is maintained in `/Users/charlesponti/Developer/geo`
+- `warehouse` is maintained in `/Users/charlesponti/Developer/voidline`
+
 ## Workspace Layout
 
 ```text
@@ -129,6 +134,7 @@ just install-mediakit
 
 - Tool-specific command references live in each app’s `README.md`
 - The manifest-driven CLI test runner lives at `scripts/test-clis.sh`
+- Upstream sync rules live in [docs/upstream-sources.md](docs/upstream-sources.md)
 
 ## License
 

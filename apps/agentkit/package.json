@@ -1,0 +1,25 @@
+{
+  "name": "agentkit",
+  "version": "0.1.0",
+  "description": "Unified AI agent usage & cost CLI — Claude Code, Codex, Copilot, OpenRouter, OpenCode",
+  "type": "module",
+  "bin": {
+    "agentkit": "./dist/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/index.js",
+    "lint": "eslint src --ext .ts",
+    "test": "node --experimental-strip-types --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "typescript": "^5.8.0"
+  },
+  "keywords": ["cli", "llm", "ai", "usage", "cost", "analytics"],
+  "license": "MIT"
+}

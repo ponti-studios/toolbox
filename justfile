@@ -13,6 +13,25 @@ build:
 build-cli CLI:
     cargo build --release -p {{CLI}}
 
+# Build agentkit (TypeScript) locally
+build-agentkit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd apps/agentkit && npm run build
+
+# Build careerkit in release-ready mode
+build-careerkit:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    command -v go >/dev/null 2>&1 || { echo "Error: go is required for build-careerkit"; exit 1; }
+    mkdir -p target
+    (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
+    echo "Built target/careerkit"
+
+# Build geokit in release mode
+build-geokit:
+    ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
+
 # Build release for current platform
 build-release:
     cargo build --workspace --release
@@ -91,83 +110,145 @@ new-cli NAME:
     cargo new --bin apps/{{NAME}}
     @echo "Add to Cargo.toml workspace members: \"apps/{{NAME}}\""
 
-# Build and install all CLI binaries to mise shims
-install-all:
+# Build and install a CLI to mise shims.
+# Usage:
+#   just install          # Install all CLIs
+#   just install agentkit # Install a single CLI
+install NAME="all":
     #!/usr/bin/env bash
     set -euo pipefail
 
-    command -v cargo >/dev/null 2>&1 || { echo "Error: cargo is required for install-all"; exit 1; }
-    command -v mise >/dev/null 2>&1 || { echo "Error: mise is required for install-all"; exit 1; }
+    command -v mise >/dev/null 2>&1 || { echo "Error: mise is required"; exit 1; }
 
     mise_shims="${HOME}/.local/share/mise/shims"
     mkdir -p "$mise_shims"
+    NAME="{{NAME}}"
 
-    rust_clis="filekit costkit"
-    for cli in $rust_clis; do
-        echo "Building $cli..."
-        cargo build -p "$cli" --release
-        ln -sf "$(pwd)/target/release/$cli" "$mise_shims/$cli"
-        echo "  $cli -> $mise_shims/$cli"
-    done
+    case "$NAME" in
+      filekit)
+        command -v cargo >/dev/null 2>&1 || { echo "Error: cargo is required for filekit"; exit 1; }
+        echo "Building filekit (Rust)..."
+        cargo build -p "filekit" --release
+        ln -sf "$(pwd)/target/release/filekit" "$mise_shims/filekit"
+        echo "  filekit -> $mise_shims/filekit"
+        ;;
 
-    if command -v go >/dev/null 2>&1; then
-        echo "Building xkit..."
+      xkit)
+        command -v go >/dev/null 2>&1 || { echo "Error: go is required for $NAME"; exit 1; }
+        echo "Building xkit (Go)..."
         (cd apps/xkit && go build -o ../../target/xkit .)
         ln -sf "$(pwd)/target/xkit" "$mise_shims/xkit"
         echo "  xkit -> $mise_shims/xkit"
-    fi
+        ;;
 
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then
-        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for geokit"; exit 1; }
-        echo "Building geokit..."
+      careerkit)
+        command -v go >/dev/null 2>&1 || { echo "Error: go is required for $NAME"; exit 1; }
+        echo "Building careerkit (Go)..."
+        mkdir -p target
+        (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
+        ln -sf "$(pwd)/target/careerkit" "$mise_shims/careerkit"
+        echo "  careerkit -> $mise_shims/careerkit"
+        ;;
+
+      agentkit)
+        echo "Building agentkit (TypeScript)..."
+        (cd apps/agentkit && npm run build)
+        ln -sf "$(pwd)/apps/agentkit/dist/index.js" "$mise_shims/agentkit"
+        chmod +x "$mise_shims/agentkit"
+        echo "  agentkit -> $mise_shims/agentkit"
+        ;;
+
+      geokit)
+        if [ "$(uname)" != "Darwin" ]; then echo "Error: geokit requires macOS"; exit 1; fi
+        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for $NAME"; exit 1; }
+        echo "Building geokit (Swift)..."
         ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
         ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
         echo "  geokit -> $mise_shims/geokit"
-    fi
+        ;;
 
-    if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then
-        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for mediakit"; exit 1; }
-        echo "Building mediakit..."
+      mediakit)
+        if [ "$(uname)" != "Darwin" ]; then echo "Error: mediakit requires macOS"; exit 1; fi
+        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for $NAME"; exit 1; }
+        echo "Building mediakit (Swift)..."
         ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release
         ln -sf "$(pwd)/apps/mediakit/.build/release/mediakit" "$mise_shims/mediakit"
         echo "  mediakit -> $mise_shims/mediakit"
-    fi
+        ;;
 
-    echo "Installing warehouse..."
-    uv tool install --editable apps/warehouse --force 2>/dev/null || \
-        uv tool install --editable apps/warehouse
-    echo "  warehouse -> uv tool"
+      warehouse)
+        echo "Installing warehouse (Python)..."
+        uv tool install --editable apps/warehouse --force 2>/dev/null || uv tool install --editable apps/warehouse
+        echo "  warehouse -> uv tool"
+        ;;
 
-# Symlink all CLI binaries to mise shims
-symlink: install-all
+      all)
+        # Install all CLIs
+        if command -v cargo >/dev/null 2>&1; then
+          echo "Building filekit..."
+          cargo build -p "filekit" --release
+          ln -sf "$(pwd)/target/release/filekit" "$mise_shims/filekit"
+          echo "  filekit -> $mise_shims/filekit"
+        fi
+        if command -v go >/dev/null 2>&1; then
+          echo "Building xkit..."
+          (cd apps/xkit && go build -o ../../target/xkit .)
+          ln -sf "$(pwd)/target/xkit" "$mise_shims/xkit"
+          echo "  xkit -> $mise_shims/xkit"
+          if [ -d apps/careerkit ]; then
+            echo "Building careerkit..."
+            mkdir -p target
+            (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
+            ln -sf "$(pwd)/target/careerkit" "$mise_shims/careerkit"
+            echo "  careerkit -> $mise_shims/careerkit"
+          fi
+        fi
+        if [ -f apps/agentkit/package.json ]; then
+          echo "Building agentkit..."
+          (cd apps/agentkit && npm run build)
+          ln -sf "$(pwd)/apps/agentkit/dist/index.js" "$mise_shims/agentkit"
+          chmod +x "$mise_shims/agentkit"
+          echo "  agentkit -> $mise_shims/agentkit"
+        fi
+        if [ "$(uname)" = "Darwin" ]; then
+          if command -v swift >/dev/null 2>&1 && [ -d apps/geokit ]; then
+            echo "Building geokit..."
+            ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
+            ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
+            echo "  geokit -> $mise_shims/geokit"
+          fi
+          if command -v swift >/dev/null 2>&1 && [ -f apps/mediakit/Package.swift ]; then
+            echo "Building mediakit..."
+            ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release
+            ln -sf "$(pwd)/apps/mediakit/.build/release/mediakit" "$mise_shims/mediakit"
+            echo "  mediakit -> $mise_shims/mediakit"
+          fi
+        fi
+        if [ -d apps/warehouse ]; then
+          echo "Installing warehouse..."
+          uv tool install --editable apps/warehouse --force 2>/dev/null || uv tool install --editable apps/warehouse
+          echo "  warehouse -> uv tool"
+        fi
+        ;;
 
-# Build careerkit in release-ready mode
-build-careerkit:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    command -v go >/dev/null 2>&1 || { echo "Error: go is required for build-careerkit"; exit 1; }
-    mkdir -p target
-    (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
-    echo "Built target/careerkit"
-
-# Install careerkit to dotfiles bin
-install-careerkit:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    command -v go >/dev/null 2>&1 || { echo "Error: go is required for install-careerkit"; exit 1; }
-    dotfiles_bin="${HOME}/.dotfiles/stow/bin/bin"
-    mkdir -p "$dotfiles_bin" target
-    (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
-    ln -sf "$(pwd)/target/careerkit" "$dotfiles_bin/careerkit"
-    echo "  careerkit -> $dotfiles_bin/careerkit"
-
-# Build geokit in release mode
-build-geokit:
-    ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
+      *)
+        echo "Unknown app: $NAME"
+        echo "Available: filekit, agentkit, xkit, careerkit, geokit, mediakit, warehouse"
+        exit 1
+        ;;
+    esac
 
 # Run geokit with a query
 run-geokit QUERY:
     cd apps/geokit && swift run geokit -- {{QUERY}}
+
+# Sync geokit from its standalone upstream repo
+sync-geokit-from-geo:
+    ./scripts/sync-geokit-from-geo.sh "${GEOKIT_UPSTREAM:-$HOME/Developer/geo}"
+
+# Sync warehouse from its standalone upstream repo
+sync-warehouse-from-voidline:
+    ./scripts/sync-warehouse-from-voidline.sh "${WAREHOUSE_UPSTREAM:-$HOME/Developer/voidline}"
 
 # Scrape the DatPiff collection from Internet Archive
 scrape-datpiff:
@@ -191,52 +272,6 @@ package-geokit:
     artifact="dist/geokit-${target}.tar.gz"
     tar -C apps/geokit/.build/release -czf "$artifact" geokit
     echo "Wrote $artifact"
-
-# Install geokit to mise shims
-install-geokit:
-    #!/usr/bin/env bash
-    set -e
-    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for install-geokit"; exit 1; }
-
-    mise_shims="${HOME}/.local/share/mise/shims"
-    mkdir -p "$mise_shims"
-
-    echo "Building geokit..."
-    ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
-    ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
-    echo "  geokit -> $mise_shims/geokit"
-
-# Install mediakit to mise shims
-install-mediakit:
-    #!/usr/bin/env bash
-    set -e
-    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for install-mediakit"; exit 1; }
-
-    mise_shims="${HOME}/.local/share/mise/shims"
-    mkdir -p "$mise_shims"
-
-    echo "Building mediakit..."
-    ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release
-    ln -sf "$(pwd)/apps/mediakit/.build/release/mediakit" "$mise_shims/mediakit"
-    echo "  mediakit -> $mise_shims/mediakit"
-
-# Install all CLI binaries
-install: install-all
-
-# Remove setup artifacts
-clean-setup:
-    #!/usr/bin/env bash
-    set -e
-    rm -f "${HOME}/.local/share/mise/shims/filekit"
-    rm -f "${HOME}/.local/share/mise/shims/geokit"
-    rm -f "${HOME}/.local/share/mise/shims/mediakit"
-    rm -f "${HOME}/.local/share/mise/shims/xkit"
-    rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
-    echo "Removed setup artifacts for filekit, geokit, and mediakit"
-
-# Install warehouse CLI for personal use
-install-warehouse:
-    uv tool install --editable apps/warehouse --force
 
 # Run warehouse tests
 test-warehouse:

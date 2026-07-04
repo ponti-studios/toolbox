@@ -99,7 +99,8 @@ final class GeoTests: XCTestCase {
                 inputFile: inputURL.path,
                 column: "Name",
                 outputFile: outputURL.path,
-                includeJSON: true
+                includeJSON: true,
+                pacingMs: 0
             )
         )
 

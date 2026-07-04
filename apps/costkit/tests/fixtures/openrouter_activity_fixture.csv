@@ -1,4 +1,0 @@
-generation_id,created_at,cost_total,cost_web_search,cost_cache,cost_file_processing,byok_usage_inference,tokens_prompt,tokens_completion,tokens_reasoning,tokens_cached,model_permaslug,provider_name,variant,cancelled,streamed,user,finish_reason_raw,finish_reason_normalized,generation_time_ms,time_to_first_token_ms,app_name,api_key_name
-gen-1781501116-78QcyXyss46ZhXUZBZLa,2026-06-15 05:25:16.558,0.024333,,,,0,1603,2233,0,0,openai/gpt-5.1-20251113,OpenAI,standard,false,true,,completed,stop,26970,798,,nexus.dev
-gen-1781501105-XsfCOm6vKsX9EC2PyTth,2026-06-15 05:25:05.955,0.133478,0.025,,,0,78479,1038,0,0,openai/gpt-5.1-20251113,OpenAI,standard,false,true,,completed,stop,9989,3219,,nexus.dev
-gen-1781501102-Qk5a6ruTG0xk2cez21V6,2026-06-15 05:25:02.188,0.002283,,,,0,339,186,0,0,openai/gpt-5.1-20251113,OpenAI,standard,false,true,,completed,tool_calls,1917,1831,,nexus.dev
