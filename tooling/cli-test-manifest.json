@@ -85,7 +85,7 @@
       "path": "apps/warehouse",
       "os": "ubuntu-latest",
       "build_command": "cd apps/warehouse && pip install -e \".[dev]\"",
-      "unit_command": "cd apps/warehouse && pytest tests/ -v",
+      "unit_command": "cd apps/warehouse && pip install -e \".[dev]\" && pytest tests/ -v",
       "smoke_command": "warehouse --help",
       "integration_command": "./scripts/cli/integration/warehouse.sh",
       "release_smoke_command": "pip install -e apps/warehouse && warehouse --help",
