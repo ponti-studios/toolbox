@@ -20,13 +20,12 @@ func main() {
 	port := flag.String("port", "", "Override server port")
 	flag.Parse()
 
-	databasePath := getEnv("TRACKIE_DB_PATH", "trackie.db")
 	serverPort := getEnv("PORT", "8080")
 	if *port != "" {
 		serverPort = *port
 	}
 
-	db, err := database.New(databasePath)
+	db, err := database.New("")
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "failed to open local database: %v\n", err)
 		os.Exit(1)

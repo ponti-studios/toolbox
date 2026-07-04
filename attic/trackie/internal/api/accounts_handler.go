@@ -10,8 +10,8 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
-func RegisterTransactionRoutes(group *gin.RouterGroup, db *database.DB) {
-	group.GET("/transactions", func(c *gin.Context) {
+func RegisterAccountRoutes(group *gin.RouterGroup, db *database.DB) {
+	group.GET("/accounts", func(c *gin.Context) {
 		limit := 20
 		offset := 0
 		if value := c.Query("limit"); value != "" {
@@ -30,54 +30,46 @@ func RegisterTransactionRoutes(group *gin.RouterGroup, db *database.DB) {
 		if offset < 0 {
 			offset = 0
 		}
-		result, err := operations.ListTransactions(c.Request.Context(), db, operations.ListTransactionsInput{
-			Limit:     limit,
-			Offset:    offset,
-			AccountID: c.Query("accountId"),
-			Category:  c.Query("category"),
-			StartDate: c.Query("startDate"),
-			EndDate:   c.Query("endDate"),
-			Type:      c.Query("type"),
-		})
+		accounts, err := operations.ListAccounts(c.Request.Context(), db, limit, offset, c.Query("accountType"))
 		if err != nil {
 			writeError(c, err)
 			return
 		}
-		c.JSON(200, result)
+		c.JSON(200, accounts)
 	})
 
-	group.POST("/transactions", func(c *gin.Context) {
-		var input operations.CreateTransactionInput
+	group.POST("/accounts", func(c *gin.Context) {
+		var input operations.CreateAccountInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			writeError(c, fmt.Errorf("validation: invalid request payload"))
 			return
 		}
-		result, err := operations.CreateTransaction(c.Request.Context(), db, input)
+		account, err := operations.CreateAccount(c.Request.Context(), db, input)
 		if err != nil {
 			writeError(c, err)
 			return
 		}
-		c.JSON(200, result)
+		c.JSON(200, account)
 	})
 
-	group.PUT("/transactions/:id", func(c *gin.Context) {
-		transactionID := c.Param("id")
-		var input operations.UpdateTransactionInput
+	group.PUT("/accounts/:id", func(c *gin.Context) {
+		accountID := c.Param("id")
+		var input operations.UpdateAccountInput
 		if err := c.ShouldBindJSON(&input); err != nil {
 			writeError(c, fmt.Errorf("validation: invalid request payload"))
 			return
 		}
-		result, err := operations.UpdateTransaction(c.Request.Context(), db, transactionID, input)
+		account, err := operations.UpdateAccount(c.Request.Context(), db, accountID, input)
 		if err != nil {
 			writeError(c, err)
 			return
 		}
-		c.JSON(200, result)
+		c.JSON(200, account)
 	})
 
-	group.DELETE("/transactions/:id", func(c *gin.Context) {
-		transactionID := c.Param("id")
-		err := operations.DeleteTransaction(c.Request.Context(), db, transactionID)
+	group.DELETE("/accounts/:id", func(c *gin.Context) {
+		accountID := c.Param("id")
+		err := operations.DeleteAccount(c.Request.Context(), db, accountID)
 		if err != nil {
 			writeError(c, err)
 			return

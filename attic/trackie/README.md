@@ -23,11 +23,10 @@ cp .env.example .env
 go run ./cmd/server
 ```
 
-3. By default the app listens on port 8080 and stores data in `trackie.db`.
+3. By default the app listens on port 8080. Trackie shares the warehouse database.
 
    Optional settings:
 
-   - `TRACKIE_DB_PATH` to choose the local SQLite file path
    - `PORT` to change the server port
 
 ## CLI
@@ -57,4 +56,8 @@ Create commands take JSON in `--payload`.
 ## Notes
 
 - Trackie initializes its schema on startup.
-- Trackie stores data in a local SQLite file named `trackie.db` by default.
+- Trackie shares the warehouse database. It resolves the path with the same precedence
+  as the [warehouse](apps/warehouse) Python app:
+  1. `WAREHOUSE_DATABASE_PATH` env var
+  2. `database_path` from `~/.hominem/config.yml`
+  3. Default: `~/.hominem/warehouse.db`

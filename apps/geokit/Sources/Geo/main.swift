@@ -18,6 +18,7 @@ struct GeocodeCSVOptions {
     let column: String
     let outputFile: String
     let includeJSON: Bool
+    let pacingMs: Int
 }
 
 struct CLI {
@@ -84,6 +85,7 @@ struct CLI {
         var column: String?
         var outputFile: String?
         var includeJSON = false
+        var pacingMs: Int?
         var index = 0
 
         while index < arguments.count {
@@ -111,6 +113,15 @@ struct CLI {
                 outputFile = arguments[index]
             case "--include-json":
                 includeJSON = true
+            case "--pacing":
+                index += 1
+                guard index < arguments.count else {
+                    throw CLIError.missingValue(argument)
+                }
+                guard let parsed = Int(arguments[index]), parsed >= 0 else {
+                    throw CLIError.invalidPacing
+                }
+                pacingMs = parsed
             default:
                 throw CLIError.unknownOption(argument)
             }
@@ -124,12 +135,15 @@ struct CLI {
             throw CLIError.missingRequired("--column")
         }
 
+        let effectivePacing = pacingMs ?? Int(ProcessInfo.processInfo.environment["GEOKIT_CSV_PACING_MS"] ?? "").flatMap { Int($0) }.flatMap { $0 >= 0 ? $0 : nil } ?? 1100
+
         return .geocodeCSV(
             GeocodeCSVOptions(
                 inputFile: inputFile,
                 column: column,
                 outputFile: outputFile ?? defaultOutputPath(for: inputFile),
-                includeJSON: includeJSON
+                includeJSON: includeJSON,
+                pacingMs: effectivePacing
             )
         )
     }
@@ -147,7 +161,7 @@ struct CLI {
 usage:
   geokit [--limit N] <query>
   geokit geocode [--limit N] <query>
-  geokit geocode-csv -f <file> -c <column> [-o <output>] [--include-json]
+  geokit geocode-csv -f <file> -c <column> [-o <output>] [--include-json] [--pacing <ms>]
 
 Examples:
   geokit "Cupertino, CA"
@@ -159,6 +173,8 @@ Notes:
   - geocode emits pretty-printed JSON with Apple Maps result data.
   - geocode-csv adds lat, lon, city, state, country, country_code columns.
   - --include-json adds an apple_maps_json column containing full result JSON.
+  - --pacing controls delay between API calls (default 1100ms).
+  - GEOKIT_CSV_PACING_MS environment variable also controls pacing.
 
 """, stream)
         exit(status)
@@ -167,6 +183,7 @@ Notes:
 
 enum CLIError: Error, CustomStringConvertible {
     case invalidLimit
+    case invalidPacing
     case missingValue(String)
     case unknownOption(String)
     case missingRequired(String)
@@ -178,6 +195,8 @@ enum CLIError: Error, CustomStringConvertible {
         switch self {
         case .invalidLimit:
             return "--limit must be a positive integer"
+        case .invalidPacing:
+            return "--pacing must be a non-negative integer (milliseconds)"
         case .missingValue(let option):
             return "missing value for \(option)"
         case .unknownOption(let option):
@@ -402,7 +421,7 @@ struct Geo {
             } else if let cached = cache[query] {
                 geocodeData = cached
             } else {
-                try await Task.sleep(for: .milliseconds(1100))
+                try await Task.sleep(for: .milliseconds(options.pacingMs))
                 let fresh = try await geocodeCSVRow(query: query)
                 cache[query] = fresh
                 geocodeData = fresh

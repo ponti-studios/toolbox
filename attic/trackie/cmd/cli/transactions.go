@@ -26,13 +26,21 @@ func (cli *CLI) runTransactions(ctx context.Context) int {
 		return printJSON(result)
 	}
 
-	var payload operations.CreateTransactionInput
-	if err := json.Unmarshal([]byte(cli.payload), &payload); err != nil {
+	var createInput struct {
+		AccountID   string  `json:"accountId"`
+		Amount      float64 `json:"amount"`
+		Kind        string  `json:"kind"`
+		PostedOn    string  `json:"postedOn"`
+		Description string  `json:"description"`
+		Note        *string `json:"note,omitempty"`
+		Category    *string `json:"category,omitempty"`
+	}
+	if err := json.Unmarshal([]byte(cli.payload), &createInput); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
 	var result operations.Transaction
-	if err := client.post(ctx, "/api/v1/transactions", payload, &result); err != nil {
+	if err := client.post(ctx, "/api/v1/transactions", createInput, &result); err != nil {
 		fmt.Fprintln(os.Stderr, err)
 		return 1
 	}
