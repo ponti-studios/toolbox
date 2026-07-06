@@ -54,19 +54,6 @@
       "allows_system_integration": false
     },
     {
-      "name": "geokit",
-      "language": "swift",
-      "path": "apps/geokit",
-      "os": "macos-26",
-      "build_command": "./scripts/swift-package-clean-run.sh apps/geokit swift build",
-      "unit_command": "./scripts/swift-package-clean-run.sh apps/geokit swift test",
-      "smoke_command": "./apps/geokit/.build/debug/geokit --help",
-      "integration_command": "./scripts/cli/integration/geokit.sh",
-      "release_smoke_command": "./scripts/swift-package-clean-run.sh apps/geokit swift build -c release && ./apps/geokit/.build/release/geokit --help",
-      "allows_network_integration": false,
-      "allows_system_integration": false
-    },
-    {
       "name": "mediakit",
       "language": "swift",
       "path": "apps/mediakit",
@@ -76,19 +63,6 @@
       "smoke_command": "./apps/mediakit/.build/debug/mediakit --help",
       "integration_command": "./scripts/cli/integration/mediakit.sh",
       "release_smoke_command": "./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release && ./apps/mediakit/.build/release/mediakit --help",
-      "allows_network_integration": false,
-      "allows_system_integration": false
-    },
-    {
-      "name": "warehouse",
-      "language": "python",
-      "path": "apps/warehouse",
-      "os": "ubuntu-latest",
-      "build_command": "cd apps/warehouse && pip install -e \".[dev]\"",
-      "unit_command": "cd apps/warehouse && pip install -e \".[dev]\" && pytest tests/ -v",
-      "smoke_command": "warehouse --help",
-      "integration_command": "./scripts/cli/integration/warehouse.sh",
-      "release_smoke_command": "pip install -e apps/warehouse && warehouse --help",
       "allows_network_integration": false,
       "allows_system_integration": false
     }

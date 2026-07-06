@@ -9,22 +9,18 @@ Repository: https://github.com/ponti-studios/toolbox
 This repository contains several CLI applications and local proof apps with a shared development workflow.
 Each tool has its own README.
 
-Two tools now have standalone upstream homes and are synced into this monorepo:
-
-- `geokit` is maintained in `/Users/charlesponti/Developer/geo`
-- `warehouse` is maintained in `/Users/charlesponti/Developer/voidline`
-
 ## Workspace Layout
 
 ```text
 toolbox/
 ├── apps/
-│   ├── geokit/
 │   ├── mediakit/
 │   ├── filekit/
 │   ├── costkit/
 │   ├── careerkit/
 │   ├── datpiff/
+│   ├── agentkit/
+│   ├── photokit/
 │   └── xkit/
 ├── packages/
 │   └── files/
@@ -37,13 +33,14 @@ toolbox/
 
 | Tool | Language | Description |
 |------|----------|-------------|
-| [geokit](./apps/geokit/README.md) | Swift | Apple Maps geolocation lookup and CSV geocoding |
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
 | [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
 | [careerkit](./apps/careerkit/README.md) | Go | Markdown-to-DOCX resume builder, verifier, and reviewer |
 | [datpiff](./apps/datpiff/) | Python | Typer/Rich Internet Archive scraper for DatPiff-style collection listings |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
 | [xkit](./apps/xkit/README.md) | Go | Local-first paid X post deletion CLI |
+| [agentkit](./apps/agentkit/) | TypeScript | Cross-provider AI agent usage analytics |
+| [photokit](./apps/photokit/) | Python | Photo metadata maintenance (EXIF, dates, filenames) |
 
 ## Shared Packages
 
@@ -82,7 +79,6 @@ cargo test --workspace
 just smoke-clis
 just test-clis
 just test-cli filekit
-just test-cli-phase geokit integration
 ```
 
 The checked-in manifest at `tooling/cli-test-manifest.json` is the source of truth for:
@@ -102,7 +98,6 @@ toolchains match the versions you have configured. Swift package automation is e
 ### Run a specific tool
 
 ```bash
-cd apps/geokit && swift run geokit -- geocode "New York"
 cargo run -p filekit -- frontmatter walk
 cargo run -p costkit -- dashboard
 cd apps/careerkit && go run ./cmd/careerkit --help
@@ -115,14 +110,12 @@ cd apps/xkit && go run . delete-posts --help
 ```bash
 cd apps/mediakit && swift build
 cd apps/mediakit && swift run mediakit -- --help
-just install-geokit
 just install-mediakit
 ```
 
 ## Releases
 
 - Release tags follow the pattern `<cli>-v<version>`
-- `geokit` release assets are macOS binaries built from the Swift package in `apps/geokit`
 - `filekit` is the primary file-management and analysis CLI
 - Rust tools use the Cargo workspace
 - Swift tools build from their package directories
@@ -132,9 +125,8 @@ just install-mediakit
 
 ## Documentation
 
-- Tool-specific command references live in each app’s `README.md`
+- Tool-specific command references live in each app's `README.md`
 - The manifest-driven CLI test runner lives at `scripts/test-clis.sh`
-- Upstream sync rules live in [docs/upstream-sources.md](docs/upstream-sources.md)
 
 ## License
 

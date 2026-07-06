@@ -4,7 +4,7 @@ This directory holds formula templates for toolbox binaries from https://github.
 
 ## Intended Flow
 
-1. Create a release tag such as `geokit-v0.1.0`
+1. Create a release tag such as `filekit-v0.1.0`
 2. Let `.github/workflows/release.yml` publish target archives and `.sha256` files
 3. Copy the matching formula into the Ponti Studios tap repository
 4. Replace the placeholder versioned URLs and checksums with the released values
@@ -14,7 +14,7 @@ This directory holds formula templates for toolbox binaries from https://github.
 
 - Archive name: `<cli>-<target>.tar.gz`
 - Supported targets: `aarch64-apple-darwin`, `x86_64-apple-darwin`
-- Release tag: `<cli>-v<version>`
+- Release tag: `<cli>-v<version>` (e.g. `filekit-v0.1.0`)
 
 ## Notes
 

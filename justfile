@@ -4,7 +4,6 @@ default:
 # Build all CLIs
 build:
     cargo build --workspace
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift build; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
     if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
@@ -28,18 +27,12 @@ build-careerkit:
     (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
     echo "Built target/careerkit"
 
-# Build geokit in release mode
-build-geokit:
-    ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
-
 # Build release for current platform
 build-release:
     cargo build --workspace --release
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
     if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
-
 
 # Typecheck all Rust crates
 check:
@@ -78,7 +71,6 @@ package-cli CLI TARGET:
 # Run tests
 test:
     cargo test --workspace
-    if [ "$(uname)" = "Darwin" ] && [ -d apps/geokit ]; then ./scripts/swift-package-clean-run.sh apps/geokit swift test; fi
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go test ./...); else echo "Skipping xkit tests (go not installed)"; fi
     if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go test ./...); else echo "Skipping careerkit tests (go not installed or app missing)"; fi
@@ -102,7 +94,6 @@ run CLI="filekit":
 # Clean build artifacts
 clean:
     cargo clean
-    rm -rf apps/geokit/.build
     rm -rf apps/mediakit/.build apps/mediakit/.swiftpm
 
 # Add a new Rust CLI
@@ -158,15 +149,6 @@ install NAME="all":
         echo "  agentkit -> $mise_shims/agentkit"
         ;;
 
-      geokit)
-        if [ "$(uname)" != "Darwin" ]; then echo "Error: geokit requires macOS"; exit 1; fi
-        command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for $NAME"; exit 1; }
-        echo "Building geokit (Swift)..."
-        ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
-        ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
-        echo "  geokit -> $mise_shims/geokit"
-        ;;
-
       mediakit)
         if [ "$(uname)" != "Darwin" ]; then echo "Error: mediakit requires macOS"; exit 1; fi
         command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for $NAME"; exit 1; }
@@ -174,12 +156,6 @@ install NAME="all":
         ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release
         ln -sf "$(pwd)/apps/mediakit/.build/release/mediakit" "$mise_shims/mediakit"
         echo "  mediakit -> $mise_shims/mediakit"
-        ;;
-
-      warehouse)
-        echo "Installing warehouse (Python)..."
-        uv tool install --editable apps/warehouse --force 2>/dev/null || uv tool install --editable apps/warehouse
-        echo "  warehouse -> uv tool"
         ;;
 
       all)
@@ -210,77 +186,23 @@ install NAME="all":
           chmod +x "$mise_shims/agentkit"
           echo "  agentkit -> $mise_shims/agentkit"
         fi
-        if [ "$(uname)" = "Darwin" ]; then
-          if command -v swift >/dev/null 2>&1 && [ -d apps/geokit ]; then
-            echo "Building geokit..."
-            ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
-            ln -sf "$(pwd)/apps/geokit/.build/release/geokit" "$mise_shims/geokit"
-            echo "  geokit -> $mise_shims/geokit"
-          fi
-          if command -v swift >/dev/null 2>&1 && [ -f apps/mediakit/Package.swift ]; then
+        if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then
+          if command -v swift >/dev/null 2>&1; then
             echo "Building mediakit..."
             ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release
             ln -sf "$(pwd)/apps/mediakit/.build/release/mediakit" "$mise_shims/mediakit"
             echo "  mediakit -> $mise_shims/mediakit"
           fi
         fi
-        if [ -d apps/warehouse ]; then
-          echo "Installing warehouse..."
-          uv tool install --editable apps/warehouse --force 2>/dev/null || uv tool install --editable apps/warehouse
-          echo "  warehouse -> uv tool"
-        fi
         ;;
 
       *)
         echo "Unknown app: $NAME"
-        echo "Available: filekit, agentkit, xkit, careerkit, geokit, mediakit, warehouse"
+        echo "Available: filekit, agentkit, xkit, careerkit, mediakit"
         exit 1
         ;;
     esac
 
-# Run geokit with a query
-run-geokit QUERY:
-    cd apps/geokit && swift run geokit -- {{QUERY}}
-
-# Sync geokit from its standalone upstream repo
-sync-geokit-from-geo:
-    ./scripts/sync-geokit-from-geo.sh "${GEOKIT_UPSTREAM:-$HOME/Developer/geo}"
-
-# Sync warehouse from its standalone upstream repo
-sync-warehouse-from-voidline:
-    ./scripts/sync-warehouse-from-voidline.sh "${WAREHOUSE_UPSTREAM:-$HOME/Developer/voidline}"
-
 # Scrape the DatPiff collection from Internet Archive
 scrape-datpiff:
     cd apps/datpiff && python3 -m datpiff scrape archiveorg --query "collection:hiphopmixtapes"
-
-# Package geokit for the current macOS architecture
-package-geokit:
-    #!/usr/bin/env bash
-    set -e
-    command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for package-geokit"; exit 1; }
-
-    mkdir -p dist
-    ./scripts/swift-package-clean-run.sh apps/geokit swift build -c release
-
-    case "$(uname -m)" in
-      arm64) target="aarch64-apple-darwin" ;;
-      x86_64) target="x86_64-apple-darwin" ;;
-      *) echo "Unsupported architecture: $(uname -m)"; exit 1 ;;
-    esac
-
-    artifact="dist/geokit-${target}.tar.gz"
-    tar -C apps/geokit/.build/release -czf "$artifact" geokit
-    echo "Wrote $artifact"
-
-# Run warehouse tests
-test-warehouse:
-    cd apps/warehouse && uv run pytest tests/ -v
-
-# Lint warehouse
-lint-warehouse:
-    cd apps/warehouse && uv run ruff check warehouse tests && uv run mypy warehouse
-
-# Show warehouse CLI help
-warehouse-help:
-    cd apps/warehouse && uv run warehouse --help
