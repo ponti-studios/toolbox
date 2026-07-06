@@ -14,14 +14,13 @@ Each tool has its own README.
 ```text
 toolbox/
 ├── apps/
-│   ├── mediakit/
 │   ├── filekit/
-│   ├── costkit/
 │   ├── careerkit/
+│   ├── xkit/
+│   ├── mediakit/
 │   ├── datpiff/
-│   ├── agentkit/
 │   ├── photokit/
-│   └── xkit/
+│   └── agentkit/
 ├── packages/
 │   └── files/
 ├── docs/
@@ -34,13 +33,12 @@ toolbox/
 | Tool | Language | Description |
 |------|----------|-------------|
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
-| [costkit](./apps/costkit/README.md) | Rust | LLM cost analysis |
 | [careerkit](./apps/careerkit/README.md) | Go | Markdown-to-DOCX resume builder, verifier, and reviewer |
-| [datpiff](./apps/datpiff/) | Python | Typer/Rich Internet Archive scraper for DatPiff-style collection listings |
-| [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown |
-| [xkit](./apps/xkit/README.md) | Go | Local-first paid X post deletion CLI |
-| [agentkit](./apps/agentkit/) | TypeScript | Cross-provider AI agent usage analytics |
-| [photokit](./apps/photokit/) | Python | Photo metadata maintenance (EXIF, dates, filenames) |
+| [xkit](./apps/xkit/README.md) | Go | Paid destructive X/Twitter post deletion |
+| [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown via Apple Speech |
+| [datpiff](./apps/datpiff/README.md) | Python | Internet Archive crawler for DatPiff-style mixtape listings |
+| [photokit](./apps/photokit/README.md) | Python | EXIF analysis, date repair from filenames, and date-based renaming |
+| [agentkit](./apps/agentkit/README.md) | TypeScript | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter |
 
 ## Shared Packages
 
@@ -99,7 +97,6 @@ toolchains match the versions you have configured. Swift package automation is e
 
 ```bash
 cargo run -p filekit -- frontmatter walk
-cargo run -p costkit -- dashboard
 cd apps/careerkit && go run ./cmd/careerkit --help
 cd apps/datpiff && python3 -m datpiff scrape archiveorg --help
 cd apps/xkit && go run . delete-posts --help
