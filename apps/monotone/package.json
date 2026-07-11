@@ -1,6 +1,6 @@
 {
   "name": "@hackefeller/monotone",
-  "version": "0.1.1",
+  "version": "0.1.2",
   "description": "Content pipeline CLI — rewrite, extract, and queue essays",
   "type": "module",
   "bin": {
@@ -11,7 +11,7 @@
     "README.md"
   ],
   "scripts": {
-    "build": "bun build src/index.ts --outfile bin/monotone.js --target node && sed -i '' '1s/bun/node/' bin/monotone.js",
+    "build": "bun build src/index.ts --outfile bin/monotone.js --target node && node --input-type=commonjs -e \"var f=require('fs'),c=f.readFileSync('bin/monotone.js','utf8');f.writeFileSync('bin/monotone.js',c.replace('bun','node'))\"",
     "prepublishOnly": "bun run build"
   },
   "repository": {
