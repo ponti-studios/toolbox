@@ -1,0 +1,55 @@
+name: Publish Monotone
+
+on:
+  push:
+    branches: [main, master]
+    paths:
+      - "apps/monotone/package.json"
+  workflow_dispatch:
+
+jobs:
+  publish:
+    name: Publish to npm
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: latest
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Check if version already published
+        id: check
+        run: |
+          VERSION=$(node -p "require('./apps/monotone/package.json').version")
+          if npm view @hackefeller/monotone@$VERSION version 2>/dev/null; then
+            echo "exists=true" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION already published — skipping."
+          else
+            echo "exists=false" >> "$GITHUB_OUTPUT"
+            echo "Version $VERSION not yet published."
+          fi
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+
+      - name: Install dependencies
+        if: steps.check.outputs.exists == 'false'
+        working-directory: apps/monotone
+        run: bun install
+
+      - name: Build
+        if: steps.check.outputs.exists == 'false'
+        working-directory: apps/monotone
+        run: bun run build
+
+      - name: Publish
+        if: steps.check.outputs.exists == 'false'
+        working-directory: apps/monotone
+        run: npm publish --access public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
