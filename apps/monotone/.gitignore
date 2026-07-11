@@ -1,0 +1,4 @@
+node_modules/
+dist/
+bin/monotone.js
+.env

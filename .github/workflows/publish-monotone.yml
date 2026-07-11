@@ -11,6 +11,8 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
+    permissions:
+      id-token: write
     steps:
       - uses: actions/checkout@v4
 
@@ -34,8 +36,6 @@ jobs:
             echo "exists=false" >> "$GITHUB_OUTPUT"
             echo "Version $VERSION not yet published."
           fi
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
 
       - name: Install dependencies
         if: steps.check.outputs.exists == 'false'
@@ -50,6 +50,4 @@ jobs:
       - name: Publish
         if: steps.check.outputs.exists == 'false'
         working-directory: apps/monotone
-        run: npm publish --access public
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+        run: npm publish --access public --provenance

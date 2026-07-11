@@ -6,7 +6,6 @@ build:
     cargo build --workspace
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
 
 # Build specific Rust CLI
 build-cli CLI:
@@ -18,21 +17,11 @@ build-agentkit:
     set -euo pipefail
     cd apps/agentkit && npm run build
 
-# Build careerkit in release-ready mode
-build-careerkit:
-    #!/usr/bin/env bash
-    set -euo pipefail
-    command -v go >/dev/null 2>&1 || { echo "Error: go is required for build-careerkit"; exit 1; }
-    mkdir -p target
-    (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
-    echo "Built target/careerkit"
-
 # Build release for current platform
 build-release:
     cargo build --workspace --release
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); else echo "Skipping xkit (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit); else echo "Skipping careerkit (go not installed or app missing)"; fi
 
 # Typecheck all Rust crates
 check:
@@ -73,7 +62,6 @@ test:
     cargo test --workspace
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
     if command -v go >/dev/null 2>&1; then (cd apps/xkit && go test ./...); else echo "Skipping xkit tests (go not installed)"; fi
-    if command -v go >/dev/null 2>&1 && [ -d apps/careerkit ]; then (cd apps/careerkit && go test ./...); else echo "Skipping careerkit tests (go not installed or app missing)"; fi
 
 # Run clippy lints
 lint:
@@ -132,15 +120,6 @@ install NAME="all":
         echo "  xkit -> $mise_shims/xkit"
         ;;
 
-      careerkit)
-        command -v go >/dev/null 2>&1 || { echo "Error: go is required for $NAME"; exit 1; }
-        echo "Building careerkit (Go)..."
-        mkdir -p target
-        (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
-        ln -sf "$(pwd)/target/careerkit" "$mise_shims/careerkit"
-        echo "  careerkit -> $mise_shims/careerkit"
-        ;;
-
       agentkit)
         echo "Building agentkit (TypeScript)..."
         (cd apps/agentkit && npm run build)
@@ -171,13 +150,6 @@ install NAME="all":
           (cd apps/xkit && go build -o ../../target/xkit .)
           ln -sf "$(pwd)/target/xkit" "$mise_shims/xkit"
           echo "  xkit -> $mise_shims/xkit"
-          if [ -d apps/careerkit ]; then
-            echo "Building careerkit..."
-            mkdir -p target
-            (cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit)
-            ln -sf "$(pwd)/target/careerkit" "$mise_shims/careerkit"
-            echo "  careerkit -> $mise_shims/careerkit"
-          fi
         fi
         if [ -f apps/agentkit/package.json ]; then
           echo "Building agentkit..."
@@ -198,7 +170,7 @@ install NAME="all":
 
       *)
         echo "Unknown app: $NAME"
-        echo "Available: filekit, agentkit, xkit, careerkit, mediakit"
+        echo "Available: filekit, agentkit, xkit, mediakit"
         exit 1
         ;;
     esac

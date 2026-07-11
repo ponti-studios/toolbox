@@ -28,19 +28,6 @@
       "allows_system_integration": false
     },
     {
-      "name": "careerkit",
-      "language": "go",
-      "path": "apps/careerkit",
-      "os": "ubuntu-latest",
-      "build_command": "cd apps/careerkit && go build -o ../../target/careerkit ./cmd/careerkit",
-      "unit_command": "cd apps/careerkit && go test ./...",
-      "smoke_command": "./target/careerkit --help",
-      "integration_command": "./scripts/cli/integration/careerkit.sh",
-      "release_smoke_command": "cd apps/careerkit && go build -o ../../target/careerkit-release ./cmd/careerkit && ../../target/careerkit-release --help",
-      "allows_network_integration": false,
-      "allows_system_integration": false
-    },
-    {
       "name": "xkit",
       "language": "go",
       "path": "apps/xkit",

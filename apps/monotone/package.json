@@ -1,0 +1,30 @@
+{
+  "name": "@hackefeller/monotone",
+  "version": "0.1.1",
+  "description": "Content pipeline CLI — rewrite, extract, and queue essays",
+  "type": "module",
+  "bin": {
+    "monotone": "bin/monotone.js"
+  },
+  "files": [
+    "bin",
+    "README.md"
+  ],
+  "scripts": {
+    "build": "bun build src/index.ts --outfile bin/monotone.js --target node && sed -i '' '1s/bun/node/' bin/monotone.js",
+    "prepublishOnly": "bun run build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/hackefeller/toolbox.git",
+    "directory": "apps/monotone"
+  },
+  "keywords": [
+    "content",
+    "pipeline",
+    "essay",
+    "rewrite",
+    "monotone"
+  ],
+  "license": "MIT"
+}

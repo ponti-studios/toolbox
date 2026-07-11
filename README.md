@@ -15,7 +15,6 @@ Each tool has its own README.
 toolbox/
 ├── apps/
 │   ├── filekit/
-│   ├── careerkit/
 │   ├── xkit/
 │   ├── mediakit/
 │   ├── datpiff/
@@ -33,7 +32,6 @@ toolbox/
 | Tool | Language | Description |
 |------|----------|-------------|
 | [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
-| [careerkit](./apps/careerkit/README.md) | Go | Markdown-to-DOCX resume builder, verifier, and reviewer |
 | [xkit](./apps/xkit/README.md) | Go | Paid destructive X/Twitter post deletion |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown via Apple Speech |
 | [datpiff](./apps/datpiff/README.md) | Python | Internet Archive crawler for DatPiff-style mixtape listings |
@@ -58,13 +56,6 @@ just build
 just install
 ```
 
-### Build and install careerkit
-
-```bash
-just build-careerkit
-just install-careerkit
-```
-
 ### Run the test suite
 
 ```bash
@@ -86,8 +77,8 @@ The checked-in manifest at `tooling/cli-test-manifest.json` is the source of tru
 - whether a CLI is allowed to rely on network or system integration during automation
 
 CLI fixtures should stay tool-local. Existing tools use app-owned fixture directories such as
-`apps/costkit/tests/fixtures` and `apps/careerkit/fixtures`, and new CLI fixture work should
-follow the same pattern instead of introducing machine-local dependencies.
+`apps/costkit/tests/fixtures`, and new CLI fixture work should follow the same pattern instead of
+introducing machine-local dependencies.
 
 The CLI runner activates `mise` automatically when it is available so local Go and other managed
 toolchains match the versions you have configured. Swift package automation is executed through
@@ -97,7 +88,6 @@ toolchains match the versions you have configured. Swift package automation is e
 
 ```bash
 cargo run -p filekit -- frontmatter walk
-cd apps/careerkit && go run ./cmd/careerkit --help
 cd apps/datpiff && python3 -m datpiff scrape archiveorg --help
 cd apps/xkit && go run . delete-posts --help
 ```
@@ -117,7 +107,6 @@ just install-mediakit
 - Rust tools use the Cargo workspace
 - Swift tools build from their package directories
 - `xkit` is a standalone Go CLI built from `apps/xkit`
-- `careerkit` is a standalone Go CLI built from `apps/careerkit/cmd/careerkit`
 - GitHub releases and Homebrew formula templates are wired to `ponti-studios/toolbox`
 
 ## Documentation

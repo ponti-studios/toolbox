@@ -1,0 +1,27 @@
+# Monotone — Content Pipeline CLI
+#
+# All commands read skills from ~/.agents/skills/
+# Skills must be installed first: npx skills add ponti-studios/kernel --all --yes
+
+set dotenv-load := true
+
+# Rewrite: raw notes → <path>.v<N>.md
+rewrite path *flags:
+    bun run src/index.ts rewrite {{path}} {{flags}}
+
+# Extract: essay → <path>.posts.md
+extract path *flags:
+    bun run src/index.ts extract {{path}} {{flags}}
+
+# Queue: posts → Typefully (drafts)
+queue path *flags:
+    bun run src/index.ts queue {{path}} {{flags}}
+
+# Build for distribution
+build:
+    bun build src/index.ts --outdir dist --target node
+
+# Install globally
+install:
+    bun build src/index.ts --outdir dist --target node
+    npm link
