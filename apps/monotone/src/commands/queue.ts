@@ -7,18 +7,10 @@ interface PostEntry {
   text: string;
 }
 
-interface QueueArgs {
+export interface QueueOptions {
   source: string;
   dryRun?: boolean;
-}
-
-export function parseQueueArgs(args: string[]): QueueArgs {
-  const result: QueueArgs = { source: "" };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--dry-run") result.dryRun = true;
-    else if (!args[i].startsWith("--")) result.source = args[i];
-  }
-  return result;
+  socialSet?: string;
 }
 
 function resolvePath(p: string): string {
@@ -32,10 +24,18 @@ function parsePostFile(path: string): PostEntry[] {
 
   const posts: PostEntry[] = [];
   let currentType = "";
-  let currentText = "";
-  let frontmatterDone = false;
+  let currentLines: string[] = [];
+  let frontmatterDone = !lines[0]?.trim().startsWith("---");
   let inFrontmatter = false;
   let inTikTok = false;
+
+  function flushPost(): void {
+    while (currentLines[0]?.trim() === "") currentLines.shift();
+    while (currentLines[currentLines.length - 1]?.trim() === "") currentLines.pop();
+    const text = currentLines.join("\n");
+    if (text.trim()) posts.push({ type: currentType, text });
+    currentLines = [];
+  }
 
   for (const line of lines) {
     if (!frontmatterDone && line.trim() === "---") {
@@ -52,24 +52,19 @@ function parsePostFile(path: string): PostEntry[] {
 
     const h2Match = line.match(/^## (\d+)\. \[([^\]]+)\]/);
     if (h2Match) {
-      if (currentText.trim()) {
-        posts.push({ type: currentType, text: currentText.trim() });
-        currentText = "";
-      }
-      currentType = h2Match[2];
-    } else if (line.trim() && !line.startsWith("#") && !line.startsWith(">")) {
-      currentText += (currentText ? "\n" : "") + line;
+      flushPost();
+      currentType = h2Match[2] || "";
+    } else if (currentType) {
+      currentLines.push(line);
     }
   }
 
-  if (currentText.trim()) {
-    posts.push({ type: currentType, text: currentText.trim() });
-  }
+  flushPost();
 
   return posts;
 }
 
-export async function queue(args: QueueArgs): Promise<void> {
+export async function queue(args: QueueOptions): Promise<void> {
   const sourcePath = resolvePath(args.source);
   if (!existsSync(sourcePath)) throw new Error(`File not found: ${args.source}`);
 
@@ -77,13 +72,17 @@ export async function queue(args: QueueArgs): Promise<void> {
 
   console.log(`  file:  ${sourcePath}`);
   if (args.dryRun) console.log("  mode:  dry-run");
+  if (args.socialSet) console.log(`  social set: ${args.socialSet}`);
   console.log(`  posts: ${posts.length}\n`);
 
   for (const post of posts) {
     if (args.dryRun) {
       console.log(`  [dry-run] ${post.text.slice(0, 80)}...`);
     } else {
-      const result = await createDraft(post.text);
+      const result = await createDraft(
+        post.text,
+        args.socialSet ? { socialSetId: args.socialSet } : {}
+      );
       console.log(`  queued: ${result.id} — ${post.text.slice(0, 60)}...`);
     }
   }

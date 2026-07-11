@@ -12,6 +12,7 @@ jobs:
     name: Publish to npm
     runs-on: ubuntu-latest
     permissions:
+      contents: read
       id-token: write
     steps:
       - uses: actions/checkout@v4
@@ -22,8 +23,10 @@ jobs:
 
       - uses: actions/setup-node@v4
         with:
-          node-version: "22"
-          registry-url: "https://registry.npmjs.org"
+          node-version: "24"
+
+      - name: Use npm with Trusted Publishing support
+        run: npm install -g npm@11
 
       - name: Check if version already published
         id: check
@@ -50,4 +53,4 @@ jobs:
       - name: Publish
         if: steps.check.outputs.exists == 'false'
         working-directory: apps/monotone
-        run: npm publish --access public --provenance
+        run: npm publish --access public

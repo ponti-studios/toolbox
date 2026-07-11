@@ -1,25 +1,14 @@
-import { readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "fs";
+import { copyFileSync, readFileSync, writeFileSync, existsSync, mkdirSync, readdirSync } from "fs";
 import { join, dirname, basename, extname, resolve, isAbsolute } from "path";
 import { generate } from "../lib/ollama";
 import { getSkillPath } from "../lib/skills";
 import { logCall } from "../lib/logger";
 
-interface RewriteArgs {
+export interface RewriteOptions {
   source: string;
   out?: string;
   inPlace?: boolean;
   model?: string;
-}
-
-export function parseRewriteArgs(args: string[]): RewriteArgs {
-  const result: RewriteArgs = { source: "" };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--out" && args[i + 1]) result.out = args[++i];
-    else if (args[i] === "--in-place") result.inPlace = true;
-    else if (args[i] === "--model" && args[i + 1]) result.model = args[++i];
-    else if (!args[i].startsWith("--")) result.source = args[i];
-  }
-  return result;
 }
 
 function resolvePath(p: string): string {
@@ -36,12 +25,21 @@ function nextVersion(sourcePath: string): string {
   let max = 0;
   for (const f of existing) {
     const m = f.match(new RegExp(`^${base.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\.v(\\d+)\\.md$`));
-    if (m) max = Math.max(max, parseInt(m[1]));
+    if (m?.[1]) max = Math.max(max, parseInt(m[1]));
   }
   return join(dir, `${base}.v${max + 1}.md`);
 }
 
-export async function rewrite(args: RewriteArgs): Promise<void> {
+function nextBackupPath(sourcePath: string): string {
+  let candidate = `${sourcePath}.bak`;
+  let i = 1;
+  while (existsSync(candidate)) {
+    candidate = `${sourcePath}.bak.${i++}`;
+  }
+  return candidate;
+}
+
+export async function rewrite(args: RewriteOptions): Promise<void> {
   const sourcePath = resolvePath(args.source);
   if (!existsSync(sourcePath)) throw new Error(`File not found: ${args.source}`);
 
@@ -64,6 +62,11 @@ export async function rewrite(args: RewriteArgs): Promise<void> {
 
   const dir = dirname(outPath);
   if (!existsSync(dir)) mkdirSync(dir, { recursive: true });
+  let backupPath = "";
+  if (args.inPlace) {
+    backupPath = nextBackupPath(sourcePath);
+    copyFileSync(sourcePath, backupPath);
+  }
   writeFileSync(outPath, data.response.trim() + "\n");
 
   const promptToks = data.prompt_eval_count || "?";
@@ -75,6 +78,7 @@ export async function rewrite(args: RewriteArgs): Promise<void> {
   console.log(`  model:   ${data.model}`);
   console.log(`  tokens:  ${promptToks} in → ${outToks} out (${tokPerSec}/s)`);
   console.log(`  time:    ${elapsed}s\n`);
+  if (backupPath) console.log(`  backup:  ${backupPath}`);
   console.log(`  written: ${outPath}`);
   console.log("  done. review before publishing.\n");
 }

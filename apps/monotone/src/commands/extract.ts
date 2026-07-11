@@ -22,20 +22,10 @@ interface ExtractResponse {
   tiktok_clips?: TikTokClip[];
 }
 
-interface ExtractArgs {
+export interface ExtractOptions {
   source: string;
   out?: string;
   model?: string;
-}
-
-export function parseExtractArgs(args: string[]): ExtractArgs {
-  const result: ExtractArgs = { source: "" };
-  for (let i = 0; i < args.length; i++) {
-    if (args[i] === "--out" && args[i + 1]) result.out = args[++i];
-    else if (args[i] === "--model" && args[i + 1]) result.model = args[++i];
-    else if (!args[i].startsWith("--")) result.source = args[i];
-  }
-  return result;
 }
 
 function resolvePath(p: string): string {
@@ -94,7 +84,7 @@ function formatPostsFile(sourcePath: string, data: ExtractResponse, model: strin
   return lines.join("\n");
 }
 
-export async function extract(args: ExtractArgs): Promise<void> {
+export async function extract(args: ExtractOptions): Promise<void> {
   const sourcePath = resolvePath(args.source);
   if (!existsSync(sourcePath)) throw new Error(`File not found: ${args.source}`);
 

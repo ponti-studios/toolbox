@@ -1,13 +1,22 @@
 const TYPEFULLY_API = "https://api.typefully.com/v2";
-const SOCIAL_SET_ID = "319788";
+
+interface CreateDraftOptions {
+  apiKey?: string;
+  socialSetId?: string;
+}
 
 export async function createDraft(
   content: string,
-  apiKey: string = process.env.TYPEFULLY_API_KEY || ""
+  options: CreateDraftOptions = {}
 ): Promise<{ id: string }> {
+  const apiKey = options.apiKey || process.env.TYPEFULLY_API_KEY || "";
+  const socialSetId = options.socialSetId || process.env.TYPEFULLY_SOCIAL_SET_ID || "";
   if (!apiKey) throw new Error("TYPEFULLY_API_KEY not set");
+  if (!socialSetId) {
+    throw new Error("TYPEFULLY_SOCIAL_SET_ID not set. Pass --social-set <id> or add it to .env.");
+  }
 
-  const res = await fetch(`${TYPEFULLY_API}/social-sets/${SOCIAL_SET_ID}/drafts`, {
+  const res = await fetch(`${TYPEFULLY_API}/social-sets/${socialSetId}/drafts`, {
     method: "POST",
     headers: {
       "Authorization": `Bearer ${apiKey}`,

@@ -6,12 +6,21 @@
   "bin": {
     "monotone": "bin/monotone.js"
   },
+  "engines": {
+    "node": ">=22.14.0"
+  },
   "files": [
     "bin",
+    ".env.example",
     "README.md"
   ],
+  "publishConfig": {
+    "access": "public",
+    "registry": "https://registry.npmjs.org"
+  },
   "scripts": {
-    "build": "bun build src/index.ts --outfile bin/monotone.js --target node && node --input-type=commonjs -e \"var f=require('fs'),c=f.readFileSync('bin/monotone.js','utf8');f.writeFileSync('bin/monotone.js',c.replace('bun','node'))\"",
+    "build": "bun build src/index.ts --outfile bin/monotone.js --target node && node --input-type=commonjs -e \"var f=require('fs'),p='bin/monotone.js',c=f.readFileSync(p,'utf8');f.writeFileSync(p,c.replace(/^#!.*$/m,'#!/usr/bin/env node'))\"",
+    "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },
   "repository": {
@@ -26,5 +35,12 @@
     "rewrite",
     "monotone"
   ],
-  "license": "MIT"
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^26.1.1",
+    "typescript": "^7.0.2"
+  },
+  "dependencies": {
+    "commander": "^15.0.0"
+  }
 }

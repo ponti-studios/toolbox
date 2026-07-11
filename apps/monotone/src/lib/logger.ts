@@ -19,6 +19,7 @@ export interface LogEntry {
 }
 
 export function logCall(op: string, source: string, model: string, data: {
+  model?: string;
   prompt_eval_count?: number;
   eval_count?: number;
   total_duration?: number;
