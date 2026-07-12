@@ -3,7 +3,7 @@
 Content pipeline CLI. Three commands:
 
 ```bash
-npm install -g @hackefeller/monotone
+npm install -g @ponti-studios/monotone
 monotone rewrite essay.md              # raw notes → polished essay
 monotone extract essay.v1.md           # essay → X post + TikTok clips
 monotone queue essay.v1.posts.md       # posts → Typefully drafts
@@ -13,7 +13,7 @@ monotone queue essay.v1.posts.md       # posts → Typefully drafts
 
 ```bash
 # 1. Install CLI
-npm install -g @hackefeller/monotone
+npm install -g @ponti-studios/monotone
 
 # 2. Install skills
 npx skills add ponti-studios/kernel --all --yes
