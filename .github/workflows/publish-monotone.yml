@@ -24,6 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Use npm with Trusted Publishing support
         run: npm install -g npm@11
@@ -31,13 +32,14 @@ jobs:
       - name: Check if version already published
         id: check
         run: |
+          PACKAGE_NAME=$(node -p "require('./apps/monotone/package.json').name")
           VERSION=$(node -p "require('./apps/monotone/package.json').version")
-          if npm view @hackefeller/monotone@$VERSION version 2>/dev/null; then
+          if npm view $PACKAGE_NAME@$VERSION version 2>/dev/null; then
             echo "exists=true" >> "$GITHUB_OUTPUT"
-            echo "Version $VERSION already published — skipping."
+            echo "$PACKAGE_NAME version $VERSION already published — skipping."
           else
             echo "exists=false" >> "$GITHUB_OUTPUT"
-            echo "Version $VERSION not yet published."
+            echo "$PACKAGE_NAME version $VERSION not yet published."
           fi
 
       - name: Install dependencies
