@@ -24,6 +24,7 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: "24"
+          registry-url: "https://registry.npmjs.org"
 
       - name: Use npm with Trusted Publishing support
         run: npm install -g npm@11
@@ -53,4 +54,4 @@ jobs:
       - name: Publish
         if: steps.check.outputs.exists == 'false'
         working-directory: apps/monotone
-        run: npm publish --access public
+        run: npm publish --provenance --access public
