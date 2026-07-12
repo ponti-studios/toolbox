@@ -3,7 +3,7 @@
   "configVersion": 1,
   "workspaces": {
     "": {
-      "name": "@ponti-studios/monotone",
+      "name": "@hackefeller/monotone",
       "dependencies": {
         "commander": "^15.0.0",
       },
