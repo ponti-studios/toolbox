@@ -128,6 +128,15 @@ install NAME="all":
         echo "  agentkit -> $mise_shims/agentkit"
         ;;
 
+      monotone)
+        command -v bun >/dev/null 2>&1 || { echo "Error: bun is required for monotone"; exit 1; }
+        echo "Building monotone (Bun)..."
+        (cd apps/monotone && bun run build)
+        ln -sf "$(pwd)/apps/monotone/bin/monotone.js" "$mise_shims/monotone"
+        chmod +x "$mise_shims/monotone"
+        echo "  monotone -> $mise_shims/monotone"
+        ;;
+
       mediakit)
         if [ "$(uname)" != "Darwin" ]; then echo "Error: mediakit requires macOS"; exit 1; fi
         command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for $NAME"; exit 1; }
@@ -158,6 +167,15 @@ install NAME="all":
           chmod +x "$mise_shims/agentkit"
           echo "  agentkit -> $mise_shims/agentkit"
         fi
+        if [ -f apps/monotone/package.json ]; then
+          if command -v bun >/dev/null 2>&1; then
+            echo "Building monotone..."
+            (cd apps/monotone && bun run build)
+            ln -sf "$(pwd)/apps/monotone/bin/monotone.js" "$mise_shims/monotone"
+            chmod +x "$mise_shims/monotone"
+            echo "  monotone -> $mise_shims/monotone"
+          fi
+        fi
         if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then
           if command -v swift >/dev/null 2>&1; then
             echo "Building mediakit..."
@@ -170,7 +188,7 @@ install NAME="all":
 
       *)
         echo "Unknown app: $NAME"
-        echo "Available: filekit, agentkit, xkit, mediakit"
+        echo "Available: filekit, agentkit, monotone, xkit, mediakit"
         exit 1
         ;;
     esac
