@@ -1,6 +1,6 @@
 import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
-import { join, dirname, basename, extname, resolve, isAbsolute } from "path";
-import { generate } from "../lib/ollama";
+import { join, dirname, basename, extname, resolve } from "path";
+import { generateStream } from "../lib/ollama";
 import { loadSkill } from "../lib/skills";
 import { logCall } from "../lib/logger";
 
@@ -11,6 +11,8 @@ export interface RunOptions {
   model?: string;
   out?: string;
 }
+
+const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
 const SKILL_SUFFIX: Record<string, string> = {
   "write-essay": "",
@@ -23,29 +25,34 @@ function nextVersionPath(sourcePath: string, suffix: string): string {
   const stem = sourcePath.slice(0, -ext.length);
   const dir = dirname(sourcePath);
   const base = basename(stem);
+  const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
   const existing = readdirSync(dir).filter(f => f.startsWith(base + ".v"));
   let max = 0;
   for (const f of existing) {
-    const m = f.match(new RegExp(`^${escapeRegex(base)}\\.v(\\d+)${escapeRegex(suffix)}\\.md$`));
+    const m = f.match(new RegExp(`^${escapeRe(base)}\\.v(\\d+)${escapeRe(suffix)}\\.md$`));
     if (m?.[1]) max = Math.max(max, parseInt(m[1]));
   }
   return join(dir, `${base}.v${max + 1}${suffix}.md`);
 }
 
-function escapeRegex(s: string): string {
-  return s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+function spinnerFrame(i: number): string {
+  return SPINNER[i % SPINNER.length];
+}
+
+function formatDur(ns: number): string {
+  if (!ns) return "0s";
+  const s = ns / 1e9;
+  if (s < 60) return `${s.toFixed(1)}s`;
+  return `${Math.floor(s / 60)}m ${Math.floor(s % 60)}s`;
 }
 
 export async function run(opts: RunOptions): Promise<void> {
-  const t0 = Date.now();
-
   const sourcePath = resolve(process.cwd(), opts.source);
   if (!existsSync(sourcePath)) throw new Error(`File not found: ${opts.source}`);
 
   const voiceName = opts.voice || "kernel-voice";
   const model = opts.model || process.env.MODEL || "gemma4:e2b-mlx";
 
-  // Compute skill name for loading — strip kernel- prefix if needed
   const skillLoad = opts.skill.replace(/^kernel-/, "");
   const suffix = SKILL_SUFFIX[skillLoad] ?? "";
 
@@ -63,16 +70,61 @@ export async function run(opts: RunOptions): Promise<void> {
   console.log(`  skill:  ${opts.skill}`);
   if (opts.voice) console.log(`  voice:  ${opts.voice}`);
   console.log(`  out:    ${outPath}`);
+  console.log(`  model:  ${model}\n`);
 
-  const data = await generate(prompt, model);
-  logCall(opts.skill, basename(sourcePath), model, data);
+  const t0 = Date.now();
+  let fullResponse = "";
+  let tokenCount = 0;
+  let promptEval = 0;
+  let evalDuration = 0;
+  let spinnerIdx = 0;
+  let lastDraw = 0;
+
+  const stream = generateStream(prompt, model);
+
+  process.stdout.write("  ");
+
+  for await (const event of stream) {
+    if ("done" in event && event.done) {
+      promptEval = event.prompt_eval_count;
+      tokenCount = event.eval_count;
+      evalDuration = event.eval_duration;
+      break;
+    }
+
+    if ("token" in event) {
+      fullResponse += event.token;
+      tokenCount++;
+
+      // Throttle display updates to ~60fps
+      const now = Date.now();
+      if (now - lastDraw < 16) continue;
+      lastDraw = now;
+
+      const elapsed = (now - t0) / 1000;
+      const tps = elapsed > 0 ? (tokenCount / elapsed).toFixed(0) : "0";
+      spinnerIdx++;
+
+      process.stdout.write(
+        `\r  ${spinnerFrame(spinnerIdx)}  ${tokenCount} tokens  ${tps}/s`
+      );
+    }
+  }
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
-  console.log(`\n  model:   ${model}`);
-  console.log(`  tokens:  ${data.prompt_eval_count} in → ${data.eval_count} out (${(data.eval_count! / (data.eval_duration! / 1e9)).toFixed(1)}/s)`);
-  console.log(`  time:    ${elapsed}s\n`);
+  const tps = evalDuration > 0 ? (tokenCount / (evalDuration / 1e9)).toFixed(1) : "?";
+  process.stdout.write(`\r  ✓  ${tokenCount} tokens  ${tps} tok/s  ${elapsed}s\n\n`);
 
-  writeFileSync(outPath, data.response.trim() + "\n", "utf-8");
+  // Log to jsonl
+  logCall(opts.skill, basename(sourcePath), model, {
+    prompt_eval_count: promptEval,
+    eval_count: tokenCount,
+    total_duration: Date.now() - t0,
+    eval_duration: evalDuration,
+    done_reason: "stop",
+  });
+
+  writeFileSync(outPath, fullResponse.trim() + "\n", "utf-8");
   console.log(`  written: ${outPath}`);
   console.log("  done.\n");
 }
