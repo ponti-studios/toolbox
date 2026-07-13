@@ -85,30 +85,28 @@ export async function run(opts: RunOptions): Promise<void> {
   process.stdout.write("  ");
 
   for await (const event of stream) {
-    if ("done" in event && event.done) {
-      promptEval = event.prompt_eval_count;
-      tokenCount = event.eval_count;
-      evalDuration = event.eval_duration;
+    if (event.done) {
+      promptEval = (event.prompt_eval_count as number) || 0;
+      tokenCount = (event.eval_count as number) || 0;
+      evalDuration = (event.eval_duration as number) || 0;
+      const finalChunk = (event.response as string) || "";
+      if (finalChunk) fullResponse += finalChunk;
       break;
     }
 
-    if ("token" in event) {
-      fullResponse += event.token;
-      tokenCount++;
+    fullResponse += (event.response as string) || "";
 
-      // Throttle display updates to ~60fps
-      const now = Date.now();
-      if (now - lastDraw < 16) continue;
-      lastDraw = now;
+    // Throttle display to ~10fps
+    const now = Date.now();
+    if (now - lastDraw < 100) continue;
+    lastDraw = now;
 
-      const elapsed = (now - t0) / 1000;
-      const tps = elapsed > 0 ? (tokenCount / elapsed).toFixed(0) : "0";
-      spinnerIdx++;
+    const elapsed = ((now - t0) / 1000).toFixed(0);
+    spinnerIdx++;
 
-      process.stdout.write(
-        `\r  ${spinnerFrame(spinnerIdx)}  ${tokenCount} tokens  ${tps}/s`
-      );
-    }
+    process.stdout.write(
+      `\r  ${spinnerFrame(spinnerIdx)}  generating...  ${elapsed}s`
+    );
   }
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
