@@ -1,0 +1,446 @@
+#!/usr/bin/env bash
+set -euo pipefail
+
+VERSION="1.0.0"
+
+# ──────────────────────────────────────────────
+#  shared helpers
+# ──────────────────────────────────────────────
+
+err() { echo "Error: $*" >&2; exit 1; }
+
+warn() { echo "Warning: $*" >&2; }
+
+fmt_size() {
+  local bytes=$1
+  if command -v numfmt &>/dev/null; then
+    numfmt --to=iec "$bytes" 2>/dev/null
+  elif [[ $bytes -ge 1048576 ]]; then
+    echo "$(echo "scale=1; $bytes/1048576" | bc)MB"
+  elif [[ $bytes -ge 1024 ]]; then
+    echo "$(echo "scale=1; $bytes/1024" | bc)KB"
+  else
+    echo "${bytes}B"
+  fi
+}
+
+parse_size() {
+  local s=$1
+  if [[ "$s" =~ ^([0-9]+)x([0-9]+)$ ]]; then
+    W="${BASH_REMATCH[1]}"
+    H="${BASH_REMATCH[2]}"
+  else
+    err "invalid size '$s' (expected WxH, e.g. 500x500)"
+  fi
+}
+
+resolve_files() {
+  INPUTS=()
+  for arg in "$@"; do
+    if [[ -f "$arg" ]]; then
+      INPUTS+=("$arg")
+    else
+      expanded=( $arg )
+      if [[ ${#expanded[@]} -gt 0 ]]; then
+        for f in "${expanded[@]}"; do
+          [[ -f "$f" ]] && INPUTS+=("$f")
+        done
+      else
+        warn "no match for '$arg'"
+      fi
+    fi
+  done
+}
+
+check_cmd() {
+  command -v "$1" &>/dev/null || err "$1 not found. Install: $2"
+}
+
+# ──────────────────────────────────────────────
+#  sub: help / top-level
+# ──────────────────────────────────────────────
+
+top_help() {
+  cat <<EOF
+iconkit v$VERSION — image asset toolkit
+
+Usage:
+  iconkit <command> [options] [arguments]
+
+Commands:
+  optimize    Resize images and convert to WebP/AVIF
+  web         Generate favicon, app icons, and social-card assets
+  info        Show image dimensions and file sizes
+
+Run 'iconkit <command> --help' for command-specific help.
+EOF
+  exit 0
+}
+
+# ──────────────────────────────────────────────
+#  sub: optimize
+# ──────────────────────────────────────────────
+
+cmd_optimize_help() {
+  cat <<EOF
+iconkit optimize — resize & convert images for the web
+
+Usage:
+  iconkit optimize [options] <input-files...>
+
+Options:
+  -s, --size <WxH>        Target dimensions (default: 500x500)
+  -q, --quality <N>       WebP quality 0-100 (default: 85)
+  -o, --output-dir <DIR>  Output directory (default: same dir as input)
+  -k, --keep-png          Keep the resized PNG alongside WebP
+  -f, --format <fmt>      Output format: webp | avif | both | png (default: webp)
+  -d, --dry-run           Show what would be done without doing it
+  -h, --help              Show this help
+
+Examples:
+  iconkit optimize logo.*.png
+  iconkit optimize -s 1200x630 -q 80 -k logo.foundation.png
+  iconkit optimize -f both -o ./web ~/assets/*.png
+
+Requires: sips, cwebp (brew install webp), optionally avifenc (brew install libavif)
+EOF
+  exit 0
+}
+
+cmd_optimize() {
+  # defaults
+  SIZE="500x500"
+  QUALITY=85
+  OUTPUT_DIR=""
+  KEEP_PNG=false
+  FORMAT="webp"
+  DRY_RUN=false
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -s|--size)        SIZE="$2"; shift 2 ;;
+      -q|--quality)     QUALITY="$2"; shift 2 ;;
+      -o|--output-dir)  OUTPUT_DIR="$2"; shift 2 ;;
+      -k|--keep-png)    KEEP_PNG=true; shift ;;
+      -f|--format)      FORMAT="$2"; shift 2 ;;
+      -d|--dry-run)     DRY_RUN=true; shift ;;
+      -h|--help)        cmd_optimize_help ;;
+      --)               shift; break ;;
+      -*)               err "unknown option: $1" ;;
+      *)                break ;;
+    esac
+  done
+
+  [[ $# -gt 0 ]] || err "no input files specified"
+  resolve_files "$@"
+  [[ ${#INPUTS[@]} -gt 0 ]] || err "no valid input files"
+
+  check_cmd sips "part of macOS"
+  if [[ "$FORMAT" =~ ^(webp|both)$ ]]; then
+    check_cmd cwebp "brew install webp"
+  fi
+  if [[ "$FORMAT" == "avif" ]]; then
+    check_cmd avifenc "brew install libavif"
+  fi
+
+  parse_size "$SIZE"
+
+  local total=${#INPUTS[@]}
+  local resized=0 webp_ok=0 avif_ok=0 skipped=0
+
+  echo "── iconkit optimize ─────────────────────────"
+  echo "  files:   $total"
+  echo "  size:    ${W}x${H}"
+  echo "  quality: $QUALITY"
+  echo "  format:  $FORMAT"
+  echo "──"
+
+  for src in "${INPUTS[@]}"; do
+    ext="${src##*.}"
+    base="$(basename "$src" ".$ext")"
+    dir="$(dirname "$src")"
+    outdir="${OUTPUT_DIR:-$dir}"
+    mkdir -p "$outdir"
+
+    resized_png="$outdir/${base}.${W}x${H}.png"
+    webp_out="$outdir/${base}.${W}x${H}.webp"
+    avif_out="$outdir/${base}.${W}x${H}.avif"
+
+    if [[ "$DRY_RUN" == true ]]; then
+      echo "  [dry] $src → ${W}x${H}"
+      [[ "$KEEP_PNG" == true || "$FORMAT" == "png" ]] && echo "  [dry]   └─ $resized_png"
+      [[ "$FORMAT" =~ ^(webp|both)$ ]] && echo "  [dry]   └─ $webp_out"
+      [[ "$FORMAT" == "avif" ]] && echo "  [dry]   └─ $avif_out"
+      continue
+    fi
+
+    # resize
+    if [[ ! -f "$resized_png" ]]; then
+      if ! sips -z "$H" "$W" "$src" --out "$resized_png" &>/dev/null; then
+        warn "resize failed: $src"
+        skipped=$(( skipped + 1 ))
+        continue
+      fi
+      resized=$(( resized + 1 ))
+    else
+      skipped=$(( skipped + 1 ))
+    fi
+
+    # WebP
+    if [[ "$FORMAT" =~ ^(webp|both)$ ]] && [[ ! -f "$webp_out" ]]; then
+      cwebp -q "$QUALITY" "$resized_png" -o "$webp_out" &>/dev/null
+      webp_ok=$(( webp_ok + 1 ))
+    fi
+
+    # AVIF
+    if [[ "$FORMAT" == "avif" ]] && [[ ! -f "$avif_out" ]]; then
+      avifenc -q "$QUALITY" "$resized_png" "$avif_out" &>/dev/null
+      avif_ok=$(( avif_ok + 1 ))
+    fi
+
+    # clean up
+    if [[ "$KEEP_PNG" != true && "$FORMAT" != "png" ]]; then
+      rm "$resized_png"
+    fi
+
+    # result
+    if [[ "$FORMAT" == "webp" ]]; then
+      src_bytes=$(stat -f%z "$src" 2>/dev/null || stat --format=%s "$src" 2>/dev/null)
+      out_bytes=$(stat -f%z "$webp_out" 2>/dev/null || stat --format=%s "$webp_out" 2>/dev/null)
+      pct=$(( 100 - (out_bytes * 100 / src_bytes) ))
+      echo "  ✓ ${base}.${W}x${H}.webp  ($(fmt_size $out_bytes), ${pct}% vs source)"
+    fi
+  done
+
+  echo "── done ──────────────────────────────────────"
+  if [[ "$DRY_RUN" == true ]]; then
+    echo "  (dry run — no files written)"
+  else
+    echo "  resized: $resized | webp: $webp_ok | avif: $avif_ok | skipped: $skipped"
+  fi
+}
+
+# ──────────────────────────────────────────────
+#  sub: web
+# ──────────────────────────────────────────────
+
+cmd_web_help() {
+  cat <<EOF
+iconkit web — generate favicon, app icons & social-card assets
+
+Usage:
+  iconkit web [options] <source-image>
+
+Options:
+  -o, --output-dir <DIR>  Output directory (default: ./icons next to source)
+  -h, --help              Show this help
+
+Generates:
+  • Favicon PNGs (16, 32, 48, 96) + .ico
+  • Apple touch icons (57–180)
+  • Android icons (36–192)
+  • PWA icons (192, 384, 512)
+  • MS Tile icons (70–310)
+  • OG image & Twitter card (1200×630 JPG)
+
+Requires: magick (brew install imagemagick)
+EOF
+  exit 0
+}
+
+cmd_web() {
+  local OUTPUT_DIR=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -o|--output-dir)  OUTPUT_DIR="$2"; shift 2 ;;
+      -h|--help)        cmd_web_help ;;
+      --)               shift; break ;;
+      -*)               err "unknown option: $1" ;;
+      *)                break ;;
+    esac
+  done
+
+  [[ $# -eq 1 ]] || err "usage: iconkit web [options] <source-image>"
+  local SOURCE="$1"
+  [[ -f "$SOURCE" ]] || err "file not found: $SOURCE"
+
+  check_cmd magick "brew install imagemagick"
+
+  local OUTDIR="${OUTPUT_DIR:-"$(dirname "$SOURCE")/icons"}"
+  mkdir -p "$OUTDIR"
+
+  echo "Generating web icons from $SOURCE → $OUTDIR/"
+
+  for size in 16 32 48 96; do
+    magick "$SOURCE" -resize "${size}x${size}" "$OUTDIR/favicon-${size}x${size}.png"
+  done
+  magick "$SOURCE" -define icon:auto-resize=16,32,48 "$OUTDIR/favicon.ico"
+
+  for size in 57 60 72 76 114 120 144 152 180; do
+    magick "$SOURCE" -resize "${size}x${size}" "$OUTDIR/apple-touch-icon-${size}x${size}.png"
+  done
+  cp "$OUTDIR/apple-touch-icon-180x180.png" "$OUTDIR/apple-touch-icon.png"
+
+  for size in 36 48 72 96 144 192; do
+    magick "$SOURCE" -resize "${size}x${size}" "$OUTDIR/android-icon-${size}x${size}.png"
+  done
+
+  for size in 192 384 512; do
+    magick "$SOURCE" -resize "${size}x${size}" "$OUTDIR/icon-${size}x${size}.png"
+  done
+
+  for size in 70 144 150 310; do
+    magick "$SOURCE" -resize "${size}x${size}" "$OUTDIR/ms-icon-${size}x${size}.png"
+  done
+
+  for name in og-image twitter-card; do
+    magick "$SOURCE" -resize 1200x630^ -gravity center -extent 1200x630 "$OUTDIR/${name}.jpg"
+  done
+
+  echo "Done — $(ls "$OUTDIR" | wc -l | tr -d ' ') assets in $OUTDIR"
+}
+
+# ──────────────────────────────────────────────
+#  sub: info
+# ──────────────────────────────────────────────
+
+cmd_info_help() {
+  cat <<EOF
+iconkit info — show image dimensions and file sizes
+
+Usage:
+  iconkit info [options] <input-files...>
+
+Options:
+  -h, --help  Show this help
+
+Examples:
+  iconkit info logo.*.png
+  iconkit info ~/assets/*.jpg
+EOF
+  exit 0
+}
+
+cmd_info() {
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help) cmd_info_help ;;
+      --)        shift; break ;;
+      -*)        err "unknown option: $1" ;;
+      *)         break ;;
+    esac
+  done
+
+  [[ $# -gt 0 ]] || err "no input files specified"
+  resolve_files "$@"
+  [[ ${#INPUTS[@]} -gt 0 ]] || err "no valid input files"
+
+  check_cmd sips "part of macOS"
+
+  printf "%-40s %-12s %-12s\n" "FILE" "DIMENSIONS" "SIZE"
+  printf "%-40s %-12s %-12s\n" "───────────────────────────────────────" "────────────" "────────────"
+
+  for f in "${INPUTS[@]}"; do
+    dims=$(sips -g pixelWidth -g pixelHeight "$f" 2>/dev/null \
+      | awk '/pixelWidth/{w=$2} /pixelHeight/{h=$2} END{print w"x"h}')
+    bytes=$(stat -f%z "$f" 2>/dev/null || stat --format=%s "$f" 2>/dev/null)
+    printf "%-40s %-12s %-12s\n" "$(basename "$f")" "$dims" "$(fmt_size "$bytes")"
+  done
+}
+
+# ──────────────────────────────────────────────
+#  sub: self-install
+# ──────────────────────────────────────────────
+
+cmd_install_help() {
+  cat <<EOF
+iconkit install — symlink iconkit into your PATH
+
+Usage:
+  iconkit install [directory]
+
+If no directory is given, auto-detects:
+  1. ~/.local/bin
+  2. /usr/local/bin
+  3. ~/bin
+
+The directory must already be on your PATH.
+
+For a greenfield install on a new machine, use:
+
+  curl -fsSL https://raw.githubusercontent.com/ponti-studios/toolbox/main/apps/iconkit/install.sh | bash
+EOF
+  exit 0
+}
+
+cmd_install() {
+  local target_dir=""
+
+  while [[ $# -gt 0 ]]; do
+    case "$1" in
+      -h|--help) cmd_install_help ;;
+      --)        shift; break ;;
+      -*)        err "unknown option: $1" ;;
+      *)         break ;;
+    esac
+  done
+
+  if [[ $# -ge 1 ]]; then
+    target_dir="$1"
+  else
+    for candidate in "$HOME/.local/bin" "/usr/local/bin" "$HOME/bin"; do
+      if [[ -d "$candidate" ]]; then
+        target_dir="$candidate"
+        break
+      fi
+    done
+    if [[ -z "$target_dir" ]]; then
+      target_dir="$HOME/.local/bin"
+      mkdir -p "$target_dir"
+    fi
+  fi
+
+  mkdir -p "$target_dir"
+  local dest="$target_dir/iconkit"
+
+  if [[ -f "$dest" ]]; then
+    if [[ "$(readlink "$dest" 2>/dev/null || echo "")" == "$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/iconkit" ]]; then
+      echo "  ✓ already installed at $dest"
+      exit 0
+    fi
+    echo "  ! $dest already exists — overwriting"
+  fi
+
+  local script_path
+  script_path="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)/iconkit"
+  ln -sf "$script_path" "$dest"
+  chmod +x "$dest"
+
+  if ! command -v iconkit &>/dev/null; then
+    echo "  ✓ installed to $dest"
+    echo "  ! $target_dir is not on your PATH. Add it:"
+    echo "      export PATH=\"$target_dir:\$PATH\""
+  else
+    echo "  ✓ installed to $dest"
+  fi
+}
+
+# ──────────────────────────────────────────────
+#  dispatch
+# ──────────────────────────────────────────────
+
+[[ $# -gt 0 ]] || top_help
+
+CMD="$1"
+shift
+
+case "$CMD" in
+  optimize|opt)   cmd_optimize "$@" ;;
+  web)            cmd_web "$@" ;;
+  info)           cmd_info "$@" ;;
+  install)        cmd_install "$@" ;;
+  -h|--help)      top_help ;;
+  -v|--version)   echo "iconkit v$VERSION" ;;
+  *)              err "unknown command: $CMD. Try 'iconkit --help'" ;;
+esac
