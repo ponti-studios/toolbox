@@ -1,8 +1,8 @@
-import { readFileSync, writeFileSync, existsSync, readdirSync } from "fs";
-import { join, dirname, basename, extname, resolve } from "path";
+import { existsSync, readdirSync, readFileSync, writeFileSync } from "fs";
+import { basename, dirname, extname, join, resolve } from "path";
+import { logCall } from "../lib/logger";
 import { generateStream } from "../lib/ollama";
 import { loadSkill } from "../lib/skills";
-import { logCall } from "../lib/logger";
 
 export interface RunOptions {
   source: string;
@@ -14,29 +14,40 @@ export interface RunOptions {
 
 const SPINNER = ["⠋", "⠙", "⠹", "⠸", "⠼", "⠴", "⠦", "⠧", "⠇", "⠏"];
 
-const SKILL_SUFFIX: Record<string, string> = {
-  "write-essay": "",
-  "write-video": ".script",
-  "extract-posts": ".posts",
+const SKILL_OUTPUT: Record<string, { suffix: string; ext: string }> = {
+  "write-essay": { suffix: "", ext: ".md" },
+  "write-video": { suffix: ".script", ext: ".md" },
+  "extract-posts": { suffix: ".posts", ext: ".json" },
 };
 
-function nextVersionPath(sourcePath: string, suffix: string): string {
+export function nextVersionPath(sourcePath: string, suffix: string, outputExt = ".md"): string {
   const ext = extname(sourcePath);
   const stem = sourcePath.slice(0, -ext.length);
   const dir = dirname(sourcePath);
   const base = basename(stem);
   const escapeRe = (s: string) => s.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-  const existing = readdirSync(dir).filter(f => f.startsWith(base + ".v"));
+  const existing = readdirSync(dir).filter((f) => f.startsWith(base + ".v"));
   let max = 0;
   for (const f of existing) {
-    const m = f.match(new RegExp(`^${escapeRe(base)}\\.v(\\d+)${escapeRe(suffix)}\\.md$`));
+    const m = f.match(new RegExp(`^${escapeRe(base)}\\.v(\\d+)${escapeRe(suffix)}${escapeRe(outputExt)}$`));
     if (m?.[1]) max = Math.max(max, parseInt(m[1]));
   }
-  return join(dir, `${base}.v${max + 1}${suffix}.md`);
+  return join(dir, `${base}.v${max + 1}${suffix}${outputExt}`);
 }
 
 function spinnerFrame(i: number): string {
-  return SPINNER[i % SPINNER.length];
+  if (SPINNER.length === 0) {
+    throw new Error("Spinner frames are not configured");
+  }
+
+  const index = ((i % SPINNER.length) + SPINNER.length) % SPINNER.length;
+  const frame = SPINNER[index];
+
+  if (frame === undefined) {
+    throw new Error(`Missing spinner frame at index ${index}`);
+  }
+
+  return frame;
 }
 
 function formatDur(ns: number): string {
@@ -54,7 +65,7 @@ export async function run(opts: RunOptions): Promise<void> {
   const model = opts.model || process.env.MODEL || "gemma4:e2b-mlx";
 
   const skillLoad = opts.skill.replace(/^kernel-/, "");
-  const suffix = SKILL_SUFFIX[skillLoad] ?? "";
+  const output = SKILL_OUTPUT[skillLoad] ?? { suffix: "", ext: ".md" };
 
   const voiceSkill = loadSkill(voiceName);
   const domainSkill = loadSkill(skillLoad);
@@ -62,9 +73,7 @@ export async function run(opts: RunOptions): Promise<void> {
 
   const prompt = [voiceSkill, domainSkill, `\n\n# Source\n\n${source}`].join("\n\n---\n\n");
 
-  const outPath = opts.out
-    ? resolve(process.cwd(), opts.out)
-    : nextVersionPath(sourcePath, suffix);
+  const outPath = opts.out ? resolve(process.cwd(), opts.out) : nextVersionPath(sourcePath, output.suffix, output.ext);
 
   console.log(`  source: ${basename(sourcePath)}`);
   console.log(`  skill:  ${opts.skill}`);
@@ -104,9 +113,7 @@ export async function run(opts: RunOptions): Promise<void> {
     const elapsed = ((now - t0) / 1000).toFixed(0);
     spinnerIdx++;
 
-    process.stdout.write(
-      `\r  ${spinnerFrame(spinnerIdx)}  generating...  ${elapsed}s`
-    );
+    process.stdout.write(`\r  ${spinnerFrame(spinnerIdx)}  generating...  ${elapsed}s`);
   }
 
   const elapsed = ((Date.now() - t0) / 1000).toFixed(1);
@@ -117,7 +124,7 @@ export async function run(opts: RunOptions): Promise<void> {
   logCall(opts.skill, basename(sourcePath), model, {
     prompt_eval_count: promptEval,
     eval_count: tokenCount,
-    total_duration: Date.now() - t0,
+    total_duration_ms: Date.now() - t0,
     eval_duration: evalDuration,
     done_reason: "stop",
   });

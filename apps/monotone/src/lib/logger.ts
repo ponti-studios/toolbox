@@ -22,7 +22,7 @@ export function logCall(op: string, source: string, model: string, data: {
   model?: string;
   prompt_eval_count?: number;
   eval_count?: number;
-  total_duration?: number;
+  total_duration_ms?: number;
   eval_duration?: number;
   done_reason?: string;
 }): void {
@@ -35,12 +35,19 @@ export function logCall(op: string, source: string, model: string, data: {
     model: data.model || model,
     prompt_tokens: data.prompt_eval_count || 0,
     output_tokens: data.eval_count || 0,
-    duration_s: data.total_duration ? (data.total_duration / 1e9).toFixed(1) : "?",
-    tokens_per_sec: data.eval_duration ? (data.eval_count! / (data.eval_duration / 1e9)).toFixed(1) : "?",
+    duration_s: formatDurationSeconds(data.total_duration_ms),
+    tokens_per_sec:
+      data.eval_duration && data.eval_count !== undefined
+        ? (data.eval_count / (data.eval_duration / 1e9)).toFixed(1)
+        : "?",
     done_reason: data.done_reason || "",
   };
 
   appendFileSync(LOG_FILE, JSON.stringify(entry) + "\n");
+}
+
+export function formatDurationSeconds(durationMs: number | undefined): string {
+  return durationMs === undefined ? "?" : (durationMs / 1000).toFixed(1);
 }
 
 export function getLogsDir(): string {

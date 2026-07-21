@@ -20,6 +20,7 @@
   },
   "scripts": {
     "build": "bun build src/index.ts --outfile bin/monotone.js --target node && node --input-type=commonjs -e \"var f=require('fs'),p='bin/monotone.js',c=f.readFileSync(p,'utf8');f.writeFileSync(p,c.replace(/^#!.*$/m,'#!/usr/bin/env node'))\"",
+    "test": "bun test",
     "typecheck": "tsc --noEmit",
     "prepublishOnly": "bun run build"
   },

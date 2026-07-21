@@ -19,16 +19,7 @@ export async function generate(
   const body: Record<string, unknown> = { model, prompt, stream: false };
   if (format) body.format = format;
 
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Ollama error (${res.status}): ${text}`);
-  }
+  const res = await postGenerate(body);
 
   return res.json();
 }
@@ -39,19 +30,10 @@ export async function* generateStream(
 ): AsyncGenerator<Record<string, unknown>> {
   const body: Record<string, unknown> = { model, prompt, stream: true };
 
-  const res = await fetch(`${OLLAMA_URL}/api/generate`, {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify(body),
-  });
-
-  if (!res.ok) {
-    const text = await res.text();
-    throw new Error(`Ollama error (${res.status}): ${text}`);
-  }
+  const res = await postGenerate(body);
 
   const reader = res.body?.getReader();
-  if (!reader) throw new Error("No response body");
+  if (!reader) throw new Error("No response body from Ollama");
 
   const decoder = new TextDecoder();
   let buffer = "";
@@ -73,4 +55,25 @@ export async function* generateStream(
       }
     }
   }
+}
+
+async function postGenerate(body: Record<string, unknown>): Promise<Response> {
+  let res: Response;
+  try {
+    res = await fetch(`${OLLAMA_URL}/api/generate`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(body),
+    });
+  } catch (err) {
+    const message = err instanceof Error ? err.message : String(err);
+    throw new Error(`Could not connect to Ollama at ${OLLAMA_URL}. Is Ollama running? ${message}`);
+  }
+
+  if (!res.ok) {
+    const text = await res.text();
+    throw new Error(`Ollama error (${res.status}): ${text}`);
+  }
+
+  return res;
 }
