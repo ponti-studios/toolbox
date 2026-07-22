@@ -807,8 +807,21 @@ Release assets are published from tags like `filekit-v0.1.0`.
 - Slug collision detection can be scoped by directory, project, or global namespace
 - Calendar functionality is exposed through the `cal` subcommands
 
-## Related Files
+## Source Files
 
-- Source: `apps/filekit/src/main.rs`
-- Calendar module: `apps/filekit/src/cal/`
-- Tests: `apps/filekit/src/main.rs` (inline tests)
+| File | Purpose |
+|------|---------|
+| `src/main.rs` | CLI dispatch only |
+| `src/analyze.rs` | Directory analysis with ignore-file support |
+| `src/cal.rs` | ICS import/query/expand/stats/doctor (SQLite) |
+| `src/classify.rs` | 5-pass essay classification pipeline |
+| `src/completions.rs` | Shell completion generate/install |
+| `src/docx.rs` | DOCX→Markdown via pandoc |
+| `src/fileops.rs` | merge-markdown, duplicates, bulk-rename, convert, xlsx-to-csv |
+| `src/frontmatter/mod.rs` | Frontmatter module: shared types, dispatch, tests |
+| `src/frontmatter/walk.rs` | frontmatter walk command |
+| `src/frontmatter/aggregate.rs` | frontmatter aggregate command |
+| `src/frontmatter/validate.rs` | frontmatter validate command |
+| `src/frontmatter/migrate.rs` | frontmatter migrate command |
+| `src/frontmatter/slug.rs` | frontmatter slug command |
+| `src/frontmatter/update.rs` | frontmatter update command |
