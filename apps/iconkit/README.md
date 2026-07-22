@@ -2,14 +2,24 @@
 
 Image asset toolkit — resize, optimize, and generate web icons from the command line.
 
+A TypeScript rewrite of the original bash script, compiled to a standalone binary with [Bun](https://bun.sh).
+
 ## Install
 
-```bash
-# From the repo
-iconkit install
+### Pre-built binary (recommended)
 
-# Greenfield machine
+```bash
 curl -fsSL https://raw.githubusercontent.com/ponti-studios/toolbox/main/apps/iconkit/install.sh | bash
+```
+
+### From source
+
+```bash
+git clone https://github.com/ponti-studios/toolbox.git
+cd toolbox/apps/iconkit
+bun install
+bun run build
+./iconkit install
 ```
 
 Depends on `sips` (macOS), optionally `cwebp` (`brew install webp`) and `avifenc` (`brew install libavif`).
