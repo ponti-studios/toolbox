@@ -17,6 +17,12 @@ build-agentkit:
     set -euo pipefail
     cd apps/agentkit && npm run build
 
+# Build openspeek (Bun) locally
+build-openspeek:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    cd apps/openspeek && bun run build
+
 # Build release for current platform
 build-release:
     cargo build --workspace --release
@@ -137,6 +143,15 @@ install NAME="all":
         echo "  monotone -> $mise_shims/monotone"
         ;;
 
+      openspeek)
+        command -v bun >/dev/null 2>&1 || { echo "Error: bun is required for openspeek"; exit 1; }
+        echo "Building openspeek (Bun)..."
+        (cd apps/openspeek && bun run build)
+        ln -sf "$(pwd)/apps/openspeek/dist/openspeek.js" "$mise_shims/openspeek"
+        chmod +x "$mise_shims/openspeek"
+        echo "  openspeek -> $mise_shims/openspeek"
+        ;;
+
       mediakit)
         if [ "$(uname)" != "Darwin" ]; then echo "Error: mediakit requires macOS"; exit 1; fi
         command -v swift >/dev/null 2>&1 || { echo "Error: swift is required for $NAME"; exit 1; }
@@ -176,6 +191,15 @@ install NAME="all":
             echo "  monotone -> $mise_shims/monotone"
           fi
         fi
+        if [ -f apps/openspeek/package.json ]; then
+          if command -v bun >/dev/null 2>&1; then
+            echo "Building openspeek..."
+            (cd apps/openspeek && bun run build)
+            ln -sf "$(pwd)/apps/openspeek/dist/openspeek.js" "$mise_shims/openspeek"
+            chmod +x "$mise_shims/openspeek"
+            echo "  openspeek -> $mise_shims/openspeek"
+          fi
+        fi
         if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then
           if command -v swift >/dev/null 2>&1; then
             echo "Building mediakit..."
@@ -188,7 +212,7 @@ install NAME="all":
 
       *)
         echo "Unknown app: $NAME"
-        echo "Available: filekit, agentkit, monotone, xkit, mediakit"
+        echo "Available: filekit, agentkit, monotone, openspeek, xkit, mediakit"
         exit 1
         ;;
     esac

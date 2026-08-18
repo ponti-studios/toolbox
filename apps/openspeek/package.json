@@ -1,0 +1,51 @@
+{
+  "name": "@ponti-studios/openspeek",
+  "version": "0.1.0",
+  "description": "Convert Markdown to an AAC/M4A narration using OpenRouter neural TTS (Deepgram Flux / Gemini), with local piper and macOS say fallbacks",
+  "type": "module",
+  "bin": {
+    "openspeek": "dist/openspeek.js"
+  },
+  "engines": {
+    "node": ">=22.14.0"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --outfile dist/openspeek.js --target node && node --input-type=commonjs -e \"var f=require('fs'),p='dist/openspeek.js',c=f.readFileSync(p,'utf8');f.writeFileSync(p,c.replace(/^#!.*$/m,'#!/usr/bin/env node'))\"",
+    "build:npm": "bun run build",
+    "build:binary": "bun build src/index.ts --compile --outfile dist/openspeek",
+    "typecheck": "tsc --noEmit",
+    "test": "bun test",
+    "prepublishOnly": "bun run build"
+  },
+  "files": [
+    "dist",
+    "samples",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ponti-studios/toolbox.git",
+    "directory": "apps/openspeek"
+  },
+  "keywords": [
+    "markdown",
+    "tts",
+    "text-to-speech",
+    "narration",
+    "audiobook",
+    "openrouter",
+    "deepgram",
+    "flux",
+    "cli"
+  ],
+  "license": "MIT",
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "@types/node": "^22.13.0",
+    "typescript": "^5.8.0"
+  }
+}
