@@ -1,6 +1,8 @@
 use anyhow::Result;
 use clap::Subcommand;
-use files::{get_files_with_extensions, build_yaml_frontmatter, parse_yaml_frontmatter, ParsedFrontmatter};
+use files::{
+    build_yaml_frontmatter, get_files_with_extensions, parse_yaml_frontmatter, ParsedFrontmatter,
+};
 use serde::Serialize;
 use std::collections::HashMap;
 use std::path::{Path, PathBuf};
@@ -630,13 +632,9 @@ mod tests {
     fn resolve_slug_increment_policy_matches_legacy_behavior() {
         let existing = HashMap::from([("note".to_string(), true), ("note-2".to_string(), true)]);
 
-        let resolved = crate::frontmatter::slug::resolve_slug_collision(
-            "note",
-            &existing,
-            "increment",
-            10,
-        )
-        .expect("resolve slug");
+        let resolved =
+            crate::frontmatter::slug::resolve_slug_collision("note", &existing, "increment", 10)
+                .expect("resolve slug");
 
         assert_eq!(resolved, "note-3");
     }

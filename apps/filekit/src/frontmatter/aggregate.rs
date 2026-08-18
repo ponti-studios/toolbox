@@ -36,9 +36,7 @@ pub fn run(opts: AggregateOpts) -> Result<()> {
     Ok(())
 }
 
-fn frontmatter_values(
-    parsed: &super::ParsedFile,
-) -> HashMap<String, Vec<String>> {
+fn frontmatter_values(parsed: &super::ParsedFile) -> HashMap<String, Vec<String>> {
     let mut props = HashMap::new();
 
     if let Some(frontmatter) = &parsed.frontmatter {

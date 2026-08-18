@@ -3,9 +3,9 @@ use clap::Parser;
 use std::path::PathBuf;
 
 use super::{
-    build_frontmatter_content, collect_markdown_files, default_schema, parse_frontmatter,
-    parse_migration_strategy, migrate_frontmatter, validate_frontmatter,
-    FileMigrationResult, MigrationSummary, MigrationReport,
+    build_frontmatter_content, collect_markdown_files, default_schema, migrate_frontmatter,
+    parse_frontmatter, parse_migration_strategy, validate_frontmatter, FileMigrationResult,
+    MigrationReport, MigrationSummary,
 };
 
 #[derive(Parser)]
@@ -52,8 +52,9 @@ pub fn run(opts: MigrateOpts) -> Result<()> {
                         .and_then(|ext| ext.to_str())
                         .unwrap_or("md")
                 ));
-                std::fs::write(&backup, &content)
-                    .map_err(|e| anyhow::anyhow!("failed to write backup {}: {}", backup.display(), e))?;
+                std::fs::write(&backup, &content).map_err(|e| {
+                    anyhow::anyhow!("failed to write backup {}: {}", backup.display(), e)
+                })?;
                 backup_path = Some(backup.to_string_lossy().to_string());
             }
 

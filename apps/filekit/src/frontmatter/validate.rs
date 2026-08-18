@@ -2,7 +2,10 @@ use anyhow::Result;
 use clap::Parser;
 use std::path::PathBuf;
 
-use super::{collect_markdown_files, parse_frontmatter, validate_frontmatter, default_schema, FileValidationResult, ValidationSummary, ValidationReport};
+use super::{
+    collect_markdown_files, default_schema, parse_frontmatter, validate_frontmatter,
+    FileValidationResult, ValidationReport, ValidationSummary,
+};
 
 #[derive(Parser)]
 pub struct ValidateOpts {
