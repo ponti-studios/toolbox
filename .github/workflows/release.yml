@@ -39,7 +39,7 @@ jobs:
     runs-on: ${{ matrix.runner }}
     steps:
       - name: Checkout repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v7.0.1
 
       - name: Install Rust
         if: needs.prepare.outputs.package != 'geokit'
@@ -49,7 +49,7 @@ jobs:
 
       - name: Cache cargo
         if: needs.prepare.outputs.package != 'geokit'
-        uses: Swatinem/rust-cache@v2
+        uses: Swatinem/rust-cache@v2.9.2
 
       - name: Build release binary (Rust)
         if: needs.prepare.outputs.package != 'geokit'
@@ -71,7 +71,7 @@ jobs:
         run: shasum -a 256 ${{ needs.prepare.outputs.package }}-${{ matrix.target }}.tar.gz > ${{ needs.prepare.outputs.package }}-${{ matrix.target }}.tar.gz.sha256
 
       - name: Upload GitHub release asset
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3.0.2
         with:
           files: |
             ${{ needs.prepare.outputs.package }}-${{ matrix.target }}.tar.gz
