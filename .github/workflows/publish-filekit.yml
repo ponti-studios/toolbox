@@ -48,7 +48,5 @@ jobs:
         run: npm run typecheck && npm test && npm run build && npm pack --dry-run
       - name: Publish
         if: steps.check.outputs.exists == 'false'
-        env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_FILEKIT_PUBLISH }}
         working-directory: apps/filekit
         run: npm publish --provenance --access public
