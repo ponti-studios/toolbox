@@ -69,5 +69,8 @@ export function cmdWeb(source: string, opts: WebOptions): void {
 
   const count = fs.readdirSync(outdir).length
   console.log(`Done — ${count} assets in ${outdir}`)
-  if (failed > 0) process.exitCode = 1
+  if (failed > 0) {
+    console.log(`  failed:  ${failed}`)
+    process.exitCode = 1
+  }
 }

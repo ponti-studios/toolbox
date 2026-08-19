@@ -35,7 +35,7 @@ export function cmdConvert(files: string[], opts: ConvertOptions): void {
 
   const sipsFmt = SIPS_FORMAT_MAP[targetFmt]!
   const dryRun = opts.dryRun
-  let converted = 0, skipped = 0
+  let converted = 0, skipped = 0, failed = 0
 
   console.log("── iconkit convert ──────────────────────────")
   console.log(`  files:   ${inputs.length}`)
@@ -72,6 +72,7 @@ export function cmdConvert(files: string[], opts: ConvertOptions): void {
     const r = run(["sips", "-s", "format", sipsFmt, src, "--out", outPath])
     if (r.exitCode !== 0) {
       console.warn(`Warning: convert failed: ${path.basename(src)}`)
+      failed++
       skipped++
       continue
     }
@@ -85,6 +86,7 @@ export function cmdConvert(files: string[], opts: ConvertOptions): void {
   if (dryRun) {
     console.log("  (dry run — no files written)")
   } else {
-    console.log(`  converted: ${converted} | skipped: ${skipped}`)
+    console.log(`  converted: ${converted} | skipped: ${skipped} | failed: ${failed}`)
+    if (failed > 0) process.exitCode = 1
   }
 }

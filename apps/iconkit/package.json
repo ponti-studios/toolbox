@@ -9,9 +9,10 @@
   "scripts": {
     "dev": "bun run src/index.ts",
     "build": "bun build src/index.ts --compile --outfile iconkit",
+    "build:test": "bun build src/index.ts --compile --outfile .test-bin/iconkit",
     "build:npm": "bun build src/index.ts --target node --outfile dist/iconkit.js",
     "typecheck": "tsc --noEmit",
-    "test": "bun test",
+    "test": "bun run build:test && bun test",
     "prepublishOnly": "bun run build:npm"
   },
   "files": [

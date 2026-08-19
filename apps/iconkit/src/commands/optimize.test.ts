@@ -1,22 +1,13 @@
 import { afterAll, beforeAll, describe, expect, test } from "bun:test"
 import fs from "node:fs"
 import path from "node:path"
+import { runIconkit } from "../test-support"
 
-const BIN = path.resolve(import.meta.dir, "../../iconkit")
 const TMP = "/tmp/iconkit-test-optimize"
 const MINIMAL_PNG = Buffer.from(
   "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR4nGNgYPgPAAEDAQAIicLsAAAAAElFTkSuQmCC",
   "base64",
 )
-
-function run(args: string[], env: Record<string, string> = {}) {
-  const result = Bun.spawnSync([BIN, ...args], { env: { ...process.env, ...env } })
-  return {
-    exitCode: result.exitCode,
-    stdout: result.stdout.toString(),
-    stderr: result.stderr.toString(),
-  }
-}
 
 function createSource(name: string): string {
   const source = path.join(TMP, name)
@@ -37,7 +28,7 @@ afterAll(() => {
 describe("iconkit optimize", () => {
   test("rejects unsupported formats before writing output", () => {
     const source = createSource("invalid-format.png")
-    const result = run(["optimize", "-f", "jpeg", source])
+    const result = runIconkit(["optimize", "-f", "jpeg", source])
     expect(result.exitCode).toBe(1)
     expect(result.stderr).toContain("unsupported format")
     expect(fs.existsSync(path.join(TMP, "invalid-format.500x500.png"))).toBe(false)
@@ -50,7 +41,7 @@ describe("iconkit optimize", () => {
     const fakeCwebp = path.join(fakeBin, "cwebp")
     fs.writeFileSync(fakeCwebp, "#!/bin/sh\nexit 1\n", { mode: 0o755 })
 
-    const result = run(
+    const result = runIconkit(
       ["optimize", "-f", "webp", "-o", TMP, source],
       { PATH: `${fakeBin}:${process.env.PATH ?? ""}` },
     )
