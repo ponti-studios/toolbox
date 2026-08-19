@@ -5,7 +5,7 @@ build:
     cd apps/filekit && npm ci && npm run build
     cd apps/agentkit && npm run build
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
-    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go build -o ../../target/xkit .); fi
+    if command -v go >/dev/null 2>&1; then if command -v mise >/dev/null 2>&1; then (cd apps/xkit && mise exec go@1.26.4 -- go build -trimpath -ldflags='-s -w' -o ../../target/xkit .); else (cd apps/xkit && go build -trimpath -ldflags='-s -w' -o ../../target/xkit .); fi; fi
 
 build-filekit:
     cd apps/filekit && npm ci && npm run build
@@ -30,7 +30,7 @@ test-cli-phase NAME PHASE:
 
 test:
     cd apps/filekit && npm ci && npm test
-    if command -v go >/dev/null 2>&1; then (cd apps/xkit && go test ./...); fi
+    if command -v go >/dev/null 2>&1; then if command -v mise >/dev/null 2>&1; then (cd apps/xkit && mise exec go@1.26.4 -- go test ./...); else (cd apps/xkit && go test ./...); fi; fi
 
 run-filekit:
     cd apps/filekit && npm run build && node dist/index.js --help

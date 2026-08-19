@@ -21,8 +21,10 @@ X app-only bearer tokens cannot delete posts. `xkit` uses user-context OAuth tok
 ## Installation
 
 ```bash
-cd apps/xkit && go build -o ../../target/xkit .
+cd apps/xkit && mise exec go@1.26.4 -- go build -trimpath -ldflags='-s -w' -o ../../target/xkit .
 ```
+
+When `mise` is unavailable, use the repository's `just build` target; it falls back to the installed Go toolchain.
 
 ## Configuration
 

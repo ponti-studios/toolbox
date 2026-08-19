@@ -81,9 +81,9 @@ func runActivate(args []string) error {
 	fs := flag.NewFlagSet("activate", flag.ContinueOnError)
 	fs.SetOutput(os.Stderr)
 
-	licenseKey := fs.String("license-key", envOrDefault("XKIT_LICENSE_KEY", ""), "Paid xkit license key")
+	licenseKey := fs.String("license-key", "", "Paid xkit license key (or XKIT_LICENSE_KEY)")
 	baseURL := fs.String("license-base-url", envOrDefault("XKIT_LICENSE_BASE_URL", ""), "Entitlement service base URL")
-	publicKey := fs.String("public-key", envOrDefault("XKIT_LICENSE_PUBLIC_KEY", ""), "Ed25519 public key (PEM or base64)")
+	publicKey := fs.String("public-key", "", "Ed25519 public key (or XKIT_LICENSE_PUBLIC_KEY)")
 	deviceName := fs.String("device-name", envOrDefault("XKIT_DEVICE_NAME", defaultDeviceName()), "Human-readable device name")
 	deviceID := fs.String("device-id", envOrDefault("XKIT_DEVICE_ID", defaultDeviceID()), "Stable device identifier")
 	timeout := fs.Duration("timeout", 30*time.Second, "HTTP timeout for activation requests")
@@ -103,11 +103,13 @@ Flags:`)
 		return err
 	}
 
-	cfg, err := buildLicenseClientConfig(strings.TrimSpace(*baseURL), strings.TrimSpace(*publicKey), strings.TrimSpace(*deviceID), strings.TrimSpace(*deviceName))
+	licenseKeyValue := flagOrEnv(*licenseKey, "XKIT_LICENSE_KEY")
+	publicKeyValue := flagOrEnv(*publicKey, "XKIT_LICENSE_PUBLIC_KEY")
+	cfg, err := buildLicenseClientConfig(strings.TrimSpace(*baseURL), publicKeyValue, strings.TrimSpace(*deviceID), strings.TrimSpace(*deviceName))
 	if err != nil {
 		return err
 	}
-	if strings.TrimSpace(*licenseKey) == "" {
+	if licenseKeyValue == "" {
 		return fmt.Errorf("--license-key or XKIT_LICENSE_KEY is required")
 	}
 
@@ -115,7 +117,7 @@ Flags:`)
 	defer cancel()
 	client := &http.Client{Timeout: *timeout}
 
-	cache, claims, err := activateLicense(ctx, client, cfg, strings.TrimSpace(*licenseKey))
+	cache, claims, err := activateLicense(ctx, client, cfg, licenseKeyValue)
 	if err != nil {
 		return err
 	}
@@ -140,7 +142,7 @@ func runLogin(args []string) error {
 	fs.SetOutput(os.Stderr)
 
 	clientID := fs.String("client-id", envOrDefault("X_CLIENT_ID", ""), "X OAuth 2.0 client ID")
-	clientSecret := fs.String("client-secret", envOrDefault("X_CLIENT_SECRET", ""), "X OAuth 2.0 client secret for confidential clients")
+	clientSecret := fs.String("client-secret", "", "X OAuth 2.0 client secret (or X_CLIENT_SECRET)")
 	redirectURI := fs.String("redirect-uri", envOrDefault("X_REDIRECT_URI", defaultRedirectURI), "Redirect URI registered in the X app")
 	scopes := fs.String("scopes", strings.Join(defaultLoginScopes, " "), "Space-separated OAuth scopes")
 	noBrowser := fs.Bool("no-browser", false, "Do not try to open the browser automatically")
@@ -163,7 +165,7 @@ Flags:`)
 
 	cfg := loginConfig{
 		ClientID:     strings.TrimSpace(*clientID),
-		ClientSecret: strings.TrimSpace(*clientSecret),
+		ClientSecret: flagOrEnv(*clientSecret, "X_CLIENT_SECRET"),
 		RedirectURI:  strings.TrimSpace(*redirectURI),
 		Scopes:       normalizeScopes(*scopes),
 		NoBrowser:    *noBrowser,
@@ -264,7 +266,7 @@ func runLicenseStatus(args []string) error {
 	fs.SetOutput(os.Stderr)
 
 	baseURL := fs.String("license-base-url", envOrDefault("XKIT_LICENSE_BASE_URL", ""), "Entitlement service base URL override")
-	publicKey := fs.String("public-key", envOrDefault("XKIT_LICENSE_PUBLIC_KEY", ""), "Ed25519 public key (PEM or base64)")
+	publicKey := fs.String("public-key", "", "Ed25519 public key (or XKIT_LICENSE_PUBLIC_KEY)")
 	deviceName := fs.String("device-name", envOrDefault("XKIT_DEVICE_NAME", defaultDeviceName()), "Human-readable device name")
 	deviceID := fs.String("device-id", envOrDefault("XKIT_DEVICE_ID", defaultDeviceID()), "Stable device identifier")
 	jsonOut := fs.Bool("json", false, "Print the verified entitlement claims as JSON")
@@ -285,7 +287,7 @@ Flags:`)
 		return err
 	}
 
-	cfg, err := buildLicenseClientConfig(strings.TrimSpace(*baseURL), strings.TrimSpace(*publicKey), strings.TrimSpace(*deviceID), strings.TrimSpace(*deviceName))
+	cfg, err := buildLicenseClientConfig(strings.TrimSpace(*baseURL), flagOrEnv(*publicKey, "XKIT_LICENSE_PUBLIC_KEY"), strings.TrimSpace(*deviceID), strings.TrimSpace(*deviceName))
 	if err != nil {
 		return err
 	}

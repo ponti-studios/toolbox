@@ -14,6 +14,13 @@ func envOrDefault(key, fallback string) string {
 	return fallback
 }
 
+func flagOrEnv(value, key string) string {
+	if v := strings.TrimSpace(value); v != "" {
+		return v
+	}
+	return strings.TrimSpace(os.Getenv(key))
+}
+
 func loadLocalEnv() error {
 	paths := []string{
 		".env",
