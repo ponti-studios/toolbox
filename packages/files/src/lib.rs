@@ -90,7 +90,7 @@ pub fn build_yaml_frontmatter(
     body: &str,
 ) -> Result<String> {
     let yaml = serde_yaml::to_string(frontmatter)?;
-    Ok(format!("---\n{}---\n\n{}", yaml.trim(), body))
+    Ok(format!("---\n{}\n---\n\n{}", yaml.trim(), body))
 }
 
 /// Update a frontmatter field in a file.
@@ -468,6 +468,17 @@ Body content here.
         assert!(content.starts_with("---"));
         assert!(content.contains("---"));
         assert!(content.ends_with(body));
+
+        let parsed = parse_yaml_frontmatter(&content).unwrap();
+        assert_eq!(
+            parsed
+                .frontmatter
+                .as_ref()
+                .and_then(|fm| fm.get("title"))
+                .and_then(|value| value.as_str()),
+            Some("Hello")
+        );
+        assert_eq!(parsed.body, body);
     }
 
     #[test]

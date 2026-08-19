@@ -21,6 +21,7 @@ cargo run -p filekit -- --help
    - [aggregate](#frontmatter-aggregate)
    - [validate](#frontmatter-validate)
    - [migrate](#frontmatter-migrate)
+   - [publish](#frontmatter-publish)
    - [slug](#frontmatter-slug)
    - [update](#frontmatter-update)
 2. [Calendar Commands](#calendar-commands)
@@ -33,6 +34,17 @@ cargo run -p filekit -- --help
 ---
 
 ## Frontmatter Commands
+
+### `frontmatter publish` - Stage published essays for the website
+
+```bash
+filekit frontmatter publish --root essays --output site/_essays
+```
+
+The command validates every Markdown file in the source directory, stages only
+files with `visibility: public` and `status: published`, and leaves source files
+unchanged. The generated output is safe to rebuild because Filekit tracks and
+removes only files from its previous manifest.
 
 ### `frontmatter walk` - Walk and display frontmatter
 
@@ -136,7 +148,7 @@ filekit frontmatter validate [OPTIONS]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-r, --root <ROOT>` | Root directory to validate | `.` |
-| `-s, --schema <SCHEMA>` | Schema name | `personal` |
+| `-s, --schema <SCHEMA>` | Schema name | `essay` |
 | `-c, --config <CONFIG>` | Config file path | - |
 | `-o, --output <OUTPUT>` | Output format: `text` or `json` | `text` |
 
@@ -152,6 +164,22 @@ filekit frontmatter validate -r ./content
 # JSON output
 filekit frontmatter validate -o json
 ```
+
+The default `essay` schema uses these fields:
+
+- `title`, `description`, and `slug`
+- `type: essay`
+- `status: draft`, `published`, or `archived`
+- `visibility: private` or `public`
+- optional `category`, `tags`, and `pubDate`
+
+`visibility` is deliberately separate from `status`. A draft can be public or
+private, and a published essay must still be explicitly marked `visibility:
+public` before a publishing pipeline should expose it. New migrations default
+essays to `status: draft` and `visibility: private`.
+
+The legacy personal-note schema remains available explicitly with
+`--schema personal`.
 
 **Schema: `personal` - Required fields:**
 
@@ -176,11 +204,12 @@ filekit frontmatter migrate [OPTIONS]
 | Option | Description | Default |
 |--------|-------------|---------|
 | `-r, --root <ROOT>` | Root directory | `.` |
-| `-s, --schema <SCHEMA>` | Schema name | `personal` |
+| `-s, --schema <SCHEMA>` | Schema name | `essay` |
 | `--strategy <STRATEGY>` | Migration strategy | `fill` |
 | `--dry-run` | Show changes without applying | `false` |
 | `--write` | Write changes to files | `false` |
 | `--backup` | Create backup files | `false` |
+| `--exclude-dir <NAME>` | Exclude a directory name; repeatable | - |
 | `-o, --output <OUTPUT>` | Output format: `text` or `json` | `text` |
 
 **Strategies:**
@@ -212,6 +241,23 @@ filekit frontmatter migrate --strategy fill --write --backup
 
 # JSON output
 filekit frontmatter migrate -o json --strategy fill
+```
+
+The `vault` schema is intended for applying a safe baseline to a mixed Markdown
+vault. It adds `title`, `type`, `status`, `visibility`, and `slug` where
+needed. New or repaired files default to `type: note`, `status: draft`, and
+`visibility: private`. Directories beginning with `_` are always excluded;
+use `--exclude-dir drawings` for an additional exclusion.
+
+For example:
+
+```bash
+filekit frontmatter migrate \
+  --root /path/to/vault \
+  --schema vault \
+  --exclude-dir drawings \
+  --strategy fill \
+  --dry-run
 ```
 
 ---
