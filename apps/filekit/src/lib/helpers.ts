@@ -47,5 +47,3 @@ export const filesFrom = (root: string, includeHidden = false): FileTarget[] =>
     const parsed = parseFile(file);
     return parsed ? [parsed] : [];
   });
-
-

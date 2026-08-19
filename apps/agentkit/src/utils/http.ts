@@ -82,7 +82,10 @@ export async function httpFetch(options: HttpFetchOptions): Promise<HttpFetchRes
     }
     return {
       data: null,
-      error: { type: "network_error", message: err instanceof Error ? err.message : "Network request failed" },
+      error: {
+        type: "network_error",
+        message: err instanceof Error ? err.message : "Network request failed",
+      },
     };
   }
 }

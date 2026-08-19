@@ -2,11 +2,14 @@
 import { fetchClaudeQuota, claudeUsageToQuotaSnapshot } from "../providers/claude/fetcher.js";
 import { fetchCodexQuota, codexUsageToQuotaSnapshot } from "../providers/codex/fetcher.js";
 import { fetchCopilotQuota, copilotUsageToQuotaSnapshot } from "../providers/copilot/fetcher.js";
-import { fetchOpenRouterCredits, openRouterCreditsToQuota } from "../providers/openrouter/fetcher.js";
+import {
+  fetchOpenRouterCredits,
+  openRouterCreditsToQuota,
+} from "../providers/openrouter/fetcher.js";
 import { fetchOpenCodeQuota, opencodeUsageToQuotaSnapshot } from "../providers/opencode/fetcher.js";
 import { asciiBar, formatCost } from "../format.js";
 import { SUBSCRIPTIONS, API_BILLED_PROVIDERS, effectiveCostPerMTok } from "../pricing.js";
-import { renderTable, rule } from "../utils/table.js";
+import { renderTable } from "../utils/table.js";
 import type { QuotaSnapshot, ProviderId } from "../types.js";
 
 export interface QuotasOptions {
@@ -19,7 +22,10 @@ const PROVIDER_SETUP: Record<ProviderId, { name: string; setup: string }> = {
   codex: { name: "Codex", setup: "auto-detected from ~/.codex/auth.json" },
   copilot: { name: "Copilot", setup: "set GH_TOKEN or GITHUB_TOKEN in env" },
   openrouter: { name: "OpenRouter", setup: "set OPENROUTER_API_KEY in env" },
-  opencode: { name: "OpenCode", setup: "set OPENCODE_WORKSPACE_ID and OPENCODE_AUTH_COOKIE in env" },
+  opencode: {
+    name: "OpenCode",
+    setup: "set OPENCODE_WORKSPACE_ID and OPENCODE_AUTH_COOKIE in env",
+  },
 };
 
 async function fetchProvider(provider: ProviderId): Promise<QuotaSnapshot | null> {
@@ -30,49 +36,126 @@ async function fetchProvider(provider: ProviderId): Promise<QuotaSnapshot | null
       const { usage, error } = await fetchClaudeQuota();
       if (usage) return claudeUsageToQuotaSnapshot(usage);
       if (error) {
-        return { provider: "claude", plan: "—", windows: [], extraUsage: null, error: error.type === "not_configured" ? { type: "not_configured" as const, message: meta.setup } : error };
+        return {
+          provider: "claude",
+          plan: "—",
+          windows: [],
+          extraUsage: null,
+          error:
+            error.type === "not_configured"
+              ? { type: "not_configured" as const, message: meta.setup }
+              : error,
+        };
       }
-      return { provider: "claude", plan: "—", windows: [], extraUsage: null, error: { type: "not_configured" as const, message: meta.setup } };
+      return {
+        provider: "claude",
+        plan: "—",
+        windows: [],
+        extraUsage: null,
+        error: { type: "not_configured" as const, message: meta.setup },
+      };
     }
     case "codex": {
       const { usage, error } = await fetchCodexQuota();
       if (usage) return codexUsageToQuotaSnapshot(usage);
       if (error) {
-        return { provider: "codex", plan: "—", windows: [], extraUsage: null, error: error.type === "not_configured" ? { type: "not_configured" as const, message: meta.setup } : error };
+        return {
+          provider: "codex",
+          plan: "—",
+          windows: [],
+          extraUsage: null,
+          error:
+            error.type === "not_configured"
+              ? { type: "not_configured" as const, message: meta.setup }
+              : error,
+        };
       }
-      return { provider: "codex", plan: "—", windows: [], extraUsage: null, error: { type: "not_configured" as const, message: meta.setup } };
+      return {
+        provider: "codex",
+        plan: "—",
+        windows: [],
+        extraUsage: null,
+        error: { type: "not_configured" as const, message: meta.setup },
+      };
     }
     case "copilot": {
       const { usage, error } = await fetchCopilotQuota();
       if (usage) return copilotUsageToQuotaSnapshot(usage);
       if (error) {
-        return { provider: "copilot", plan: "—", windows: [], extraUsage: null, error: error.type === "not_configured" ? { type: "not_configured" as const, message: meta.setup } : error };
+        return {
+          provider: "copilot",
+          plan: "—",
+          windows: [],
+          extraUsage: null,
+          error:
+            error.type === "not_configured"
+              ? { type: "not_configured" as const, message: meta.setup }
+              : error,
+        };
       }
-      return { provider: "copilot", plan: "—", windows: [], extraUsage: null, error: { type: "not_configured" as const, message: meta.setup } };
+      return {
+        provider: "copilot",
+        plan: "—",
+        windows: [],
+        extraUsage: null,
+        error: { type: "not_configured" as const, message: meta.setup },
+      };
     }
     case "openrouter": {
-      const { credits, limit, limitRemaining, monthlyUsage, error } = await fetchOpenRouterCredits();
+      const { credits, limit, limitRemaining, monthlyUsage, error } =
+        await fetchOpenRouterCredits();
       if (credits !== null || limit !== null || monthlyUsage !== undefined) {
         return openRouterCreditsToQuota(credits, limit, limitRemaining, monthlyUsage);
       }
       if (error) {
-        return { provider: "openrouter", plan: "—", windows: [], extraUsage: null, error: error.type === "not_configured" ? { type: "not_configured" as const, message: meta.setup } : error };
+        return {
+          provider: "openrouter",
+          plan: "—",
+          windows: [],
+          extraUsage: null,
+          error:
+            error.type === "not_configured"
+              ? { type: "not_configured" as const, message: meta.setup }
+              : error,
+        };
       }
-      return { provider: "openrouter", plan: "—", windows: [], extraUsage: null, error: { type: "not_configured" as const, message: meta.setup } };
+      return {
+        provider: "openrouter",
+        plan: "—",
+        windows: [],
+        extraUsage: null,
+        error: { type: "not_configured" as const, message: meta.setup },
+      };
     }
     case "opencode": {
       const { usage, error } = await fetchOpenCodeQuota();
       if (usage) return opencodeUsageToQuotaSnapshot(usage);
       if (error) {
-        return { provider: "opencode", plan: "—", windows: [], extraUsage: null, error: error.type === "not_configured" ? { type: "not_configured" as const, message: meta.setup } : error };
+        return {
+          provider: "opencode",
+          plan: "—",
+          windows: [],
+          extraUsage: null,
+          error:
+            error.type === "not_configured"
+              ? { type: "not_configured" as const, message: meta.setup }
+              : error,
+        };
       }
-      return { provider: "opencode", plan: "—", windows: [], extraUsage: null, error: { type: "not_configured" as const, message: meta.setup } };
+      return {
+        provider: "opencode",
+        plan: "—",
+        windows: [],
+        extraUsage: null,
+        error: { type: "not_configured" as const, message: meta.setup },
+      };
     }
   }
 }
 
 export async function runQuotas(opts: QuotasOptions = {}): Promise<void> {
-  const enabled = opts.providers ?? (["claude", "codex", "copilot", "openrouter", "opencode"] as ProviderId[]);
+  const enabled =
+    opts.providers ?? (["claude", "codex", "copilot", "openrouter", "opencode"] as ProviderId[]);
 
   process.stderr.write("Fetching quotas...\n");
 
@@ -102,9 +185,8 @@ export async function runQuotas(opts: QuotasOptions = {}): Promise<void> {
         : "";
 
     if (snap.error) {
-      const shortMsg = snap.error.type === "not_configured"
-        ? snap.error.message
-        : `⚠ ${snap.error.message}`;
+      const shortMsg =
+        snap.error.type === "not_configured" ? snap.error.message : `⚠ ${snap.error.message}`;
       rows.push({ cells: [name, plan, "", "", shortMsg] });
       continue;
     }
@@ -137,9 +219,7 @@ export async function runQuotas(opts: QuotasOptions = {}): Promise<void> {
     } else {
       for (let i = 0; i < subRows.length; i++) {
         const sr = subRows[i];
-        const infoCell = i === 0
-          ? [sr.info, billingLabel].filter(Boolean).join(" · ")
-          : sr.info;
+        const infoCell = i === 0 ? [sr.info, billingLabel].filter(Boolean).join(" · ") : sr.info;
         rows.push({
           cells: [i === 0 ? name : "", i === 0 ? plan : "", sr.quota, sr.remaining, infoCell],
         });

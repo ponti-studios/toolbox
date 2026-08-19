@@ -46,7 +46,13 @@ export interface ExtraBilling {
 
 // ─── Provider error ─────────────────────────────────────────────────
 export interface ProviderError {
-  type: "not_configured" | "unauthorized" | "network_error" | "parse_error" | "unsupported_platform" | "unknown";
+  type:
+    | "not_configured"
+    | "unauthorized"
+    | "network_error"
+    | "parse_error"
+    | "unsupported_platform"
+    | "unknown";
   message: string;
 }
 

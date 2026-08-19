@@ -29,14 +29,14 @@ toolbox/
 
 ## Tool Index
 
-| Tool | Language | Description |
-|------|----------|-------------|
-| [filekit](./apps/filekit/README.md) | TypeScript / Node 24 | Generic frontmatter and file utilities |
-| [xkit](./apps/xkit/README.md) | Go | Paid destructive X/Twitter post deletion |
-| [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown via Apple Speech |
-| [datpiff](./apps/datpiff/README.md) | Python | Internet Archive crawler for DatPiff-style mixtape listings |
-| [photokit](./apps/photokit/README.md) | Python | EXIF analysis, date repair from filenames, and date-based renaming |
-| [agentkit](./apps/agentkit/README.md) | TypeScript | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter |
+| Tool                                  | Language             | Description                                                                          |
+| ------------------------------------- | -------------------- | ------------------------------------------------------------------------------------ |
+| [filekit](./apps/filekit/README.md)   | TypeScript / Node 24 | Generic frontmatter and file utilities                                               |
+| [xkit](./apps/xkit/README.md)         | Go                   | Paid destructive X/Twitter post deletion                                             |
+| [mediakit](./apps/mediakit/README.md) | Swift                | Video/audio transcription to Markdown via Apple Speech                               |
+| [datpiff](./apps/datpiff/README.md)   | Python               | Internet Archive crawler for DatPiff-style mixtape listings                          |
+| [photokit](./apps/photokit/README.md) | Python               | EXIF analysis, date repair from filenames, and date-based renaming                   |
+| [agentkit](./apps/agentkit/README.md) | TypeScript           | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter |
 
 ## Development
 

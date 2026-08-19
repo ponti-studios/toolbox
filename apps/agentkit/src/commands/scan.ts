@@ -2,8 +2,7 @@
 import { scanClaudeProjects } from "../scanner.js";
 import { formatCost, formatTokens, formatRelativeTime } from "../format.js";
 import { effectiveCostPerMTok, SUBSCRIPTIONS } from "../pricing.js";
-import { renderTable, rule, summaryLine } from "../utils/table.js";
-import type { SessionLog } from "../types.js";
+import { renderTable } from "../utils/table.js";
 
 export interface ScanOptions {
   days?: number;
@@ -12,9 +11,7 @@ export interface ScanOptions {
 }
 
 export async function runScan(opts: ScanOptions): Promise<void> {
-  const afterDate = opts.days
-    ? new Date(Date.now() - opts.days * 24 * 60 * 60 * 1000)
-    : undefined;
+  const afterDate = opts.days ? new Date(Date.now() - opts.days * 24 * 60 * 60 * 1000) : undefined;
 
   process.stderr.write("Scanning ~/.claude/projects/ for session files...\n");
   const sessions = await scanClaudeProjects({ afterDate, limit: opts.limit });
@@ -36,16 +33,20 @@ export async function runScan(opts: ScanOptions): Promise<void> {
   const totalSessions = sessions.length;
   const plan = SUBSCRIPTIONS.claude!;
   const effectiveRate = effectiveCostPerMTok("claude", "unknown");
-  const totalCacheWrites = sessions.reduce((s, sess) => s + sess.cacheCreationTokens, 0);
   const projectedMonthly = (totalInput + totalOutput) * 4.3;
   const subUtil = Math.round((projectedMonthly / plan.estimatedMonthlyTokens) * 100);
-  const budgetLabel = subUtil > 100
-    ? `~${(subUtil / 100).toFixed(1)}× typical ${plan.name} user`
-    : `${subUtil}% of ${plan.name} budget`;
+  const budgetLabel =
+    subUtil > 100
+      ? `~${(subUtil / 100).toFixed(1)}× typical ${plan.name} user`
+      : `${subUtil}% of ${plan.name} budget`;
 
   console.log();
-  console.log(`  ${formatCost(totalCost)}  ·  ${formatTokens(totalInput)} in  ·  ${formatTokens(totalOutput)} out  ·  ${totalSessions} sessions`);
-  console.log(`  sub ${formatCost(effectiveRate)}/MTok  ·  projected ${formatTokens(projectedMonthly)}/mo  ·  ${budgetLabel}`);
+  console.log(
+    `  ${formatCost(totalCost)}  ·  ${formatTokens(totalInput)} in  ·  ${formatTokens(totalOutput)} out  ·  ${totalSessions} sessions`,
+  );
+  console.log(
+    `  sub ${formatCost(effectiveRate)}/MTok  ·  projected ${formatTokens(projectedMonthly)}/mo  ·  ${budgetLabel}`,
+  );
   console.log();
 
   // ── Sessions table ──────────────────────────────────────────────

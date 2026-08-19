@@ -76,7 +76,10 @@ function formatResetsIn(seconds: number): string {
 }
 
 // ─── Main fetch ─────────────────────────────────────────────────────
-export async function fetchCodexQuota(): Promise<{ usage: CodexUsage | null; error: ProviderError | null }> {
+export async function fetchCodexQuota(): Promise<{
+  usage: CodexUsage | null;
+  error: ProviderError | null;
+}> {
   const auth = discoverCodexAuth();
   if (!auth.token) {
     return {

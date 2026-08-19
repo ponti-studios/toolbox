@@ -16,9 +16,7 @@ export interface CostOptions {
 export async function runCost(opts: CostOptions): Promise<void> {
   let sessions: SessionLog[] = [];
 
-  const afterDate = opts.days
-    ? new Date(Date.now() - opts.days * 24 * 60 * 60 * 1000)
-    : undefined;
+  const afterDate = opts.days ? new Date(Date.now() - opts.days * 24 * 60 * 60 * 1000) : undefined;
 
   // OpenRouter CSV
   if ((!opts.provider || opts.provider === "openrouter") && opts.file) {
@@ -47,7 +45,10 @@ export async function runCost(opts: CostOptions): Promise<void> {
   let totalInput = 0;
   let totalOutput = 0;
   let totalCacheRead = 0;
-  const byModel = new Map<string, { cost: number; sessions: number; input: number; output: number }>();
+  const byModel = new Map<
+    string,
+    { cost: number; sessions: number; input: number; output: number }
+  >();
   const byProject = new Map<string, { cost: number; sessions: number }>();
 
   for (const s of sessions) {
@@ -74,20 +75,26 @@ export async function runCost(opts: CostOptions): Promise<void> {
   const costPerMOutput = totalOutput > 0 ? (totalCost / totalOutput) * 1_000_000 : 0;
 
   if (opts.json) {
-    console.log(JSON.stringify({
-      summary: {
-        totalSessions: sessions.length,
-        totalCost: Number(totalCost.toFixed(4)),
-        totalInputTokens: totalInput,
-        totalOutputTokens: totalOutput,
-        totalCacheReadTokens: totalCacheRead,
-        avgCostPerRequest: Number(avgCostPerReq.toFixed(4)),
-        costPerMInput: Number(costPerMInput.toFixed(2)),
-        costPerMOutput: Number(costPerMOutput.toFixed(2)),
-      },
-      byModel: Object.fromEntries(byModel),
-      byProject: Object.fromEntries(byProject),
-    }, null, 2));
+    console.log(
+      JSON.stringify(
+        {
+          summary: {
+            totalSessions: sessions.length,
+            totalCost: Number(totalCost.toFixed(4)),
+            totalInputTokens: totalInput,
+            totalOutputTokens: totalOutput,
+            totalCacheReadTokens: totalCacheRead,
+            avgCostPerRequest: Number(avgCostPerReq.toFixed(4)),
+            costPerMInput: Number(costPerMInput.toFixed(2)),
+            costPerMOutput: Number(costPerMOutput.toFixed(2)),
+          },
+          byModel: Object.fromEntries(byModel),
+          byProject: Object.fromEntries(byProject),
+        },
+        null,
+        2,
+      ),
+    );
     return;
   }
 
@@ -110,7 +117,9 @@ export async function runCost(opts: CostOptions): Promise<void> {
     const plan = SUBSCRIPTIONS[sourceProvider];
     const rate = effectiveCostPerMTok(sourceProvider, "unknown");
     if (plan) {
-      console.log(`  ${summaryLine("Billing", `${plan.name} ${formatCost(plan.monthlyCost)}/mo ≈ ${formatCost(rate)}/MTok`)}`);
+      console.log(
+        `  ${summaryLine("Billing", `${plan.name} ${formatCost(plan.monthlyCost)}/mo ≈ ${formatCost(rate)}/MTok`)}`,
+      );
     }
   } else {
     const rate = effectiveCostPerMTok(sourceProvider, "unknown");
@@ -149,21 +158,10 @@ export async function runCost(opts: CostOptions): Promise<void> {
   console.log(`  ${rule("By Project")}`);
   const sortedProjects = [...byProject.entries()].sort((a, b) => b[1].cost - a[1].cost);
   const projectRows = sortedProjects.map(([project, data]) => ({
-    cells: [
-      project.slice(0, 30),
-      String(data.sessions),
-      formatCost(data.cost),
-    ],
+    cells: [project.slice(0, 30), String(data.sessions), formatCost(data.cost)],
   }));
   console.log(
-    renderTable(
-      [
-        { label: "Project" },
-        { label: "Sessions" },
-        { label: "Cost" },
-      ],
-      projectRows,
-    ),
+    renderTable([{ label: "Project" }, { label: "Sessions" }, { label: "Cost" }], projectRows),
   );
   console.log();
 }

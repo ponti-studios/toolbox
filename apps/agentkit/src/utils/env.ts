@@ -40,7 +40,9 @@ export async function resolveShellEnv(varName: string): Promise<string | null> {
 }
 
 // ─── Multiple env vars ──────────────────────────────────────────────
-export async function resolveShellEnvMultiple(varNames: string[]): Promise<Record<string, string | null>> {
+export async function resolveShellEnvMultiple(
+  varNames: string[],
+): Promise<Record<string, string | null>> {
   const result: Record<string, string | null> = {};
   for (const name of varNames) {
     result[name] = await resolveShellEnv(name);

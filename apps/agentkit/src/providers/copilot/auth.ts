@@ -6,8 +6,7 @@ import type { AuthResult } from "../../types.js";
 // ─── Discover credentials ───────────────────────────────────────────
 export async function discoverCopilotAuth(): Promise<AuthResult> {
   // Direct env
-  const directToken =
-    process.env.GITHUB_TOKEN?.trim() || process.env.GH_TOKEN?.trim();
+  const directToken = process.env.GITHUB_TOKEN?.trim() || process.env.GH_TOKEN?.trim();
   if (directToken) {
     return { token: directToken, authType: "env", source: "env:GITHUB_TOKEN" };
   }

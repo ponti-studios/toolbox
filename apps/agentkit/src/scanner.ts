@@ -61,7 +61,7 @@ interface ScanResult {
   error: string | null;
 }
 
-function scanFile(filePath: string, projectName: string, projectPath: string): ScanResult {
+function scanFile(filePath: string, projectName: string): ScanResult {
   let stat: fs.Stats;
   try {
     stat = fs.statSync(filePath);
@@ -96,7 +96,11 @@ function scanFile(filePath: string, projectName: string, projectPath: string): S
         if (entry.type === "summary") {
           summary = entry.summary || "";
         }
-        if ((entry.type === "user" || entry.type === "human") && !firstMessage && entry.message?.content) {
+        if (
+          (entry.type === "user" || entry.type === "human") &&
+          !firstMessage &&
+          entry.message?.content
+        ) {
           const c = entry.message.content;
           if (typeof c === "string") firstMessage = c.slice(0, 200);
           else if (Array.isArray(c)) {

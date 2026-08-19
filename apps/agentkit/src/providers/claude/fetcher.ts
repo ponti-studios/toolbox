@@ -2,7 +2,7 @@
 // Ported from the Raycast Agent Usage extension.
 import { httpFetch } from "../../utils/http.js";
 import { discoverClaudeAuth } from "./auth.js";
-import type { ClaudeUsage, ClaudeRateWindow, ClaudeExtraUsage } from "./types.js";
+import type { ClaudeUsage, ClaudeExtraUsage } from "./types.js";
 import type { QuotaSnapshot, QuotaWindow, ProviderError } from "../../types.js";
 
 const CLAUDE_USAGE_API = "https://api.anthropic.com/api/oauth/usage";
@@ -66,19 +66,11 @@ interface OAuthUsageResponse {
   extra_usage?: OAuthExtraUsage;
 }
 
-function windowToQuotaWindow(label: string, w: OAuthWindow): QuotaWindow {
-  const used = typeof w.utilization === "number" ? w.utilization : 0;
-  return {
-    label,
-    usedPercent: Math.round(used),
-    remainingPercent: clampPercent(100 - used),
-    resetsAt: w.resets_at ? new Date(w.resets_at) : null,
-    resetsIn: formatResetsIn(w.resets_at) || "unknown",
-  };
-}
-
 // ─── Main fetch ─────────────────────────────────────────────────────
-export async function fetchClaudeQuota(): Promise<{ usage: ClaudeUsage | null; error: ProviderError | null }> {
+export async function fetchClaudeQuota(): Promise<{
+  usage: ClaudeUsage | null;
+  error: ProviderError | null;
+}> {
   const auth = discoverClaudeAuth();
   if (!auth.token) {
     return {
@@ -120,7 +112,9 @@ export async function fetchClaudeQuota(): Promise<{ usage: ClaudeUsage | null; e
 
   const extra = data.extra_usage;
   const extraUsage: ClaudeExtraUsage | null =
-    extra?.is_enabled && typeof extra.monthly_limit === "number" && typeof extra.used_credits === "number"
+    extra?.is_enabled &&
+    typeof extra.monthly_limit === "number" &&
+    typeof extra.used_credits === "number"
       ? {
           used: extra.used_credits / 100,
           limit: extra.monthly_limit / 100,

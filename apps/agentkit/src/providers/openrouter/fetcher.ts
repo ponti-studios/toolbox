@@ -5,28 +5,29 @@ import { discoverOpenRouterAuth } from "./auth.js";
 import type { SessionLog, ProviderError, QuotaSnapshot, QuotaWindow } from "../../types.js";
 import { estimateCost } from "../../pricing.js";
 
-const OPENROUTER_KEY_API = "https://openrouter.ai/api/v1/auth/key";
 const OPENROUTER_CREDITS_API = "https://openrouter.ai/api/v1/credits";
 
 // ─── Credits/usage API ──────────────────────────────────────────────
 interface CreditsResponse {
   data?: {
-    total_credits?: number;  // total credits purchased (USD)
-    total_usage?: number;    // total usage (USD)
+    total_credits?: number; // total credits purchased (USD)
+    total_usage?: number; // total usage (USD)
   };
 }
 
 export async function fetchOpenRouterCredits(): Promise<{
-  credits: number | null;      // remaining credits (USD)
-  limit: number | null;        // total credits purchased (USD) 
+  credits: number | null; // remaining credits (USD)
+  limit: number | null; // total credits purchased (USD)
   limitRemaining: number | null;
   error: ProviderError | null;
-  monthlyUsage?: number;       // usage in dollars
+  monthlyUsage?: number; // usage in dollars
 }> {
   const auth = await discoverOpenRouterAuth();
   if (!auth.token) {
     return {
-      credits: null, limit: null, limitRemaining: null,
+      credits: null,
+      limit: null,
+      limitRemaining: null,
       error: { type: "not_configured", message: "Set OPENROUTER_API_KEY in env" },
     };
   }
@@ -39,15 +40,15 @@ export async function fetchOpenRouterCredits(): Promise<{
     unauthorizedMessage: "Invalid OpenRouter API key.",
   });
 
-  if (creditsError) return { credits: null, limit: null, limitRemaining: null, error: creditsError };
+  if (creditsError)
+    return { credits: null, limit: null, limitRemaining: null, error: creditsError };
 
   const cr = creditsData as CreditsResponse;
   const totalCredits = cr.data?.total_credits ?? null;
   const totalUsage = cr.data?.total_usage ?? null;
 
-  const remaining = totalCredits !== null && totalUsage !== null
-    ? Math.max(0, totalCredits - totalUsage)
-    : null;
+  const remaining =
+    totalCredits !== null && totalUsage !== null ? Math.max(0, totalCredits - totalUsage) : null;
 
   return {
     credits: remaining,
@@ -104,13 +105,16 @@ export function parseOpenRouterCsv(filePath: string): {
       const cached = cachedIdx >= 0 ? parseCsvNumber(fields[cachedIdx]) : 0;
       const cancelled = cancelledIdx >= 0 ? parseCsvBool(fields[cancelledIdx]) : false;
 
-      const cost = costIdx >= 0 ? costTotal : estimateCost("openrouter", modelStr, {
-        inputTokens,
-        outputTokens,
-        cacheReadTokens: 0,
-        cacheCreationTokens: 0,
-        reasoningTokens: reasoning,
-      });
+      const cost =
+        costIdx >= 0
+          ? costTotal
+          : estimateCost("openrouter", modelStr, {
+              inputTokens,
+              outputTokens,
+              cacheReadTokens: 0,
+              cacheCreationTokens: 0,
+              reasoningTokens: reasoning,
+            });
 
       if (cancelled) continue;
 
@@ -216,9 +220,15 @@ export function openRouterCreditsToQuota(
     provider: "openrouter",
     plan: "Pay-as-you-go",
     windows,
-    extraUsage: monthlyUsage !== undefined
-      ? { used: monthlyUsage, limit: 0, currency: "USD", label: `$${monthlyUsage.toFixed(2)} spent` }
-      : null,
+    extraUsage:
+      monthlyUsage !== undefined
+        ? {
+            used: monthlyUsage,
+            limit: 0,
+            currency: "USD",
+            label: `$${monthlyUsage.toFixed(2)} spent`,
+          }
+        : null,
     error: null,
   };
 }

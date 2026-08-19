@@ -21,19 +21,19 @@ export const SUBSCRIPTIONS: Partial<Record<ProviderId, SubscriptionPlan>> = {
     name: "Claude Pro",
     monthlyCost: 20,
     estimatedMonthlyTokens: 40_000_000,
-    effectiveCostPerMTok: 20 / 40_000_000 * 1_000_000, // $0.50/MTok
+    effectiveCostPerMTok: (20 / 40_000_000) * 1_000_000, // $0.50/MTok
   },
   copilot: {
     name: "GitHub Copilot",
     monthlyCost: 10,
     estimatedMonthlyTokens: 10_000_000,
-    effectiveCostPerMTok: 10 / 10_000_000 * 1_000_000, // $1.00/MTok
+    effectiveCostPerMTok: (10 / 10_000_000) * 1_000_000, // $1.00/MTok
   },
   codex: {
     name: "ChatGPT Plus",
     monthlyCost: 20,
     estimatedMonthlyTokens: 30_000_000,
-    effectiveCostPerMTok: 20 / 30_000_000 * 1_000_000, // $0.67/MTok
+    effectiveCostPerMTok: (20 / 30_000_000) * 1_000_000, // $0.67/MTok
   },
 };
 
@@ -150,7 +150,13 @@ export function resolveModelPricing(modelName: string): ModelPricing {
 
   // Common OpenRouter model slugs
   if (lower.includes("gemini")) {
-    return { inputPerMTok: 0, outputPerMTok: 0, cacheReadPerMTok: 0, cacheWritePerMTok: 0, reasoningPerMTok: 0 };
+    return {
+      inputPerMTok: 0,
+      outputPerMTok: 0,
+      cacheReadPerMTok: 0,
+      cacheWritePerMTok: 0,
+      reasoningPerMTok: 0,
+    };
   }
 
   return DEFAULT_PRICING;
@@ -182,8 +188,8 @@ export function estimateSubscriptionCost(provider: ProviderId, usage: TokenUsage
   const plan = SUBSCRIPTIONS[provider];
   if (!plan) return estimateApiCost("unknown", usage);
   // Cache reads are free — only count input, output, cache writes, reasoning
-  const chargedTokens = usage.inputTokens + usage.outputTokens
-    + usage.cacheCreationTokens + usage.reasoningTokens;
+  const chargedTokens =
+    usage.inputTokens + usage.outputTokens + usage.cacheCreationTokens + usage.reasoningTokens;
   return (chargedTokens / 1_000_000) * plan.effectiveCostPerMTok;
 }
 
@@ -201,5 +207,5 @@ export function effectiveCostPerMTok(provider: ProviderId, model: string): numbe
   if (plan) return plan.effectiveCostPerMTok;
   const p = resolveModelPricing(model);
   // Blended: assume 3:1 input:output ratio for display
-  return (p.inputPerMTok * 0.75 + p.outputPerMTok * 0.25);
+  return p.inputPerMTok * 0.75 + p.outputPerMTok * 0.25;
 }

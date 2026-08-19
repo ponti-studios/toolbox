@@ -87,17 +87,17 @@ xkit logout
 
 ## Delete-post flags
 
-| Flag | Description | Default |
-|------|-------------|---------|
-| `--user-id` | Override the authenticated user ID | saved user ID |
-| `--base-url` | X API base URL | `https://api.x.com/2` |
-| `--max-results` | Posts to fetch per page | `100` |
-| `--exclude` | Comma-separated post types to exclude (`replies`, `retweets`) | none |
-| `--dry-run` | List posts without deleting them | `false` |
-| `--yes` | Skip safety confirmation requirement | `false` |
-| `--limit` | Maximum number of posts to delete | `0` |
-| `--preview-count` | Number of IDs shown in the confirmation preview | `10` |
-| `--timeout` | HTTP timeout per request | `30s` |
+| Flag              | Description                                                   | Default               |
+| ----------------- | ------------------------------------------------------------- | --------------------- |
+| `--user-id`       | Override the authenticated user ID                            | saved user ID         |
+| `--base-url`      | X API base URL                                                | `https://api.x.com/2` |
+| `--max-results`   | Posts to fetch per page                                       | `100`                 |
+| `--exclude`       | Comma-separated post types to exclude (`replies`, `retweets`) | none                  |
+| `--dry-run`       | List posts without deleting them                              | `false`               |
+| `--yes`           | Skip safety confirmation requirement                          | `false`               |
+| `--limit`         | Maximum number of posts to delete                             | `0`                   |
+| `--preview-count` | Number of IDs shown in the confirmation preview               | `10`                  |
+| `--timeout`       | HTTP timeout per request                                      | `30s`                 |
 
 ## Examples
 

@@ -64,7 +64,7 @@ jobs:
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
         with:
-          go-version: '1.26.4'
+          go-version: "1.26.4"
           cache: true
           cache-dependency-path: |
             apps/xkit/go.sum
@@ -74,14 +74,14 @@ jobs:
         if: matrix.language == 'python'
         uses: actions/setup-python@v7.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
 
       - name: Set up Node.js
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
@@ -103,7 +103,7 @@ jobs:
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
         with:
-          go-version: '1.26.4'
+          go-version: "1.26.4"
           cache: true
           cache-dependency-path: |
             apps/xkit/go.sum
@@ -113,14 +113,14 @@ jobs:
         if: matrix.language == 'python'
         uses: actions/setup-python@v7.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
 
       - name: Set up Node.js
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
@@ -142,7 +142,7 @@ jobs:
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
         with:
-          go-version: '1.26.4'
+          go-version: "1.26.4"
           cache: true
           cache-dependency-path: |
             apps/xkit/go.sum
@@ -152,14 +152,14 @@ jobs:
         if: matrix.language == 'python'
         uses: actions/setup-python@v7.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
 
       - name: Set up Node.js
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
@@ -182,7 +182,7 @@ jobs:
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
         with:
-          go-version: '1.26.4'
+          go-version: "1.26.4"
           cache: true
           cache-dependency-path: |
             apps/xkit/go.sum
@@ -192,14 +192,14 @@ jobs:
         if: matrix.language == 'python'
         uses: actions/setup-python@v7.0.0
         with:
-          python-version: '3.11'
+          python-version: "3.11"
           cache: pip
 
       - name: Set up Node.js
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '24'
+          node-version: "24"
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
 

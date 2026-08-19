@@ -1,13 +1,18 @@
 import fg from "fast-glob";
 import { createHash } from "node:crypto";
 import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
-import { basename, dirname, extname, join, relative, resolve } from "node:path";
+import { basename, dirname, extname, join, resolve } from "node:path";
 import { parse as parseCsv } from "csv-parse/sync";
 import { stringify as stringifyCsv } from "csv-stringify/sync";
 import ExcelJS from "exceljs";
-import { readText, writeText, markdownFiles } from "../lib/helpers.js";
+import { readText, writeText } from "../lib/helpers.js";
 
-export function mergeMarkdown(output: string, inputs: string[], toc: boolean, filenames: boolean): void {
+export function mergeMarkdown(
+  output: string,
+  inputs: string[],
+  toc: boolean,
+  filenames: boolean,
+): void {
   const sections = inputs
     .flatMap((pattern) => fg.sync(pattern, { onlyFiles: true }).sort())
     .map((file) => ({ file, body: readText(file) }));

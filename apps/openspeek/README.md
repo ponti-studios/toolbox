@@ -29,16 +29,16 @@ openspeek INPUT.md [OUTPUT.m4a]
 `INPUT`/`OUTPUT` accept `$VAR`, `${VAR}`, and `~` expansion. Requires an
 `OPENROUTER_API_KEY` for the default engine.
 
-| Flag | Meaning |
-| --- | --- |
-| `--voices` | list all Deepgram Flux voices with descriptions and sample clips |
-| `-v, --voice VOICE` | voice for the active engine (default `flux-gemma-en` for Flux) |
-| `-s, --speed RATE` | Flux speaking-rate multiplier (0.85–1.15) |
-| `-m, --model SLUG` | OpenRouter TTS model (`deepgram/flux-tts:free`, `google/gemini-3.1-flash-tts-preview`) |
-| `-e, --engine E` | `openrouter` \| `piper` \| `say` \| `auto` (default) |
-| `-c, --chunk-chars N` | OpenRouter chunk size in chars (default 1500) |
-| `-r, --rate WPM` | macOS `say()` words per minute |
-| `-q, --quiet` | no progress bar |
+| Flag                  | Meaning                                                                                |
+| --------------------- | -------------------------------------------------------------------------------------- |
+| `--voices`            | list all Deepgram Flux voices with descriptions and sample clips                       |
+| `-v, --voice VOICE`   | voice for the active engine (default `flux-gemma-en` for Flux)                         |
+| `-s, --speed RATE`    | Flux speaking-rate multiplier (0.85–1.15)                                              |
+| `-m, --model SLUG`    | OpenRouter TTS model (`deepgram/flux-tts:free`, `google/gemini-3.1-flash-tts-preview`) |
+| `-e, --engine E`      | `openrouter` \| `piper` \| `say` \| `auto` (default)                                   |
+| `-c, --chunk-chars N` | OpenRouter chunk size in chars (default 1500)                                          |
+| `-r, --rate WPM`      | macOS `say()` words per minute                                                         |
+| `-q, --quiet`         | no progress bar                                                                        |
 
 Examples:
 
@@ -66,8 +66,9 @@ bun run build:binary  # standalone macOS binary
 ## How it works
 
 1. Strip Markdown to narration text (frontmatter, links, emphasis, lists, …).
-2. Split into chunks; synthesize in parallel over OpenRouter's
-   `/api/v1/audio/speech` (PCM 24 kHz/16-bit).
+2. Split into chunks; synthesize in parallel with TanStack AI's OpenAI speech
+   adapter pointed at OpenRouter's `/api/v1/audio/speech` endpoint (PCM 24
+   kHz/16-bit).
 3. Wrap PCM in WAV; convert to M4A/AAC with `afconvert` (macOS).
 4. Log usage (tokens, cost, latency) per generation.
 

@@ -29,14 +29,14 @@ mediakit transcribe <input-video> [--output <path.md>] [--language <locale>] [--
 
 **Options:**
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `<input-video>` | Video or audio file to transcribe | required |
-| `-o, --output <PATH>` | Markdown output file path | `<input>.md` |
-| `-l, --language <LOCALE>` | Speech locale, e.g. `en-US` | `en-US` |
-| `--timestamps` | Include timestamped paragraph blocks | on |
-| `--no-timestamps` | Emit a plain transcript without timestamps | off |
-| `--overwrite` | Replace an existing output file | off |
+| Option                    | Description                                | Default      |
+| ------------------------- | ------------------------------------------ | ------------ |
+| `<input-video>`           | Video or audio file to transcribe          | required     |
+| `-o, --output <PATH>`     | Markdown output file path                  | `<input>.md` |
+| `-l, --language <LOCALE>` | Speech locale, e.g. `en-US`                | `en-US`      |
+| `--timestamps`            | Include timestamped paragraph blocks       | on           |
+| `--no-timestamps`         | Emit a plain transcript without timestamps | off          |
+| `--overwrite`             | Replace an existing output file            | off          |
 
 **Examples:**
 

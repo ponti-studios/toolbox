@@ -1,7 +1,16 @@
 import { existsSync, mkdirSync, statSync, unlinkSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import type { Frontmatter } from "../lib/helpers.js";
-import { asString, filesFrom, markdownFiles, parseFile, readText, renderFile, requireString, writeText } from "../lib/helpers.js";
+import {
+  asString,
+  filesFrom,
+  markdownFiles,
+  parseFile,
+  readText,
+  renderFile,
+  requireString,
+  writeText,
+} from "../lib/helpers.js";
 
 export function frontmatterWalk(options: {
   root: string;
@@ -58,7 +67,10 @@ export function getSchema(schemaPath?: string): SchemaDefinition {
     allowed: parsed.allowed ?? {},
   };
 }
-export function validationErrors(data: Frontmatter, schema: SchemaDefinition = getSchema()): string[] {
+export function validationErrors(
+  data: Frontmatter,
+  schema: SchemaDefinition = getSchema(),
+): string[] {
   return schema.required
     .flatMap((key) =>
       data[key] === undefined || (typeof data[key] === "string" && !data[key].trim())
@@ -88,7 +100,8 @@ export function validateFiles(root: string, schemaPath?: string): void {
 function matchesFilters(data: Frontmatter, filters: string[]): boolean {
   return filters.every((filter) => {
     const separator = filter.indexOf("=");
-    if (separator <= 0) throw new Error(`Invalid filter ${JSON.stringify(filter)}; expected field=value`);
+    if (separator <= 0)
+      throw new Error(`Invalid filter ${JSON.stringify(filter)}; expected field=value`);
     const field = filter.slice(0, separator);
     const expected = filter.slice(separator + 1);
     return String(data[field] ?? "") === expected;
