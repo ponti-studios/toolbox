@@ -6,6 +6,7 @@ const { runScript, ERROR_CODES, EXIT_VALIDATION_ERROR } = require("../lib/calend
 const output = require("../lib/output");
 const config = require("../lib/config");
 const cleanup = require("../lib/cleanup");
+const { preflightIcalFile } = require("../lib/ical-preflight");
 const fs = require("fs");
 const path = require("path");
 const { spawnSync } = require("child_process");
@@ -122,7 +123,10 @@ COMMANDS:
   config       Manage configuration (default calendar)
   audit        Find duplicate and suspicious events
   normalize    Preview or normalize event titles
+  patterns     Discover user-specific title patterns with local Ollama
   rollback     Restore titles from a cleanup manifest
+  preflight    Validate an ICS file before Apple Calendar import
+  verify-import Reconcile an ICS file with EventKit after import
 
 GLOBAL OPTIONS:
   --json       Output JSON (errors included as JSON)
@@ -340,9 +344,19 @@ USAGE:
   calendar normalize <calendarName> [--calendar-id <id>] [--from <date>] [--to <date>] [--policy <path>] [--ollama] [--ollama-model <model>] [--apply --yes] [--manifest <path>] [--json]
 
 DESCRIPTION:
-  Previews canonical Category: detail titles by default. Recurring events are changed as a series.
-  --ollama uses only the local Ollama service for unresolved titles; low-confidence results remain
-  in review. --apply requires --yes and writes a rollback manifest.
+  Applies only user-policy rules and canonical parsing. Without --policy, non-canonical titles remain
+  in review. --ollama uses only local Ollama for unresolved titles; low-confidence results remain in
+  review. --apply requires --yes and writes a rollback manifest.
+`,
+    patterns: `
+  calendar patterns - Discover user-specific title patterns with local Ollama
+
+USAGE:
+  calendar patterns <calendarName> --ollama --policy <path> [--instructions <text-or-file>] [--output <path>] [--json]
+
+DESCRIPTION:
+  Proposes structured patterns and ambiguous clusters. It never changes Calendar. Review the
+  generated policy before passing it to calendar normalize.
 `,
     rollback: `
   calendar rollback - Restore titles from a cleanup manifest
@@ -353,6 +367,27 @@ USAGE:
 DESCRIPTION:
   Restores title changes only when the event still has the title written by the cleanup run.
   Deleted duplicate events are intentionally not recreated.
+`,
+    preflight: `
+  calendar preflight - Validate an ICS file before import
+
+USAGE:
+  calendar preflight <file.ics> [--json]
+
+DESCRIPTION:
+  Checks VCALENDAR structure, VEVENT counts, unique UIDs, dates, recurrence rules,
+  and preserved metadata counts. A non-zero exit status means the file must not be imported.
+`,
+    "verify-import": `
+  calendar verify-import - Reconcile an ICS file with EventKit
+
+USAGE:
+  calendar verify-import <file.ics> --calendar-id <id> [--from <date>] [--to <date>] [--json]
+
+DESCRIPTION:
+  Validates the ICS and compares source event UIDs, non-recurring records, and recurring
+  series against EventKit. Generated recurring occurrences are allowed and reported separately.
+  A non-zero exit status means the calendar must not be mutated.
 `,
   };
 
@@ -1327,9 +1362,7 @@ function workflowCalendar(args) {
 function workflowRange(args) {
   if (args.flags.from && !isValidDatetime(args.flags.from)) return { error: `Invalid --from datetime: ${args.flags.from}` };
   if (args.flags.to && !isValidDatetime(args.flags.to)) return { error: `Invalid --to datetime: ${args.flags.to}` };
-  const tomorrow = new Date();
-  tomorrow.setDate(tomorrow.getDate() + 1);
-  return { from: args.flags.from || "1900-01-01", to: args.flags.to || tomorrow.toISOString().slice(0, 10) };
+  return { from: args.flags.from || "1900-01-01", to: args.flags.to || "2100-01-01" };
 }
 
 function writeManifest(args, manifest) {
@@ -1377,7 +1410,7 @@ async function handleNormalize(args) {
   }
   let proposals = cleanup.normalizeEvents(scanned.events, policy);
   if (args.flags.ollama) {
-    try { proposals = await cleanup.classifyWithOllama(proposals, args.flags["ollama-model"] || "qwen3.5:4b"); } catch (error) { return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } }); }
+    try { proposals = await cleanup.classifyWithOllama(proposals, args.flags["ollama-model"] || "qwen3.5:4b", policy); } catch (error) { return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } }); }
   }
   const changes = proposals.filter((item) => item.changed && item.status === "proposed");
   const review = proposals.filter((item) => item.status === "review");
@@ -1392,6 +1425,27 @@ async function handleNormalize(args) {
   output.output({ applied: mutation.data.changes || [], review, manifestPath }, { json: args.flags.json });
 }
 
+async function handlePatterns(args) {
+  const scanned = await scanWorkflow(args);
+  if (scanned.error) return workflowError(args, scanned);
+  if (!args.flags.ollama) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "patterns requires --ollama" } });
+  let policy = { taxonomy: [], instructions: "" };
+  if (args.flags.policy) {
+    try { policy = JSON.parse(fs.readFileSync(args.flags.policy, "utf8")); } catch (error) { return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Invalid policy file: ${error.message}` } }); }
+  }
+  if (args.flags.instructions) policy.instructions = fs.existsSync(args.flags.instructions) ? fs.readFileSync(args.flags.instructions, "utf8") : args.flags.instructions;
+  if (!Array.isArray(policy.taxonomy) || !policy.taxonomy.length) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "patterns requires a policy with a non-empty taxonomy" } });
+  try {
+    const maxTitles = args.flags["max-titles"] ? Number(args.flags["max-titles"]) : 250;
+    if (!Number.isInteger(maxTitles) || maxTitles < 1) return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: "--max-titles must be a positive integer" } });
+    const unresolved = cleanup.normalizeEvents(scanned.events, policy).filter((item) => item.status === "review");
+    const result = await cleanup.discoverPatternsWithOllama(unresolved, policy.instructions, args.flags["ollama-model"] || "qwen3.5:4b", policy.taxonomy, maxTitles);
+    const outputPath = args.flags.output;
+    if (outputPath) fs.writeFileSync(outputPath, JSON.stringify({ ...policy, patterns: result.patterns }, null, 2) + "\n", "utf8");
+    output.output({ ...result, outputPath: outputPath || null, preview: true }, { json: args.flags.json });
+  } catch (error) { return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } }); }
+}
+
 async function handleRollback(args) {
   const manifestPath = args.positional[0];
   if (!manifestPath) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "Manifest path is required" } });
@@ -1402,6 +1456,62 @@ async function handleRollback(args) {
   const mutation = await runScript("mutate", { ...manifest.calendar, changes });
   if (!mutation.success) return workflowError(args, mutation);
   output.output({ rolledBack: mutation.data.changes || [], skipped: mutation.data.skipped || [] }, { json: args.flags.json });
+}
+
+async function handlePreflight(args) {
+  const file = args.positional[0];
+  if (!file) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "ICS file path is required" } });
+  try {
+    const expectedEventCount = args.flags["expected-events"] === undefined ? undefined : Number(args.flags["expected-events"]);
+    const expectedRecurrenceCount = args.flags["expected-recurrences"] === undefined ? undefined : Number(args.flags["expected-recurrences"]);
+    if ((expectedEventCount !== undefined && (!Number.isInteger(expectedEventCount) || expectedEventCount < 0)) || (expectedRecurrenceCount !== undefined && (!Number.isInteger(expectedRecurrenceCount) || expectedRecurrenceCount < 0))) {
+      return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: "Expected counts must be non-negative integers" } });
+    }
+    const report = await preflightIcalFile(file, { eventCount: expectedEventCount, recurrenceCount: expectedRecurrenceCount });
+    output.output(report, { json: args.flags.json });
+    if (!report.valid) process.exitCode = EXIT_VALIDATION_ERROR;
+  } catch (error) {
+    workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Unable to read ICS file: ${error.message}` } });
+  }
+}
+
+async function handleVerifyImport(args) {
+  const file = args.positional[0];
+  if (!file) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "ICS file path is required" } });
+  const calendarIds = args.arrays["calendar-id"] || [];
+  if (calendarIds.length > 1 || !calendarIds[0]) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "--calendar-id is required" } });
+  const target = { calendarId: calendarIds[0], calendarName: null };
+  const range = workflowRange(args);
+  if (range.error) return workflowError(args, { error: { code: ERROR_CODES.INVALID_DATETIME, message: range.error } });
+  try {
+    const source = await preflightIcalFile(file);
+    const scanned = await runScript("scan", { ...target, ...range });
+    if (!scanned.success) return workflowError(args, scanned);
+    const events = scanned.data.events || [];
+    const uniqueUids = new Set(events.map((event) => event.uid));
+    const recurring = events.filter((event) => event.isRecurring);
+    const eventkit = {
+      generatedRecordCount: events.length,
+      uniqueUidCount: uniqueUids.size,
+      nonRecurringCount: events.filter((event) => !event.isRecurring).length,
+      recurringRecordCount: recurring.length,
+      recurringSeriesCount: new Set(recurring.map((event) => event.uid)).size,
+    };
+    const reconciliation = {
+      sourceEventCount: source.eventCount,
+      sourceRecurrenceCount: source.recurrenceCount,
+      sourceNonRecurringCount: source.eventCount - source.recurrenceCount,
+      uniqueUidCountMatches: eventkit.uniqueUidCount === source.uniqueUidCount,
+      nonRecurringCountMatches: eventkit.nonRecurringCount === source.eventCount - source.recurrenceCount,
+      recurringSeriesCountMatches: eventkit.recurringSeriesCount === source.recurrenceCount,
+    };
+    const valid = source.valid && reconciliation.uniqueUidCountMatches && reconciliation.nonRecurringCountMatches && reconciliation.recurringSeriesCountMatches;
+    const report = { valid, source, eventkit, reconciliation, calendar: target, range };
+    output.output(report, { json: args.flags.json });
+    if (!valid) process.exitCode = EXIT_VALIDATION_ERROR;
+  } catch (error) {
+    workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Unable to verify import: ${error.message}` } });
+  }
 }
 
 async function handleConfig(args) {
@@ -1694,8 +1804,17 @@ async function main() {
     case "normalize":
       await handleNormalize(args);
       break;
+    case "patterns":
+      await handlePatterns(args);
+      break;
     case "rollback":
       await handleRollback(args);
+      break;
+    case "preflight":
+      await handlePreflight(args);
+      break;
+    case "verify-import":
+      await handleVerifyImport(args);
       break;
     case "config":
       await handleConfig(args);

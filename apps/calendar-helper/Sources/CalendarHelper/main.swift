@@ -146,7 +146,18 @@ struct CalendarHelper {
         let to = parseDate(args["to"]?.string) ?? Calendar.current.date(byAdding: .day, value: 7, to: from)!
         let max = args["max"]?.int ?? 50
         let query = args["query"]?.string?.lowercased()
-        let values = store.events(matching: store.predicateForEvents(withStart: from, end: to, calendars: [info.calendar])).compactMap { event -> JSONValue? in
+        var current = from
+        var events: [EKEvent] = []
+        var seen = Set<String>()
+        while current < to {
+            let next = min(Calendar.current.date(byAdding: .year, value: 1, to: current) ?? to, to)
+            for event in store.events(matching: store.predicateForEvents(withStart: current, end: next, calendars: [info.calendar])) {
+                let key = "\(event.eventIdentifier ?? event.calendarItemIdentifier)|\(event.startDate?.timeIntervalSinceReferenceDate ?? 0)"
+                if seen.insert(key).inserted { events.append(event) }
+            }
+            current = next
+        }
+        let values = events.compactMap { event -> JSONValue? in
             let text = "\(event.title ?? "") \(event.location ?? "") \(event.notes ?? "")".lowercased()
             guard query == nil || text.contains(query!) else { return nil }
             return .object(eventValue(event, calendar: info))
@@ -158,7 +169,19 @@ struct CalendarHelper {
         guard case .success(let info) = findCalendar(store, args: args) else { return findCalendarError(store, args: args) }
         let from = parseDate(args["from"]?.string) ?? Date(timeIntervalSince1970: 0)
         let to = parseDate(args["to"]?.string) ?? Date()
-        let values = store.events(matching: store.predicateForEvents(withStart: from, end: to, calendars: [info.calendar]))
+        var current = from
+        var events: [EKEvent] = []
+        var seen = Set<String>()
+        while current < to {
+            let next = min(Calendar.current.date(byAdding: .year, value: 1, to: current) ?? to, to)
+            let window = store.events(matching: store.predicateForEvents(withStart: current, end: next, calendars: [info.calendar]))
+            for event in window {
+                let key = "\(event.eventIdentifier ?? event.calendarItemIdentifier)|\(event.startDate?.timeIntervalSinceReferenceDate ?? 0)"
+                if seen.insert(key).inserted { events.append(event) }
+            }
+            current = next
+        }
+        let values = events
             .map { JSONValue.object(eventValue($0, calendar: info)) }
             .sorted { ($0.objectValue?["start"]?.string ?? "") < ($1.objectValue?["start"]?.string ?? "") }
         return ["events": .array(values), "count": .number(Double(values.count))]

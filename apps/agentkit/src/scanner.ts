@@ -231,7 +231,7 @@ export async function scanClaudeProjects(options: ScanOptions = {}): Promise<Ses
 
       if (stat.mtime.getTime() < afterTime) continue;
 
-      const { sessionLog } = scanFile(fp, projectName, projectPath);
+      const { sessionLog } = scanFile(fp, projectName);
       if (sessionLog) {
         sessions.push(sessionLog);
       }

@@ -231,7 +231,9 @@ describe("cleanup workflows", () => {
     const tmp = makeTempHome();
     try {
       const manifest = path.join(tmp.dir, "cleanup.json");
-      const r = runCli(["normalize", "Work", "--apply", "--yes", "--manifest", manifest, "--json"]);
+      const policy = path.join(tmp.dir, "policy.json");
+      fs.writeFileSync(policy, JSON.stringify({ taxonomy: ["Exercise"], aliases: { walk: "Exercise" } }));
+      const r = runCli(["normalize", "Work", "--policy", policy, "--apply", "--yes", "--manifest", manifest, "--json"]);
       expect(r.status).toBe(0);
       expect(JSON.parse(r.stdout).applied[0]).toMatchObject({ action: "rename", summary: "Exercise: Walk" });
       expect(fs.existsSync(manifest)).toBe(true);
