@@ -1,3 +1,4 @@
 iconkit
 dist/
 node_modules/
+.test-bin/

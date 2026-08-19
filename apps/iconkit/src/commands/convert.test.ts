@@ -1,8 +1,8 @@
 import { describe, test, expect, beforeAll, afterAll } from "bun:test"
 import fs from "node:fs"
 import path from "node:path"
+import { BIN } from "../test-support"
 
-const BIN = path.resolve(import.meta.dir, "../../iconkit")
 const TMP = "/tmp/iconkit-test-convert"
 
 const MINIMAL_PNG = Buffer.from(
