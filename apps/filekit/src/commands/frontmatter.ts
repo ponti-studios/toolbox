@@ -43,43 +43,22 @@ export function frontmatterAggregate(target: string, output?: string): void {
   else console.log(text);
 }
 
-export const schemas: Record<
-  string,
-  { required: string[]; defaults: Frontmatter; allowed: Record<string, string[]> }
-> = {
-  essay: {
-    required: ["title", "description", "type", "status", "visibility", "slug"],
-    defaults: { type: "essay", status: "draft", visibility: "private" },
-    allowed: {
-      type: ["essay"],
-      status: ["draft", "published", "archived"],
-      visibility: ["private", "public"],
-    },
-  },
-  vault: {
-    required: ["title", "type", "status", "visibility", "slug"],
-    defaults: { type: "note", status: "draft", visibility: "private" },
-    allowed: { visibility: ["private", "public"] },
-  },
-  personal: {
-    required: ["title", "uid", "slug", "created", "updated", "type", "status"],
-    defaults: { type: "reference", status: "draft" },
-    allowed: {
-      type: ["identity", "lifestyle", "goals", "relationships", "finance", "reference", "tracking"],
-      status: ["draft", "published", "private", "archived"],
-    },
-  },
-};
-
-export function getSchema(schemaName = "essay"): {
+export type SchemaDefinition = {
   required: string[];
   defaults: Frontmatter;
   allowed: Record<string, string[]>;
-} {
-  return schemas[schemaName] ?? schemas.essay!;
+};
+
+export function getSchema(schemaPath?: string): SchemaDefinition {
+  if (!schemaPath) return { required: [], defaults: {}, allowed: {} };
+  const parsed = JSON.parse(readText(resolve(schemaPath))) as Partial<SchemaDefinition>;
+  return {
+    required: parsed.required ?? [],
+    defaults: parsed.defaults ?? {},
+    allowed: parsed.allowed ?? {},
+  };
 }
-export function validationErrors(data: Frontmatter, schemaName = "essay"): string[] {
-  const schema = getSchema(schemaName);
+export function validationErrors(data: Frontmatter, schema: SchemaDefinition = getSchema()): string[] {
   return schema.required
     .flatMap((key) =>
       data[key] === undefined || (typeof data[key] === "string" && !data[key].trim())
@@ -95,32 +74,50 @@ export function validationErrors(data: Frontmatter, schemaName = "essay"): strin
     );
 }
 
-export function validateFiles(root: string, schemaName = "essay"): void {
+export function validateFiles(root: string, schemaPath?: string): void {
+  const schema = getSchema(schemaPath);
   const errors: string[] = [];
   for (const target of filesFrom(root)) {
-    for (const error of validationErrors(target.data, schemaName))
+    for (const error of validationErrors(target.data, schema))
       errors.push(`${target.file}: ${error}`);
   }
   if (errors.length) throw new Error(errors.join("\n"));
   console.log(`Validated ${filesFrom(root).length} files`);
 }
 
-export function publish(root: string, output: string): void {
+function matchesFilters(data: Frontmatter, filters: string[]): boolean {
+  return filters.every((filter) => {
+    const separator = filter.indexOf("=");
+    if (separator <= 0) throw new Error(`Invalid filter ${JSON.stringify(filter)}; expected field=value`);
+    const field = filter.slice(0, separator);
+    const expected = filter.slice(separator + 1);
+    return String(data[field] ?? "") === expected;
+  });
+}
+
+export function stage(
+  root: string,
+  output: string,
+  filters: string[] = [],
+  nameField?: string,
+): void {
   validateFiles(root);
   mkdirSync(output, { recursive: true });
-  const manifest = join(output, ".filekit-publish-manifest");
+  const manifest = join(output, ".filekit-stage-manifest");
   const previous = existsSync(manifest) ? readText(manifest).split("\n").filter(Boolean) : [];
   for (const file of previous) if (existsSync(file)) unlinkSync(file);
   const staged: string[] = [];
   for (const target of filesFrom(root)) {
-    if (target.data.visibility !== "public" || target.data.status !== "published") continue;
-    const slug = requireString(target.data, "slug");
-    const destination = join(resolve(output), `${slug}.md`);
-    writeText(destination, renderFile({ ...target.data, layout: "essay" }, target.body));
+    if (!matchesFilters(target.data, filters)) continue;
+    const filename = nameField
+      ? `${requireString(target.data, nameField)}.md`
+      : target.file.split(/[\\/]/).pop()!;
+    const destination = join(resolve(output), filename);
+    writeText(destination, renderFile(target.data, target.body));
     staged.push(destination);
   }
   writeText(manifest, staged.join("\n") + "\n");
-  console.log(`Published ${staged.length} essays`);
+  console.log(`Staged ${staged.length} files`);
 }
 
 export function updateField(root: string, field: string, value: string, dryRun: boolean): void {
@@ -133,6 +130,18 @@ export function updateField(root: string, field: string, value: string, dryRun: 
     }
   }
 }
+
+export function setField(file: string, field: string, value: string, dryRun: boolean): void {
+  const target = parseFile(resolve(file));
+  if (!target) throw new Error(`No frontmatter found in ${file}`);
+  const data = { ...target.data, [field]: value };
+  if (dryRun) console.log(`Would set ${field}: ${file}`);
+  else {
+    writeText(target.file, renderFile(data, target.body));
+    console.log(`Set ${field}: ${target.file}`);
+  }
+}
+
 export function removeField(root: string, field: string, dryRun: boolean): void {
   for (const target of filesFrom(root)) {
     if (!(field in target.data)) continue;
@@ -206,5 +215,3 @@ export function slugCommand(
   if (collisions.length && !options.resolve && options.detect)
     throw new Error("slug collisions found");
 }
-
-

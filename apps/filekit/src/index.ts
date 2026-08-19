@@ -3,16 +3,16 @@ import { Command } from "commander";
 import { readdirSync, renameSync } from "node:fs";
 import { join, resolve } from "node:path";
 import { analyze } from "./commands/analyze.js";
-import { classifyEssays } from "./commands/classify.js";
 import { generateCompletions, installCompletions } from "./commands/completions.js";
 import { docxToMd } from "./commands/docx.js";
-import { mergeMarkdown, findDuplicates, convert, xlsxToCsv } from "./commands/files.js";
+import { mergeMarkdown, findDuplicates, convert, moveFile, xlsxToCsv } from "./commands/files.js";
 import {
   frontmatterAggregate,
   frontmatterWalk,
   getSchema,
-  publish,
+  stage,
   removeField,
+  setField,
   slugCommand,
   updateField,
   validateFiles,
@@ -35,18 +35,34 @@ rootOption(frontmatter.command("walk").description("Walk and display frontmatter
 rootOption(frontmatter.command("aggregate").argument("[target]", ".").option("-o, --output <output>"))
   .action((target: string, options: { output?: string }) => frontmatterAggregate(target, options.output));
 rootOption(frontmatter.command("validate"))
-  .option("-s, --schema <schema>", "essay")
+  .option("-s, --schema <schema>", "path to a JSON schema definition")
   .option("-o, --output <output>", "text")
   .action((options: { root: string; schema?: string }) => validateFiles(options.root, options.schema));
-rootOption(frontmatter.command("publish"))
+rootOption(frontmatter.command("stage"))
   .requiredOption("-o, --output <output>")
-  .action((options: { root: string; output: string }) => publish(options.root, options.output));
+  .option("--where <filters...>", "only stage files matching field=value filters")
+  .option("--name-field <field>", "frontmatter field used for staged filenames")
+  .action((options: { root: string; output: string; where?: string[]; nameField?: string }) =>
+    stage(options.root, options.output, options.where, options.nameField));
+rootOption(frontmatter.command("publish").description("Deprecated alias for stage"))
+  .requiredOption("-o, --output <output>")
+  .option("--where <filters...>", "only stage files matching field=value filters")
+  .option("--name-field <field>", "frontmatter field used for staged filenames")
+  .action((options: { root: string; output: string; where?: string[]; nameField?: string }) =>
+    stage(options.root, options.output, options.where, options.nameField));
 rootOption(frontmatter.command("update"))
   .requiredOption("--field <field>")
   .requiredOption("--value <value>")
   .option("--dry-run")
   .action((options: { root: string; field: string; value: string; dryRun?: boolean }) =>
     updateField(options.root, options.field, options.value, Boolean(options.dryRun)));
+frontmatter.command("set")
+  .requiredOption("--file <file>")
+  .requiredOption("--field <field>")
+  .requiredOption("--value <value>")
+  .option("--dry-run")
+  .action((options: { file: string; field: string; value: string; dryRun?: boolean }) =>
+    setField(options.file, options.field, options.value, Boolean(options.dryRun)));
 rootOption(frontmatter.command("remove"))
   .requiredOption("--field <field>")
   .option("--dry-run")
@@ -63,7 +79,7 @@ rootOption(frontmatter.command("slug"))
   .option("-o, --output <output>", "text")
   .action((options: Parameters<typeof slugCommand>[1] & { root: string }) => slugCommand(options.root, options));
 rootOption(frontmatter.command("migrate"))
-  .option("-s, --schema <schema>", "essay")
+  .option("-s, --schema <schema>", "path to a JSON schema definition")
   .option("--write")
   .option("--dry-run")
   .option("--backup")
@@ -94,23 +110,15 @@ rootOption(frontmatter.command("migrate"))
     }
   });
 
-const classify = program.command("classify");
-classify.command("essays")
-  .argument("[dir]", ".")
-  .option("-d, --dir <dir>")
-  .option("--yes").option("--execute").option("--tui").option("--resume")
-  .option("--from-pass <pass>").option("--threshold <threshold>", "0.75")
-  .option("--llm <llm>", "ollama").option("--api-key <key>").option("--base-url <url>")
-  .option("--model <model>").option("--csv <path>").option("--cluster-threshold <threshold>", "0.75")
-  .action((dir: string, options: Parameters<typeof classifyEssays>[1] & { dir?: string }) =>
-    classifyEssays(resolve(options.dir ?? dir), options));
-
 const docx = program.command("docx");
 docx.command("to-md").argument("[paths...]").option("--overwrite").option("--no-media")
   .action((paths: string[], options: { overwrite?: boolean; media?: boolean }) =>
     docxToMd(paths, Boolean(options.overwrite), options.media === false));
 
 const files = program.command("files");
+files.command("move").argument("<source>").argument("<destination>").option("--dry-run")
+  .action((source: string, destination: string, options: { dryRun?: boolean }) =>
+    moveFile(source, destination, Boolean(options.dryRun)));
 files.command("merge-markdown").argument("<output>").argument("<inputFiles...>").option("--toc").option("--with-filenames")
   .action((output: string, inputs: string[], options: { toc?: boolean; withFilenames?: boolean }) =>
     mergeMarkdown(output, inputs, Boolean(options.toc), Boolean(options.withFilenames)));

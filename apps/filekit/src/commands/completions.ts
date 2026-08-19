@@ -17,10 +17,10 @@ export function completionPath(shell: string): string {
 }
 export function generateCompletions(shell: string): void {
   const commands =
-    "frontmatter walk aggregate validate migrate publish remove slug update completions generate install classify essays docx to-md files merge-markdown find-duplicates bulk-rename convert xlsx-to-csv analyze";
+    "frontmatter walk aggregate validate migrate stage publish remove slug update set completions generate install files move merge-markdown find-duplicates bulk-rename convert xlsx-to-csv analyze";
   if (shell === "zsh")
     console.log(
-      "#compdef filekit\n_arguments '*: :(frontmatter classify docx files analyze completions)'",
+      "#compdef filekit\n_arguments '*: :(frontmatter docx files analyze completions)'",
     );
   else if (shell === "fish") console.log("complete -c filekit -f -a '" + commands + "'");
   else console.log("# filekit completions for " + shell + "\n" + commands);
@@ -36,5 +36,3 @@ export function installCompletions(shell: string, options: { dryRun?: boolean; f
   writeText(path, "# filekit completions\n");
   console.log("installed completions to " + path);
 }
-
-

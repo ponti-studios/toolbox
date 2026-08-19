@@ -1,6 +1,6 @@
 import fg from "fast-glob";
 import { createHash } from "node:crypto";
-import { readFileSync, statSync } from "node:fs";
+import { existsSync, mkdirSync, readFileSync, renameSync, statSync } from "node:fs";
 import { basename, dirname, extname, join, relative, resolve } from "node:path";
 import { parse as parseCsv } from "csv-parse/sync";
 import { stringify as stringifyCsv } from "csv-stringify/sync";
@@ -24,6 +24,20 @@ export function mergeMarkdown(output: string, inputs: string[], toc: boolean, fi
       : ""
   }${sections.map(({ file, body }) => `${filenames ? `## ${basename(file)}\n\n` : ""}${body.trim()}`).join("\n\n")}\n`;
   writeText(output, text);
+}
+
+export function moveFile(source: string, destination: string, dryRun: boolean): void {
+  const from = resolve(source);
+  const to = resolve(destination);
+  if (!existsSync(from)) throw new Error(`Source does not exist: ${from}`);
+  if (existsSync(to)) throw new Error(`Destination already exists: ${to}`);
+  if (dryRun) {
+    console.log(`Would move ${from} -> ${to}`);
+    return;
+  }
+  mkdirSync(dirname(to), { recursive: true });
+  renameSync(from, to);
+  console.log(`Moved ${from} -> ${to}`);
 }
 export function findDuplicates(
   directory: string,
