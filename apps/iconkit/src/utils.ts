@@ -48,10 +48,18 @@ export function checkCmd(cmd: string, hint: string): void {
   }
 }
 
+export function isRegularFile(filePath: string): boolean {
+  try {
+    return fs.statSync(filePath).isFile()
+  } catch {
+    return false
+  }
+}
+
 export function resolveFiles(args: string[]): string[] {
   const files: string[] = []
   for (const arg of args) {
-    if (fs.existsSync(arg) && fs.statSync(arg).isFile()) {
+    if (isRegularFile(arg)) {
       files.push(arg)
     } else {
       console.warn(`Warning: no match for '${arg}'`)

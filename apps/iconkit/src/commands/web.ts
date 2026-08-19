@@ -1,13 +1,13 @@
 import path from "node:path"
 import fs from "node:fs"
-import { run, checkCmd, ensureDir } from "../utils"
+import { run, checkCmd, ensureDir, isRegularFile } from "../utils"
 
 interface WebOptions {
   outputDir?: string
 }
 
 export function cmdWeb(source: string, opts: WebOptions): void {
-  if (!fs.existsSync(source) || !fs.statSync(source).isFile()) {
+  if (!isRegularFile(source)) {
     console.error(`Error: file not found: ${source}`)
     process.exit(1)
   }
@@ -46,7 +46,12 @@ export function cmdWeb(source: string, opts: WebOptions): void {
   for (const s of [57, 60, 72, 76, 114, 120, 144, 152, 180]) webRun(s, `apple-touch-icon-${s}x${s}.png`)
   const appleSource = path.join(outdir, "apple-touch-icon-180x180.png")
   if (fs.existsSync(appleSource)) {
-    fs.copyFileSync(appleSource, path.join(outdir, "apple-touch-icon.png"))
+    try {
+      fs.copyFileSync(appleSource, path.join(outdir, "apple-touch-icon.png"))
+    } catch {
+      console.warn("Warning: failed to generate apple-touch-icon.png")
+      failed++
+    }
   }
 
   for (const s of [36, 48, 72, 96, 144, 192]) webRun(s, `android-icon-${s}x${s}.png`)
