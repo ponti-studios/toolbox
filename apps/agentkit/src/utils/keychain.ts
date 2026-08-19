@@ -23,11 +23,14 @@ export function readKeychainPassword(service: string = KEYCHAIN_SERVICE): string
 export function readKeychainAccount(service: string = KEYCHAIN_SERVICE): string | null {
   if (process.platform !== "darwin") return null;
   try {
-    const result = execSync(`security find-generic-password -s ${JSON.stringify(service)} -g 2>&1`, {
-      encoding: "utf-8",
-      timeout: 5000,
-      stdio: ["pipe", "pipe", "pipe"],
-    });
+    const result = execSync(
+      `security find-generic-password -s ${JSON.stringify(service)} -g 2>&1`,
+      {
+        encoding: "utf-8",
+        timeout: 5000,
+        stdio: ["pipe", "pipe", "pipe"],
+      },
+    );
     const match = result.match(/"acct"<blob>="([^"\n]*)"/);
     return match ? match[1] : null;
   } catch {

@@ -5,8 +5,6 @@ import * as path from "node:path";
 import * as os from "node:os";
 import type { AuthResult } from "../../types.js";
 
-const DEFAULT_CODEX_AUTH_FILE = path.join(os.homedir(), ".codex", "auth.json");
-
 // ─── Auth file shape ────────────────────────────────────────────────
 interface CodexAuthFile {
   OPENAI_API_KEY?: string;

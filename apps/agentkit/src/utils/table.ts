@@ -44,7 +44,10 @@ export function renderTable(columns: Column[], rows: Row[]): string {
   const top = "┌" + widths.map((w) => "─".repeat(w + 2)).join("┬") + "┐";
 
   // Header row
-  const header = "│" + columns.map((col, i) => ` ${pad(col.label, widths[i], col.align ?? "left")} `).join("│") + "│";
+  const header =
+    "│" +
+    columns.map((col, i) => ` ${pad(col.label, widths[i], col.align ?? "left")} `).join("│") +
+    "│";
 
   // Separator
   const sep = "├" + widths.map((w) => "─".repeat(w + 2)).join("┼") + "┤";

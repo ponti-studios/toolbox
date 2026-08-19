@@ -43,14 +43,14 @@ iconkit optimize -s 1200x630 -q 80 -f both -o ./web ~/assets/*.png
 
 **Options:**
 
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-s, --size <WxH>` | Target dimensions | `500x500` |
-| `-q, --quality <N>` | WebP/AVIF quality | `85` |
-| `-o, --output-dir <DIR>` | Output directory | same dir as input |
-| `-k, --keep-png` | Keep resized PNG | `false` |
-| `-f, --format <fmt>` | `webp`, `avif`, `both`, `png` | `webp` |
-| `-d, --dry-run` | Preview without writing | `false` |
+| Option                   | Description                   | Default           |
+| ------------------------ | ----------------------------- | ----------------- |
+| `-s, --size <WxH>`       | Target dimensions             | `500x500`         |
+| `-q, --quality <N>`      | WebP/AVIF quality             | `85`              |
+| `-o, --output-dir <DIR>` | Output directory              | same dir as input |
+| `-k, --keep-png`         | Keep resized PNG              | `false`           |
+| `-f, --format <fmt>`     | `webp`, `avif`, `both`, `png` | `webp`            |
+| `-d, --dry-run`          | Preview without writing       | `false`           |
 
 ---
 

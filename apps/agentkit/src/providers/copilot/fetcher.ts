@@ -66,7 +66,10 @@ function getPercentRemaining(snapshot?: CopilotQuotaSnapshot): number | null {
 }
 
 // ─── Main fetch ─────────────────────────────────────────────────────
-export async function fetchCopilotQuota(): Promise<{ usage: CopilotUsage | null; error: ProviderError | null }> {
+export async function fetchCopilotQuota(): Promise<{
+  usage: CopilotUsage | null;
+  error: ProviderError | null;
+}> {
   const auth = await discoverCopilotAuth();
   if (!auth.token) {
     return {

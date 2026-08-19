@@ -15,6 +15,7 @@ debug/
 release/
 .cargo/
 Cargo.lock
+node_modules/
 
 # Shared build outputs and local state
 .build/

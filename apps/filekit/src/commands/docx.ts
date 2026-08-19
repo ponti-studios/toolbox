@@ -24,4 +24,3 @@ export function docxToMd(paths: string[], overwrite: boolean, noMedia: boolean):
     console.log(`Converted: ${file} -> ${destination}`);
   }
 }
-

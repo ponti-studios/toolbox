@@ -1,0 +1,8 @@
+packages:
+  - "apps/*"
+allowBuilds:
+  esbuild: true
+minimumReleaseAgeExclude:
+  - "@tanstack/ai-openai@0.19.1"
+  - "@tanstack/ai@0.45.1"
+  - "@tanstack/openai-base@0.9.13"

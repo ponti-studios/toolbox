@@ -1,0 +1,12 @@
+{
+  "name": "@ponti-studios/toolbox",
+  "private": true,
+  "scripts": {
+    "lint": "oxlint --fix",
+    "format": "oxfmt --write"
+  },
+  "dependencies": {
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0"
+  }
+}

@@ -19,13 +19,14 @@ export function generateCompletions(shell: string): void {
   const commands =
     "frontmatter walk aggregate validate migrate stage publish remove slug update set completions generate install files move merge-markdown find-duplicates bulk-rename convert xlsx-to-csv analyze";
   if (shell === "zsh")
-    console.log(
-      "#compdef filekit\n_arguments '*: :(frontmatter docx files analyze completions)'",
-    );
+    console.log("#compdef filekit\n_arguments '*: :(frontmatter docx files analyze completions)'");
   else if (shell === "fish") console.log("complete -c filekit -f -a '" + commands + "'");
   else console.log("# filekit completions for " + shell + "\n" + commands);
 }
-export function installCompletions(shell: string, options: { dryRun?: boolean; force?: boolean }): void {
+export function installCompletions(
+  shell: string,
+  options: { dryRun?: boolean; force?: boolean },
+): void {
   const path = completionPath(shell);
   if (options.dryRun) {
     console.log(path);

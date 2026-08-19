@@ -7,10 +7,7 @@ name = "photokit"
 version = "0.1.0"
 description = "CLI tool for analyzing photo EXIF metadata"
 requires-python = ">=3.9"
-dependencies = [
-    "exifread>=2.3.2",
-    "click>=8.1.0",
-]
+dependencies = ["exifread>=2.3.2", "click>=8.1.0"]
 
 [project.scripts]
 photokit = "photokit.cli:cli"

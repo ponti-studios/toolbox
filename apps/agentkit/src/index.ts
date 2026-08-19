@@ -11,10 +11,7 @@ const VALID_PROVIDERS: ProviderId[] = ["claude", "codex", "copilot", "openrouter
 
 const program = new Command();
 
-program
-  .name("agentkit")
-  .description("Unified AI agent usage & cost CLI")
-  .version("0.1.0");
+program.name("agentkit").description("Unified AI agent usage & cost CLI").version("0.1.0");
 
 // ─── scan ───────────────────────────────────────────────────────────
 program
@@ -35,11 +32,16 @@ program
 program
   .command("quotas")
   .description("Show rate-limit quotas across all AI providers")
-  .option("-p, --provider <providers>", "Comma-separated providers (claude,codex,copilot,openrouter,opencode)")
+  .option(
+    "-p, --provider <providers>",
+    "Comma-separated providers (claude,codex,copilot,openrouter,opencode)",
+  )
   .option("--json", "Output as JSON")
   .action(async (opts) => {
     const providers = opts.provider
-      ? (opts.provider.split(",").filter((p: string) => VALID_PROVIDERS.includes(p as ProviderId)) as ProviderId[])
+      ? (opts.provider
+          .split(",")
+          .filter((p: string) => VALID_PROVIDERS.includes(p as ProviderId)) as ProviderId[])
       : undefined;
 
     await runQuotas({ providers, json: opts.json });
@@ -64,7 +66,10 @@ program
 program
   .command("cost")
   .description("Cost analysis per provider and model")
-  .option("-p, --provider <provider>", "Filter to one provider (claude, codex, copilot, openrouter, opencode)")
+  .option(
+    "-p, --provider <provider>",
+    "Filter to one provider (claude, codex, copilot, openrouter, opencode)",
+  )
   .option("-f, --file <path>", "OpenRouter activity CSV file")
   .option("-d, --days <number>", "Only include last N days", parseInt)
   .option("--json", "Output as JSON")

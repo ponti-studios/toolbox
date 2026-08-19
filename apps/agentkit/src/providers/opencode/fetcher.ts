@@ -31,7 +31,9 @@ function extractSolidHydrationData(html: string): SolidHydrationData {
   const script = scriptMatch[0];
 
   // Billing data
-  const billingMatch = script.match(/customerID:"cus_[^"]+",paymentMethodID:[^}]+paymentMethodLast4:"\d+",balance:\d+/);
+  const billingMatch = script.match(
+    /customerID:"cus_[^"]+",paymentMethodID:[^}]+paymentMethodLast4:"\d+",balance:\d+/,
+  );
   if (billingMatch) {
     const startIdx = script.lastIndexOf("{", script.indexOf(billingMatch[0]));
     const endIdx = script.indexOf("}", script.indexOf(billingMatch[0]) + billingMatch[0].length);
@@ -41,7 +43,9 @@ function extractSolidHydrationData(html: string): SolidHydrationData {
   }
 
   // Usage data
-  const usageMatch = script.match(/rollingUsage:\$R\[\d+\]=\{status:"[^"]+",resetInSec:\d+,usagePercent:\d+\}/);
+  const usageMatch = script.match(
+    /rollingUsage:\$R\[\d+\]=\{status:"[^"]+",resetInSec:\d+,usagePercent:\d+\}/,
+  );
   if (usageMatch) {
     const objStart = script.substring(0, script.indexOf(usageMatch[0])).lastIndexOf("{");
     const objEnd = script.indexOf("}", script.indexOf(usageMatch[0]) + usageMatch[0].length);
@@ -91,7 +95,11 @@ function parseUsageData(str: string): SolidHydrationData["usage"] {
   return usage;
 }
 
-function parseUsageQuota(str: string): { status: string; resetInSec: number; usagePercent: number } {
+function parseUsageQuota(str: string): {
+  status: string;
+  resetInSec: number;
+  usagePercent: number;
+} {
   const status = str.match(/status:"([^"]+)"/)?.[1] || "unknown";
   const resetInSec = Number.parseInt(str.match(/resetInSec:(\d+)/)?.[1] || "0", 10);
   const usagePercent = Number.parseInt(str.match(/usagePercent:(\d+)/)?.[1] || "0", 10);
@@ -116,8 +124,7 @@ export async function fetchOpenCodeQuota(): Promise<{
       usage: null,
       error: {
         type: "not_configured",
-        message:
-          "OpenCode not configured. Set OPENCODE_WORKSPACE_ID and OPENCODE_AUTH_COOKIE.",
+        message: "OpenCode not configured. Set OPENCODE_WORKSPACE_ID and OPENCODE_AUTH_COOKIE.",
       },
     };
   }
@@ -175,8 +182,12 @@ export async function fetchOpenCodeQuota(): Promise<{
 
   // Determine reset time (furthest out)
   let maxResetSec = 0;
-  if (hydration.usage?.monthlyUsage?.resetInSec) maxResetSec = hydration.usage.monthlyUsage.resetInSec;
-  if (hydration.usage?.weeklyUsage?.resetInSec && hydration.usage.weeklyUsage.resetInSec > maxResetSec)
+  if (hydration.usage?.monthlyUsage?.resetInSec)
+    maxResetSec = hydration.usage.monthlyUsage.resetInSec;
+  if (
+    hydration.usage?.weeklyUsage?.resetInSec &&
+    hydration.usage.weeklyUsage.resetInSec > maxResetSec
+  )
     maxResetSec = hydration.usage.weeklyUsage.resetInSec;
 
   const resetsAt = maxResetSec > 0 ? new Date(Date.now() + maxResetSec * 1000).toISOString() : null;
@@ -196,7 +207,7 @@ export async function fetchOpenCodeQuota(): Promise<{
 export function opencodeUsageToQuotaSnapshot(usage: OpencodeUsage): QuotaSnapshot {
   const windows: QuotaWindow[] = [];
 
-  if (usage.primary.used > 0 || true) {
+  if (usage.primary.used > 0) {
     windows.push({
       label: usage.primary.label,
       usedPercent: usage.primary.used,
