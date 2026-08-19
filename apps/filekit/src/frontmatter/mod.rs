@@ -9,6 +9,7 @@ use clap::Subcommand;
 pub mod aggregate;
 pub mod migrate;
 pub mod publish;
+pub mod remove;
 pub mod slug;
 pub mod update;
 pub mod validate;
@@ -27,6 +28,7 @@ pub enum FrontmatterCmd {
     Validate(validate::ValidateOpts),
     Migrate(migrate::MigrateOpts),
     Publish(publish::PublishOpts),
+    Remove(remove::RemoveOpts),
     Slug(slug::SlugOpts),
     Update(update::UpdateOpts),
 }
@@ -39,6 +41,7 @@ pub fn run(cmd: FrontmatterCmd) -> anyhow::Result<()> {
         Validate(opts) => validate::run(opts),
         Migrate(opts) => migrate::run(opts),
         Publish(opts) => publish::run(opts),
+        Remove(opts) => remove::run(opts),
         Slug(opts) => slug::run(opts),
         Update(opts) => update::run(opts),
     }

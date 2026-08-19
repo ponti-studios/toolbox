@@ -1,5 +1,5 @@
 class Filekit < Formula
-  desc "Utility CLI for frontmatter, calendar, and local tooling workflows"
+  desc "Utility CLI for frontmatter and local tooling workflows"
   homepage "https://github.com/ponti-studios/toolbox"
   license "MIT"
 

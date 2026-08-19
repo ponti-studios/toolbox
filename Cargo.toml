@@ -22,4 +22,3 @@ reqwest = { version = "0.12", features = ["json"] }
 thiserror = "2"
 files = { path = "packages/files" }
 walkdir = "2"
-refinery = { version = "0.9", features = ["rusqlite", "rusqlite-bundled"] }

@@ -2,7 +2,6 @@ use anyhow::Result;
 use clap::{CommandFactory, Parser, Subcommand};
 
 mod analyze;
-mod cal;
 mod classify;
 mod completions;
 mod docx;
@@ -22,10 +21,6 @@ enum Commands {
     Frontmatter {
         #[command(subcommand)]
         cmd: frontmatter::FrontmatterCmd,
-    },
-    Cal {
-        #[command(subcommand)]
-        cmd: cal::CalCmd,
     },
     Classify {
         #[command(subcommand)]
@@ -51,14 +46,6 @@ fn main() -> Result<()> {
 
     match cli.command {
         Commands::Frontmatter { cmd } => frontmatter::run(cmd)?,
-        Commands::Cal { cmd } => match cmd {
-            cal::CalCmd::Import(opts) => cal::run_import(opts)?,
-            cal::CalCmd::Expand(opts) => cal::run_expand(opts)?,
-            cal::CalCmd::Query(opts) => cal::run_query(opts)?,
-            cal::CalCmd::Inspect(opts) => cal::run_inspect(opts)?,
-            cal::CalCmd::Stats(opts) => cal::run_stats(opts)?,
-            cal::CalCmd::Doctor(opts) => cal::run_doctor(opts)?,
-        },
         Commands::Classify { cmd } => match cmd {
             classify::ClassifyCmd::Essays(opts) => classify::run_essays(opts)?,
         },
