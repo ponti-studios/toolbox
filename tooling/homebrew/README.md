@@ -14,6 +14,7 @@ This directory holds formula templates for toolbox binaries from https://github.
 
 - Archive name: `<cli>-<target>.tar.gz`
 - Supported targets: `aarch64-apple-darwin`, `x86_64-apple-darwin`
+- Filekit CI also publishes `x86_64-unknown-linux-gnu` for Linux automation
 - Release tag: `<cli>-v<version>` (e.g. `filekit-v0.1.0`)
 
 ## Notes

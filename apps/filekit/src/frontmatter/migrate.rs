@@ -3,9 +3,9 @@ use clap::Parser;
 use std::path::PathBuf;
 
 use super::{
-    build_frontmatter_content, collect_markdown_files, default_schema, migrate_frontmatter,
-    parse_frontmatter, parse_migration_strategy, validate_frontmatter, FileMigrationResult,
-    MigrationReport, MigrationSummary,
+    build_frontmatter_content, collect_markdown_files_excluding, default_schema,
+    migrate_frontmatter, parse_frontmatter, parse_migration_strategy, validate_frontmatter,
+    FileMigrationResult, MigrationReport, MigrationSummary,
 };
 
 #[derive(Parser)]
@@ -26,12 +26,15 @@ pub struct MigrateOpts {
     pub backup: bool,
     #[arg(short, long, default_value = "text")]
     pub output: String,
+    /// Directory names to exclude. Directories beginning with `_` are always excluded.
+    #[arg(long = "exclude-dir")]
+    pub exclude_dirs: Vec<String>,
 }
 
 pub fn run(opts: MigrateOpts) -> Result<()> {
     let schema = default_schema(opts.schema.as_deref())?;
     let strategy = parse_migration_strategy(&opts.strategy)?;
-    let files = collect_markdown_files(&opts.root);
+    let files = collect_markdown_files_excluding(&opts.root, &opts.exclude_dirs);
     let should_write = opts.write && !opts.dry_run;
     let mut results = Vec::new();
 
