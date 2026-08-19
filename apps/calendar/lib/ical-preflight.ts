@@ -44,24 +44,41 @@ function validDateValue(line: string): boolean {
   const value = propertyValue(line);
   const isRealDate = (year: number, month: number, day: number): boolean => {
     const date = new Date(Date.UTC(year, month - 1, day));
-    return date.getUTCFullYear() === year && date.getUTCMonth() === month - 1 && date.getUTCDate() === day;
+    return (
+      date.getUTCFullYear() === year &&
+      date.getUTCMonth() === month - 1 &&
+      date.getUTCDate() === day
+    );
   };
-  if (/^\d{8}$/.test(value)) return isRealDate(Number(value.slice(0, 4)), Number(value.slice(4, 6)), Number(value.slice(6)));
+  if (/^\d{8}$/.test(value))
+    return isRealDate(Number(value.slice(0, 4)), Number(value.slice(4, 6)), Number(value.slice(6)));
   if (/^\d{8}T\d{6}Z?$/.test(value)) {
     const digits = value.replace(/Z$/, "");
-    const validClock = Number(digits.slice(9, 11)) < 24 && Number(digits.slice(11, 13)) < 60 && Number(digits.slice(13, 15)) < 60;
-    return validClock && isRealDate(Number(digits.slice(0, 4)), Number(digits.slice(4, 6)), Number(digits.slice(6, 8)));
+    const validClock =
+      Number(digits.slice(9, 11)) < 24 &&
+      Number(digits.slice(11, 13)) < 60 &&
+      Number(digits.slice(13, 15)) < 60;
+    return (
+      validClock &&
+      isRealDate(Number(digits.slice(0, 4)), Number(digits.slice(4, 6)), Number(digits.slice(6, 8)))
+    );
   }
   return false;
 }
 
 function validRecurrence(line: string): boolean {
   const value = propertyValue(line);
-  const frequency = value.match(/(?:^|;)FREQ=(YEARLY|MONTHLY|WEEKLY|DAILY|HOURLY|MINUTELY|SECONDLY)(?:;|$)/i);
+  const frequency = value.match(
+    /(?:^|;)FREQ=(YEARLY|MONTHLY|WEEKLY|DAILY|HOURLY|MINUTELY|SECONDLY)(?:;|$)/i,
+  );
   return Boolean(frequency);
 }
 
-export function preflightIcal(input: string, file = "calendar.ics", expected?: { eventCount?: number; recurrenceCount?: number }): IcalPreflightReport {
+export function preflightIcal(
+  input: string,
+  file = "calendar.ics",
+  expected?: { eventCount?: number; recurrenceCount?: number },
+): IcalPreflightReport {
   const errors: string[] = [];
   const warnings: string[] = [];
   const lines = unfold(input).filter((line) => line.length > 0);
@@ -85,10 +102,14 @@ export function preflightIcal(input: string, file = "calendar.ics", expected?: {
   }
   if (current) errors.push("VEVENT block is not closed.");
 
-  const uids = events.map((event) => propertyValue(event.find((line) => propertyName(line) === "UID") ?? ""));
+  const uids = events.map((event) =>
+    propertyValue(event.find((line) => propertyName(line) === "UID") ?? ""),
+  );
   const counts = new Map<string, number>();
   for (const uid of uids) counts.set(uid, (counts.get(uid) ?? 0) + 1);
-  const duplicateUids = [...counts.entries()].filter(([, count]) => count > 1).map(([uid]) => uid || "<missing>");
+  const duplicateUids = [...counts.entries()]
+    .filter(([, count]) => count > 1)
+    .map(([uid]) => uid || "<missing>");
   if (duplicateUids.length > 0) errors.push(`Duplicate UID values: ${duplicateUids.join(", ")}`);
 
   let recurrenceCount = 0;
@@ -101,7 +122,8 @@ export function preflightIcal(input: string, file = "calendar.ics", expected?: {
     const uid = uids[index];
     if (!uid) errors.push(`VEVENT ${index + 1} is missing UID.`);
     const start = event.find((line) => propertyName(line) === "DTSTART");
-    if (!start || !validDateValue(start)) errors.push(`VEVENT ${index + 1} has an invalid or missing DTSTART.`);
+    if (!start || !validDateValue(start))
+      errors.push(`VEVENT ${index + 1} has an invalid or missing DTSTART.`);
     const end = event.find((line) => propertyName(line) === "DTEND");
     if (end && !validDateValue(end)) errors.push(`VEVENT ${index + 1} has an invalid DTEND.`);
     const recurrence = event.find((line) => propertyName(line) === "RRULE");
@@ -120,7 +142,9 @@ export function preflightIcal(input: string, file = "calendar.ics", expected?: {
     errors.push(`Expected ${expected.eventCount} VEVENT records but found ${events.length}.`);
   }
   if (expected?.recurrenceCount !== undefined && recurrenceCount !== expected.recurrenceCount) {
-    errors.push(`Expected ${expected.recurrenceCount} recurring events but found ${recurrenceCount}.`);
+    errors.push(
+      `Expected ${expected.recurrenceCount} recurring events but found ${recurrenceCount}.`,
+    );
   }
 
   return {
@@ -138,10 +162,15 @@ export function preflightIcal(input: string, file = "calendar.ics", expected?: {
     errors,
     warnings,
     ...(expected?.eventCount === undefined ? {} : { expectedEventCount: expected.eventCount }),
-    ...(expected?.recurrenceCount === undefined ? {} : { expectedRecurrenceCount: expected.recurrenceCount }),
+    ...(expected?.recurrenceCount === undefined
+      ? {}
+      : { expectedRecurrenceCount: expected.recurrenceCount }),
   };
 }
 
-export async function preflightIcalFile(file: string, expected?: { eventCount?: number; recurrenceCount?: number }): Promise<IcalPreflightReport> {
+export async function preflightIcalFile(
+  file: string,
+  expected?: { eventCount?: number; recurrenceCount?: number },
+): Promise<IcalPreflightReport> {
   return preflightIcal(await readFile(file, "utf8"), file, expected);
 }

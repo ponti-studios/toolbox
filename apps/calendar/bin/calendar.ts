@@ -1349,24 +1349,37 @@ function workflowCalendar(args) {
   const ids = args.arrays["calendar-id"] || [];
   const names = args.positional;
   if (ids.length > 1 || names.length > 1 || (ids.length && names.length)) {
-    return { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: "Specify one calendar by name or --calendar-id" } };
+    return {
+      error: {
+        code: ERROR_CODES.INVALID_ARGUMENT,
+        message: "Specify one calendar by name or --calendar-id",
+      },
+    };
   }
   const calendarId = ids[0] || config.getDefaultCalendarId() || null;
   const calendarName = names[0] || null;
   if (!calendarId && !calendarName) {
-    return { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "Calendar name or --calendar-id is required (or set a default)" } };
+    return {
+      error: {
+        code: ERROR_CODES.MISSING_REQUIRED,
+        message: "Calendar name or --calendar-id is required (or set a default)",
+      },
+    };
   }
   return { calendarId, calendarName };
 }
 
 function workflowRange(args) {
-  if (args.flags.from && !isValidDatetime(args.flags.from)) return { error: `Invalid --from datetime: ${args.flags.from}` };
-  if (args.flags.to && !isValidDatetime(args.flags.to)) return { error: `Invalid --to datetime: ${args.flags.to}` };
+  if (args.flags.from && !isValidDatetime(args.flags.from))
+    return { error: `Invalid --from datetime: ${args.flags.from}` };
+  if (args.flags.to && !isValidDatetime(args.flags.to))
+    return { error: `Invalid --to datetime: ${args.flags.to}` };
   return { from: args.flags.from || "1900-01-01", to: args.flags.to || "2100-01-01" };
 }
 
 function writeManifest(args, manifest) {
-  const filename = args.flags.manifest || path.join(process.cwd(), `calendar-cleanup-${Date.now()}.json`);
+  const filename =
+    args.flags.manifest || path.join(process.cwd(), `calendar-cleanup-${Date.now()}.json`);
   fs.writeFileSync(filename, JSON.stringify(manifest, null, 2) + "\n", "utf8");
   return filename;
 }
@@ -1377,7 +1390,9 @@ async function scanWorkflow(args) {
   const range = workflowRange(args);
   if (range.error) return { error: { code: ERROR_CODES.INVALID_DATETIME, message: range.error } };
   const result = await runScript("scan", { ...target, ...range });
-  return result.success ? { target, range, events: result.data.events || [] } : { error: result.error, exitCode: result.exitCode };
+  return result.success
+    ? { target, range, events: result.data.events || [] }
+    : { error: result.error, exitCode: result.exitCode };
 }
 
 function workflowError(args, result) {
@@ -1391,14 +1406,38 @@ async function handleAudit(args) {
   const report = cleanup.auditEvents(scanned.events);
   const removable = report.exactDuplicates.flatMap((group) => group.slice(1));
   if (!args.flags.apply) {
-    output.output({ ...report, removableExactDuplicates: removable, preview: true }, { json: args.flags.json });
+    output.output(
+      { ...report, removableExactDuplicates: removable, preview: true },
+      { json: args.flags.json },
+    );
     return;
   }
-  if (!args.flags.yes) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "--apply requires --yes" } });
-  const mutation = await runScript("mutate", { ...scanned.target, changes: removable.map((event) => ({ action: "delete", id: event.id, uid: event.uid, expectedSummary: event.summary })) });
+  if (!args.flags.yes)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "--apply requires --yes" },
+    });
+  const mutation = await runScript("mutate", {
+    ...scanned.target,
+    changes: removable.map((event) => ({
+      action: "delete",
+      id: event.id,
+      uid: event.uid,
+      expectedSummary: event.summary,
+    })),
+  });
   if (!mutation.success) return workflowError(args, mutation);
-  const manifestPath = writeManifest(args, { version: 1, kind: "audit", createdAt: new Date().toISOString(), calendar: scanned.target, changes: mutation.data.changes || [], deleted: removable });
-  output.output({ ...report, applied: mutation.data.changes || [], manifestPath }, { json: args.flags.json });
+  const manifestPath = writeManifest(args, {
+    version: 1,
+    kind: "audit",
+    createdAt: new Date().toISOString(),
+    calendar: scanned.target,
+    changes: mutation.data.changes || [],
+    deleted: removable,
+  });
+  output.output(
+    { ...report, applied: mutation.data.changes || [], manifestPath },
+    { json: args.flags.json },
+  );
 }
 
 async function handleNormalize(args) {
@@ -1406,83 +1445,235 @@ async function handleNormalize(args) {
   if (scanned.error) return workflowError(args, scanned);
   let policy = {};
   if (args.flags.policy) {
-    try { policy = JSON.parse(fs.readFileSync(args.flags.policy, "utf8")); } catch (error) { return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Invalid policy file: ${error.message}` } }); }
+    try {
+      policy = JSON.parse(fs.readFileSync(args.flags.policy, "utf8"));
+    } catch (error) {
+      return workflowError(args, {
+        error: {
+          code: ERROR_CODES.INVALID_ARGUMENT,
+          message: `Invalid policy file: ${error.message}`,
+        },
+      });
+    }
   }
   let proposals = cleanup.normalizeEvents(scanned.events, policy);
   if (args.flags.ollama) {
-    try { proposals = await cleanup.classifyWithOllama(proposals, args.flags["ollama-model"] || "qwen3.5:4b", policy); } catch (error) { return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } }); }
+    try {
+      proposals = await cleanup.classifyWithOllama(
+        proposals,
+        args.flags["ollama-model"] || "qwen3.5:4b",
+        policy,
+      );
+    } catch (error) {
+      return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } });
+    }
   }
   const changes = proposals.filter((item) => item.changed && item.status === "proposed");
   const review = proposals.filter((item) => item.status === "review");
   if (!args.flags.apply) {
-    output.output({ preview: true, changes, review, excluded: proposals.filter((item) => item.status === "excluded") }, { json: args.flags.json });
+    output.output(
+      {
+        preview: true,
+        changes,
+        review,
+        excluded: proposals.filter((item) => item.status === "excluded"),
+      },
+      { json: args.flags.json },
+    );
     return;
   }
-  if (!args.flags.yes) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "--apply requires --yes" } });
-  const mutation = await runScript("mutate", { ...scanned.target, changes: changes.map((item) => ({ action: "rename", id: item.id, uid: item.uid, expectedSummary: item.summary, summary: item.title, series: item.isRecurring })) });
+  if (!args.flags.yes)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "--apply requires --yes" },
+    });
+  const mutation = await runScript("mutate", {
+    ...scanned.target,
+    changes: changes.map((item) => ({
+      action: "rename",
+      id: item.id,
+      uid: item.uid,
+      expectedSummary: item.summary,
+      summary: item.title,
+      series: item.isRecurring,
+    })),
+  });
   if (!mutation.success) return workflowError(args, mutation);
-  const manifestPath = writeManifest(args, { version: 1, kind: "normalize", createdAt: new Date().toISOString(), calendar: scanned.target, changes: mutation.data.changes || [] });
-  output.output({ applied: mutation.data.changes || [], review, manifestPath }, { json: args.flags.json });
+  const manifestPath = writeManifest(args, {
+    version: 1,
+    kind: "normalize",
+    createdAt: new Date().toISOString(),
+    calendar: scanned.target,
+    changes: mutation.data.changes || [],
+  });
+  output.output(
+    { applied: mutation.data.changes || [], review, manifestPath },
+    { json: args.flags.json },
+  );
 }
 
 async function handlePatterns(args) {
   const scanned = await scanWorkflow(args);
   if (scanned.error) return workflowError(args, scanned);
-  if (!args.flags.ollama) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "patterns requires --ollama" } });
+  if (!args.flags.ollama)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "patterns requires --ollama" },
+    });
   let policy = { taxonomy: [], instructions: "" };
   if (args.flags.policy) {
-    try { policy = JSON.parse(fs.readFileSync(args.flags.policy, "utf8")); } catch (error) { return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Invalid policy file: ${error.message}` } }); }
+    try {
+      policy = JSON.parse(fs.readFileSync(args.flags.policy, "utf8"));
+    } catch (error) {
+      return workflowError(args, {
+        error: {
+          code: ERROR_CODES.INVALID_ARGUMENT,
+          message: `Invalid policy file: ${error.message}`,
+        },
+      });
+    }
   }
-  if (args.flags.instructions) policy.instructions = fs.existsSync(args.flags.instructions) ? fs.readFileSync(args.flags.instructions, "utf8") : args.flags.instructions;
-  if (!Array.isArray(policy.taxonomy) || !policy.taxonomy.length) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "patterns requires a policy with a non-empty taxonomy" } });
+  if (args.flags.instructions)
+    policy.instructions = fs.existsSync(args.flags.instructions)
+      ? fs.readFileSync(args.flags.instructions, "utf8")
+      : args.flags.instructions;
+  if (!Array.isArray(policy.taxonomy) || !policy.taxonomy.length)
+    return workflowError(args, {
+      error: {
+        code: ERROR_CODES.MISSING_REQUIRED,
+        message: "patterns requires a policy with a non-empty taxonomy",
+      },
+    });
   try {
     const maxTitles = args.flags["max-titles"] ? Number(args.flags["max-titles"]) : 250;
-    if (!Number.isInteger(maxTitles) || maxTitles < 1) return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: "--max-titles must be a positive integer" } });
-    const unresolved = cleanup.normalizeEvents(scanned.events, policy).filter((item) => item.status === "review");
-    const result = await cleanup.discoverPatternsWithOllama(unresolved, policy.instructions, args.flags["ollama-model"] || "qwen3.5:4b", policy.taxonomy, maxTitles);
+    if (!Number.isInteger(maxTitles) || maxTitles < 1)
+      return workflowError(args, {
+        error: {
+          code: ERROR_CODES.INVALID_ARGUMENT,
+          message: "--max-titles must be a positive integer",
+        },
+      });
+    const unresolved = cleanup
+      .normalizeEvents(scanned.events, policy)
+      .filter((item) => item.status === "review");
+    const result = await cleanup.discoverPatternsWithOllama(
+      unresolved,
+      policy.instructions,
+      args.flags["ollama-model"] || "qwen3.5:4b",
+      policy.taxonomy,
+      maxTitles,
+    );
     const outputPath = args.flags.output;
-    if (outputPath) fs.writeFileSync(outputPath, JSON.stringify({ ...policy, patterns: result.patterns }, null, 2) + "\n", "utf8");
-    output.output({ ...result, outputPath: outputPath || null, preview: true }, { json: args.flags.json });
-  } catch (error) { return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } }); }
+    if (outputPath)
+      fs.writeFileSync(
+        outputPath,
+        JSON.stringify({ ...policy, patterns: result.patterns }, null, 2) + "\n",
+        "utf8",
+      );
+    output.output(
+      { ...result, outputPath: outputPath || null, preview: true },
+      { json: args.flags.json },
+    );
+  } catch (error) {
+    return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } });
+  }
 }
 
 async function handleRollback(args) {
   const manifestPath = args.positional[0];
-  if (!manifestPath) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "Manifest path is required" } });
-  if (!args.flags.yes) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "rollback requires --yes" } });
+  if (!manifestPath)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "Manifest path is required" },
+    });
+  if (!args.flags.yes)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "rollback requires --yes" },
+    });
   let manifest;
-  try { manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8")); } catch (error) { return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Invalid manifest: ${error.message}` } }); }
-  const changes = (manifest.changes || []).filter((change) => change.action === "rename").map((change) => ({ action: "rename", id: change.id, uid: change.uid, expectedSummary: change.summary, summary: change.previousSummary, series: change.series }));
+  try {
+    manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
+  } catch (error) {
+    return workflowError(args, {
+      error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Invalid manifest: ${error.message}` },
+    });
+  }
+  const changes = (manifest.changes || [])
+    .filter((change) => change.action === "rename")
+    .map((change) => ({
+      action: "rename",
+      id: change.id,
+      uid: change.uid,
+      expectedSummary: change.summary,
+      summary: change.previousSummary,
+      series: change.series,
+    }));
   const mutation = await runScript("mutate", { ...manifest.calendar, changes });
   if (!mutation.success) return workflowError(args, mutation);
-  output.output({ rolledBack: mutation.data.changes || [], skipped: mutation.data.skipped || [] }, { json: args.flags.json });
+  output.output(
+    { rolledBack: mutation.data.changes || [], skipped: mutation.data.skipped || [] },
+    { json: args.flags.json },
+  );
 }
 
 async function handlePreflight(args) {
   const file = args.positional[0];
-  if (!file) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "ICS file path is required" } });
+  if (!file)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "ICS file path is required" },
+    });
   try {
-    const expectedEventCount = args.flags["expected-events"] === undefined ? undefined : Number(args.flags["expected-events"]);
-    const expectedRecurrenceCount = args.flags["expected-recurrences"] === undefined ? undefined : Number(args.flags["expected-recurrences"]);
-    if ((expectedEventCount !== undefined && (!Number.isInteger(expectedEventCount) || expectedEventCount < 0)) || (expectedRecurrenceCount !== undefined && (!Number.isInteger(expectedRecurrenceCount) || expectedRecurrenceCount < 0))) {
-      return workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: "Expected counts must be non-negative integers" } });
+    const expectedEventCount =
+      args.flags["expected-events"] === undefined
+        ? undefined
+        : Number(args.flags["expected-events"]);
+    const expectedRecurrenceCount =
+      args.flags["expected-recurrences"] === undefined
+        ? undefined
+        : Number(args.flags["expected-recurrences"]);
+    if (
+      (expectedEventCount !== undefined &&
+        (!Number.isInteger(expectedEventCount) || expectedEventCount < 0)) ||
+      (expectedRecurrenceCount !== undefined &&
+        (!Number.isInteger(expectedRecurrenceCount) || expectedRecurrenceCount < 0))
+    ) {
+      return workflowError(args, {
+        error: {
+          code: ERROR_CODES.INVALID_ARGUMENT,
+          message: "Expected counts must be non-negative integers",
+        },
+      });
     }
-    const report = await preflightIcalFile(file, { eventCount: expectedEventCount, recurrenceCount: expectedRecurrenceCount });
+    const report = await preflightIcalFile(file, {
+      eventCount: expectedEventCount,
+      recurrenceCount: expectedRecurrenceCount,
+    });
     output.output(report, { json: args.flags.json });
     if (!report.valid) process.exitCode = EXIT_VALIDATION_ERROR;
   } catch (error) {
-    workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Unable to read ICS file: ${error.message}` } });
+    workflowError(args, {
+      error: {
+        code: ERROR_CODES.INVALID_ARGUMENT,
+        message: `Unable to read ICS file: ${error.message}`,
+      },
+    });
   }
 }
 
 async function handleVerifyImport(args) {
   const file = args.positional[0];
-  if (!file) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "ICS file path is required" } });
+  if (!file)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "ICS file path is required" },
+    });
   const calendarIds = args.arrays["calendar-id"] || [];
-  if (calendarIds.length > 1 || !calendarIds[0]) return workflowError(args, { error: { code: ERROR_CODES.MISSING_REQUIRED, message: "--calendar-id is required" } });
+  if (calendarIds.length > 1 || !calendarIds[0])
+    return workflowError(args, {
+      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "--calendar-id is required" },
+    });
   const target = { calendarId: calendarIds[0], calendarName: null };
   const range = workflowRange(args);
-  if (range.error) return workflowError(args, { error: { code: ERROR_CODES.INVALID_DATETIME, message: range.error } });
+  if (range.error)
+    return workflowError(args, {
+      error: { code: ERROR_CODES.INVALID_DATETIME, message: range.error },
+    });
   try {
     const source = await preflightIcalFile(file);
     const scanned = await runScript("scan", { ...target, ...range });
@@ -1502,15 +1693,25 @@ async function handleVerifyImport(args) {
       sourceRecurrenceCount: source.recurrenceCount,
       sourceNonRecurringCount: source.eventCount - source.recurrenceCount,
       uniqueUidCountMatches: eventkit.uniqueUidCount === source.uniqueUidCount,
-      nonRecurringCountMatches: eventkit.nonRecurringCount === source.eventCount - source.recurrenceCount,
+      nonRecurringCountMatches:
+        eventkit.nonRecurringCount === source.eventCount - source.recurrenceCount,
       recurringSeriesCountMatches: eventkit.recurringSeriesCount === source.recurrenceCount,
     };
-    const valid = source.valid && reconciliation.uniqueUidCountMatches && reconciliation.nonRecurringCountMatches && reconciliation.recurringSeriesCountMatches;
+    const valid =
+      source.valid &&
+      reconciliation.uniqueUidCountMatches &&
+      reconciliation.nonRecurringCountMatches &&
+      reconciliation.recurringSeriesCountMatches;
     const report = { valid, source, eventkit, reconciliation, calendar: target, range };
     output.output(report, { json: args.flags.json });
     if (!valid) process.exitCode = EXIT_VALIDATION_ERROR;
   } catch (error) {
-    workflowError(args, { error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Unable to verify import: ${error.message}` } });
+    workflowError(args, {
+      error: {
+        code: ERROR_CODES.INVALID_ARGUMENT,
+        message: `Unable to verify import: ${error.message}`,
+      },
+    });
   }
 }
 

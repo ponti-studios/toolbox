@@ -14,16 +14,22 @@ describe("calendar cleanup rules", () => {
       title: "Exercise: Walk",
       source: "alias",
     });
-    expect(cleanup.proposalForTitle("Drinks w/ Abigail", policy)).toMatchObject({ title: "Food: w/ Abigail", source: "drinks" });
-    expect(cleanup.proposalForTitle("Exercise: Walk", policy)).toMatchObject({ status: "unchanged", source: "canonical" });
+    expect(cleanup.proposalForTitle("Drinks w/ Abigail", policy)).toMatchObject({
+      title: "Food: w/ Abigail",
+      source: "drinks",
+    });
+    expect(cleanup.proposalForTitle("Exercise: Walk", policy)).toMatchObject({
+      status: "unchanged",
+      source: "canonical",
+    });
     expect(cleanup.proposalForTitle("Trip Japan", policy)).toMatchObject({ status: "review" });
   });
 
   test("supports exact policy overrides and exclusions", () => {
     expect(
-        cleanup.proposalForTitle("studio", {
-          taxonomy: ["Work"],
-          overrides: { studio: { category: "Work", detail: "Studio" } },
+      cleanup.proposalForTitle("studio", {
+        taxonomy: ["Work"],
+        overrides: { studio: { category: "Work", detail: "Studio" } },
       }),
     ).toMatchObject({ title: "Work: Studio", source: "override" });
     expect(cleanup.proposalForTitle("private", { exclusions: ["private"] })).toMatchObject({
@@ -103,9 +109,36 @@ describe("calendar cleanup rules", () => {
 
   test("separates close duplicate candidates from distant same-day repeats", () => {
     const report = cleanup.auditEvents([
-      { id: "E1", uid: "U1", isRecurring: false, calendarId: "C", summary: "Walk", start: "2025-01-01T09:00", end: "2025-01-01T10:00", allDay: false },
-      { id: "E2", uid: "U2", isRecurring: false, calendarId: "C", summary: "walk", start: "2025-01-01T09:15", end: "2025-01-01T10:15", allDay: false },
-      { id: "E3", uid: "U3", isRecurring: false, calendarId: "C", summary: "Walk", start: "2025-01-01T19:00", end: "2025-01-01T20:00", allDay: false },
+      {
+        id: "E1",
+        uid: "U1",
+        isRecurring: false,
+        calendarId: "C",
+        summary: "Walk",
+        start: "2025-01-01T09:00",
+        end: "2025-01-01T10:00",
+        allDay: false,
+      },
+      {
+        id: "E2",
+        uid: "U2",
+        isRecurring: false,
+        calendarId: "C",
+        summary: "walk",
+        start: "2025-01-01T09:15",
+        end: "2025-01-01T10:15",
+        allDay: false,
+      },
+      {
+        id: "E3",
+        uid: "U3",
+        isRecurring: false,
+        calendarId: "C",
+        summary: "Walk",
+        start: "2025-01-01T19:00",
+        end: "2025-01-01T20:00",
+        allDay: false,
+      },
     ]);
     expect(report.likelyDuplicates).toHaveLength(1);
     expect(report.likelyDuplicates[0].classification).toBe("likely-duplicate");
@@ -114,8 +147,26 @@ describe("calendar cleanup rules", () => {
 
   test("classifies one-hour DST recurrence changes separately", () => {
     const report = cleanup.auditEvents([
-      { id: "R1", uid: "DST", isRecurring: true, calendarId: "C", summary: "Walk", start: "2025-10-26T10:00", end: "2025-10-26T11:00", allDay: false },
-      { id: "R2", uid: "DST", isRecurring: true, calendarId: "C", summary: "Walk", start: "2025-11-02T09:00", end: "2025-11-02T10:00", allDay: false },
+      {
+        id: "R1",
+        uid: "DST",
+        isRecurring: true,
+        calendarId: "C",
+        summary: "Walk",
+        start: "2025-10-26T10:00",
+        end: "2025-10-26T11:00",
+        allDay: false,
+      },
+      {
+        id: "R2",
+        uid: "DST",
+        isRecurring: true,
+        calendarId: "C",
+        summary: "Walk",
+        start: "2025-11-02T09:00",
+        end: "2025-11-02T10:00",
+        allDay: false,
+      },
     ]);
     expect(report.suspiciousRecurrences).toHaveLength(0);
     expect(report.timezoneShifts).toHaveLength(1);
@@ -123,8 +174,26 @@ describe("calendar cleanup rules", () => {
 
   test("handles DST shifts that cross midnight", () => {
     const report = cleanup.auditEvents([
-      { id: "R1", uid: "MIDNIGHT", isRecurring: true, calendarId: "C", summary: "Hike", start: "2022-10-30T00:15", end: "2022-10-30T01:15", allDay: false },
-      { id: "R2", uid: "MIDNIGHT", isRecurring: true, calendarId: "C", summary: "Hike", start: "2022-11-06T23:15", end: "2022-11-07T00:15", allDay: false },
+      {
+        id: "R1",
+        uid: "MIDNIGHT",
+        isRecurring: true,
+        calendarId: "C",
+        summary: "Hike",
+        start: "2022-10-30T00:15",
+        end: "2022-10-30T01:15",
+        allDay: false,
+      },
+      {
+        id: "R2",
+        uid: "MIDNIGHT",
+        isRecurring: true,
+        calendarId: "C",
+        summary: "Hike",
+        start: "2022-11-06T23:15",
+        end: "2022-11-07T00:15",
+        allDay: false,
+      },
     ]);
     expect(report.suspiciousRecurrences).toHaveLength(0);
     expect(report.timezoneShifts).toHaveLength(1);

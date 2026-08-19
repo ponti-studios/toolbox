@@ -22,17 +22,56 @@ function respondForRequest(request) {
     return {
       ok: true,
       events: [
-        { id: "E1", uid: "U1", calendarId: "CAL1", summary: "walk", start: "2025-01-01T09:00:00", end: "2025-01-01T10:00:00", allDay: false, isRecurring: true },
-        { id: "E2", uid: "U1", calendarId: "CAL1", summary: "walk", start: "2025-01-08T09:00:00", end: "2025-01-08T10:00:00", allDay: false, isRecurring: true },
-        { id: "E3", uid: "U3", calendarId: "CAL1", summary: "Dinner", start: "2025-01-02T19:00:00", end: "2025-01-02T20:00:00", allDay: false, isRecurring: false },
-        { id: "E4", uid: "U4", calendarId: "CAL1", summary: "Dinner", start: "2025-01-02T19:00:00", end: "2025-01-02T20:00:00", allDay: false, isRecurring: false },
+        {
+          id: "E1",
+          uid: "U1",
+          calendarId: "CAL1",
+          summary: "walk",
+          start: "2025-01-01T09:00:00",
+          end: "2025-01-01T10:00:00",
+          allDay: false,
+          isRecurring: true,
+        },
+        {
+          id: "E2",
+          uid: "U1",
+          calendarId: "CAL1",
+          summary: "walk",
+          start: "2025-01-08T09:00:00",
+          end: "2025-01-08T10:00:00",
+          allDay: false,
+          isRecurring: true,
+        },
+        {
+          id: "E3",
+          uid: "U3",
+          calendarId: "CAL1",
+          summary: "Dinner",
+          start: "2025-01-02T19:00:00",
+          end: "2025-01-02T20:00:00",
+          allDay: false,
+          isRecurring: false,
+        },
+        {
+          id: "E4",
+          uid: "U4",
+          calendarId: "CAL1",
+          summary: "Dinner",
+          start: "2025-01-02T19:00:00",
+          end: "2025-01-02T20:00:00",
+          allDay: false,
+          isRecurring: false,
+        },
       ],
     };
   }
   if (request.script === "mutate") {
     return {
       ok: true,
-      changes: (request.args.changes || []).map((change) => ({ ...change, previousSummary: change.expectedSummary })),
+      changes: (request.args.changes || []).map((change) => ({
+        ...change,
+        previousSummary: change.expectedSummary,
+      })),
       skipped: [],
     };
   }

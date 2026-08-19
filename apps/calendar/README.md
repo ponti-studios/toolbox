@@ -146,7 +146,13 @@ overrides, and exclusions:
   "taxonomy": ["Travel", "Exercise", "Work", "Personal"],
   "aliases": { "trip": "Travel" },
   "patterns": [
-    { "id": "exercise", "match": "^(walk|run|hike)(?:\\s+(.+))?$", "category": "Exercise", "detail": "$1 $2", "confidence": 0.95 }
+    {
+      "id": "exercise",
+      "match": "^(walk|run|hike)(?:\\s+(.+))?$",
+      "category": "Exercise",
+      "detail": "$1 $2",
+      "confidence": 0.95
+    }
   ],
   "overrides": {
     "studio": { "category": "Work", "detail": "Studio", "confidence": 1 }
