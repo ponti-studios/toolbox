@@ -15,8 +15,9 @@
 
 ```bash
 # from apps/filekit
-cargo run -p filekit -- frontmatter walk -r tests/fixtures
-cargo run -p filekit -- frontmatter validate -r tests/fixtures
-cargo run -p filekit -- frontmatter slug -r tests/fixtures --scope project
-cargo run -p filekit -- frontmatter aggregate -r tests/fixtures
+npm run build
+node dist/index.js frontmatter walk -r tests/fixtures
+node dist/index.js frontmatter validate -r tests/fixtures
+node dist/index.js frontmatter slug -r tests/fixtures --scope project
+node dist/index.js frontmatter aggregate -r tests/fixtures
 ```

@@ -1,6 +1,6 @@
 # toolbox
 
-A monorepo for command-line tools and small local apps built in Rust, Swift, Go, and Python.
+A monorepo for command-line tools and small local apps built in TypeScript, Swift, Go, and Python.
 
 Repository: https://github.com/ponti-studios/toolbox
 
@@ -31,16 +31,12 @@ toolbox/
 
 | Tool | Language | Description |
 |------|----------|-------------|
-| [filekit](./apps/filekit/README.md) | Rust | Frontmatter, file utilities, and essay classification |
+| [filekit](./apps/filekit/README.md) | TypeScript / Node 24 | Frontmatter, file utilities, and essay classification |
 | [xkit](./apps/xkit/README.md) | Go | Paid destructive X/Twitter post deletion |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown via Apple Speech |
 | [datpiff](./apps/datpiff/README.md) | Python | Internet Archive crawler for DatPiff-style mixtape listings |
 | [photokit](./apps/photokit/README.md) | Python | EXIF analysis, date repair from filenames, and date-based renaming |
 | [agentkit](./apps/agentkit/README.md) | TypeScript | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter |
-
-## Shared Packages
-
-- `packages/files` contains shared filesystem and traversal helpers.
 
 ## Development
 
@@ -59,7 +55,7 @@ just install
 ### Run the test suite
 
 ```bash
-cargo test --workspace
+npm --prefix apps/filekit test
 ```
 
 ### Run manifest-driven CLI checks
@@ -87,7 +83,7 @@ toolchains match the versions you have configured. Swift package automation is e
 ### Run a specific tool
 
 ```bash
-cargo run -p filekit -- frontmatter walk
+npx @ponti-studios/filekit frontmatter walk
 cd apps/datpiff && python3 -m datpiff scrape archiveorg --help
 cd apps/xkit && go run . delete-posts --help
 ```
@@ -103,8 +99,8 @@ just install-mediakit
 ## Releases
 
 - Release tags follow the pattern `<cli>-v<version>`
-- `filekit` is the primary file-management and analysis CLI
-- Rust tools use the Cargo workspace
+- `filekit` is published to npm as `@ponti-studios/filekit`
+- Node tools use their app-local npm lockfiles
 - Swift tools build from their package directories
 - `xkit` is a standalone Go CLI built from `apps/xkit`
 - GitHub releases and Homebrew formula templates are wired to `ponti-studios/toolbox`

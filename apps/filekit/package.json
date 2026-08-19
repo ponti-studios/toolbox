@@ -1,0 +1,35 @@
+{
+  "name": "@ponti-studios/filekit",
+  "version": "1.0.0",
+  "description": "Frontmatter and file utilities CLI",
+  "type": "module",
+  "bin": { "filekit": "dist/index.js" },
+  "files": ["dist", "README.md"],
+  "engines": { "node": ">=24" },
+  "publishConfig": { "access": "public" },
+  "overrides": {
+    "uuid": "^11.1.1"
+  },
+  "repository": { "type": "git", "url": "git+https://github.com/ponti-studios/toolbox.git", "directory": "apps/filekit" },
+  "license": "MIT",
+  "scripts": {
+    "prebuild": "node -e \"import('node:fs').then(({rmSync}) => rmSync('dist', { recursive: true, force: true }))\"",
+    "build": "tsc",
+    "typecheck": "tsc --noEmit",
+    "test": "node --test --experimental-strip-types src/**/*.test.ts",
+    "prepublishOnly": "npm run typecheck && npm test && npm run build"
+  },
+  "dependencies": {
+    "commander": "^14.0.0",
+    "csv-parse": "^6.1.0",
+    "csv-stringify": "^6.6.0",
+    "exceljs": "^4.4.0",
+    "fast-glob": "^3.3.3",
+    "gray-matter": "^4.0.3",
+    "yaml": "^2.8.1"
+  },
+  "devDependencies": {
+    "@types/node": "^24.0.0",
+    "typescript": "^5.9.0"
+  }
+}

@@ -6,9 +6,6 @@ on:
   pull_request:
   workflow_dispatch:
 
-env:
-  CARGO_TERM_COLOR: always
-
 jobs:
   prepare-matrix:
     name: Prepare CLI Matrices
@@ -52,31 +49,6 @@ jobs:
           print(f"release_smoke_matrix={matrix_for('release_smoke_command')}")
           PY
 
-  rust-quality:
-    name: Rust Quality
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v7.0.1
-
-      - name: Install Rust
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-          components: clippy, rustfmt
-
-      - name: Cache cargo
-        uses: Swatinem/rust-cache@v2.9.2
-
-      - name: Check formatting
-        run: cargo fmt --all --check
-
-      - name: Check workspace
-        run: cargo check --workspace --all-targets
-
-      - name: Run clippy
-        run: cargo clippy --workspace --all-targets -- -D warnings
-
   unit:
     name: Unit ${{ matrix.name }}
     needs: prepare-matrix
@@ -88,16 +60,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
 
-      - name: Install Rust
-        if: matrix.language == 'rust'
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Cache cargo
-        if: matrix.language == 'rust'
-        uses: Swatinem/rust-cache@v2.9.2
-
       - name: Set up Go
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
@@ -119,16 +81,16 @@ jobs:
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: apps/agentkit/package-lock.json
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: Run unit phase
         run: ./scripts/test-clis.sh --phase unit --tool "${{ matrix.name }}"
 
   smoke:
     name: Smoke ${{ matrix.name }}
-    needs: [prepare-matrix, rust-quality]
+    needs: prepare-matrix
     runs-on: ${{ matrix.os }}
     strategy:
       fail-fast: false
@@ -137,16 +99,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
 
-      - name: Install Rust
-        if: matrix.language == 'rust'
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Cache cargo
-        if: matrix.language == 'rust'
-        uses: Swatinem/rust-cache@v2.9.2
-
       - name: Set up Go
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
@@ -168,9 +120,9 @@ jobs:
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: apps/agentkit/package-lock.json
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: Run smoke phase
         run: ./scripts/test-clis.sh --phase smoke --tool "${{ matrix.name }}"
@@ -186,16 +138,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
 
-      - name: Install Rust
-        if: matrix.language == 'rust'
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Cache cargo
-        if: matrix.language == 'rust'
-        uses: Swatinem/rust-cache@v2.9.2
-
       - name: Set up Go
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
@@ -217,9 +159,9 @@ jobs:
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: apps/agentkit/package-lock.json
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: Run integration phase
         run: ./scripts/test-clis.sh --phase integration --tool "${{ matrix.name }}"
@@ -236,16 +178,6 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v7.0.1
 
-      - name: Install Rust
-        if: matrix.language == 'rust'
-        uses: dtolnay/rust-toolchain@v1
-        with:
-          toolchain: stable
-
-      - name: Cache cargo
-        if: matrix.language == 'rust'
-        uses: Swatinem/rust-cache@v2.9.2
-
       - name: Set up Go
         if: matrix.language == 'go'
         uses: actions/setup-go@v7.0.0
@@ -267,9 +199,9 @@ jobs:
         if: matrix.language == 'typescript'
         uses: actions/setup-node@v7.0.0
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
-          cache-dependency-path: apps/agentkit/package-lock.json
+          cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
       - name: Run release-smoke phase
         run: ./scripts/test-clis.sh --phase release-smoke --tool "${{ matrix.name }}"

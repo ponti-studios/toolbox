@@ -3,14 +3,14 @@
   "tools": [
     {
       "name": "filekit",
-      "language": "rust",
+      "language": "typescript",
       "path": "apps/filekit",
       "os": "ubuntu-latest",
-      "build_command": "cargo build -p filekit",
-      "unit_command": "cargo test -p filekit",
-      "smoke_command": "./target/debug/filekit --help",
+      "build_command": "cd apps/filekit && npm ci && npm run build",
+      "unit_command": "cd apps/filekit && npm ci && npm test",
+      "smoke_command": "node apps/filekit/dist/index.js --help",
       "integration_command": "./scripts/cli/integration/filekit.sh",
-      "release_smoke_command": "cargo build -p filekit --release && ./target/release/filekit --help",
+      "release_smoke_command": "cd apps/filekit && npm ci && npm run build && node dist/index.js --help",
       "allows_network_integration": false,
       "allows_system_integration": false
     },

@@ -2,10 +2,10 @@
 set -euo pipefail
 
 repo_root="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd -P)"
-binary="$repo_root/target/debug/filekit"
+binary=(node "$repo_root/apps/filekit/dist/index.js")
 
-if [[ ! -x "$binary" ]]; then
-  echo "Missing filekit binary at $binary" >&2
+if [[ ! -f "$repo_root/apps/filekit/dist/index.js" ]]; then
+  echo "Missing Filekit build at $repo_root/apps/filekit/dist/index.js" >&2
   exit 1
 fi
 
@@ -36,7 +36,7 @@ tags:
 World
 EOF
 
-"$binary" frontmatter aggregate "$tmpdir/content" -o "$tmpdir/frontmatter.json"
+"${binary[@]}" frontmatter aggregate "$tmpdir/content" -o "$tmpdir/frontmatter.json"
 
 python3 - "$tmpdir/frontmatter.json" <<'PY'
 import json, sys
@@ -100,14 +100,14 @@ EOF
 chmod +x "$tmpdir/bin/pandoc"
 
 printf 'stub docx content' > "$tmpdir/resume.docx"
-PATH="$tmpdir/bin:$PATH" "$binary" docx to-md "$tmpdir/resume.docx"
+PATH="$tmpdir/bin:$PATH" "${binary[@]}" docx to-md "$tmpdir/resume.docx"
 
 test -f "$tmpdir/resume.md"
 test -f "$tmpdir/resume_media/example.txt"
 grep -q "Converted" "$tmpdir/resume.md"
 
 printf 'stub failing docx content' > "$tmpdir/fail.docx"
-if PATH="$tmpdir/bin:$PATH" "$binary" docx to-md "$tmpdir/fail.docx"; then
+if PATH="$tmpdir/bin:$PATH" "${binary[@]}" docx to-md "$tmpdir/fail.docx"; then
   echo "Expected docx conversion failure for fail.docx" >&2
   exit 1
 fi
