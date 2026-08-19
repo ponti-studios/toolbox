@@ -3,11 +3,19 @@ import path from "node:path"
 import { spawnSync } from "node:child_process"
 
 export function run(cmd: string[]): { exitCode: number; stdout: string; stderr: string } {
-  const r = spawnSync(cmd[0], cmd.slice(1))
-  return {
-    exitCode: r.status ?? 1,
-    stdout: r.stdout?.toString() ?? "",
-    stderr: r.stderr?.toString() ?? "",
+  try {
+    const r = spawnSync(cmd[0], cmd.slice(1))
+    return {
+      exitCode: r.status ?? 1,
+      stdout: r.stdout?.toString() ?? "",
+      stderr: r.stderr?.toString() ?? r.error?.message ?? "",
+    }
+  } catch (error) {
+    return {
+      exitCode: 127,
+      stdout: "",
+      stderr: error instanceof Error ? error.message : String(error),
+    }
   }
 }
 
@@ -43,7 +51,7 @@ export function checkCmd(cmd: string, hint: string): void {
 export function resolveFiles(args: string[]): string[] {
   const files: string[] = []
   for (const arg of args) {
-    if (fs.existsSync(arg)) {
+    if (fs.existsSync(arg) && fs.statSync(arg).isFile()) {
       files.push(arg)
     } else {
       console.warn(`Warning: no match for '${arg}'`)
