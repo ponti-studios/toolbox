@@ -6,13 +6,7 @@ A TypeScript rewrite of the original bash script, compiled to a standalone binar
 
 ## Install
 
-### Pre-built binary (recommended)
-
-```bash
-curl -fsSL https://raw.githubusercontent.com/ponti-studios/toolbox/main/apps/iconkit/install.sh | bash
-```
-
-### From source
+### From source or a checked-out repository
 
 ```bash
 git clone https://github.com/ponti-studios/toolbox.git
@@ -22,7 +16,19 @@ bun run build
 ./iconkit install
 ```
 
-Depends on `sips` (macOS), optionally `cwebp` (`brew install webp`) and `avifenc` (`brew install libavif`).
+IconKit currently targets macOS because it depends on the built-in `sips` command. The optional
+encoders and ImageMagick features require Homebrew dependencies:
+
+```bash
+brew install imagemagick webp libavif exiftool
+```
+
+`cwebp` is required for WebP optimization, `avifenc` for AVIF optimization, ImageMagick for
+cropping with gravity and web-asset generation, and either ImageMagick or `exiftool` for metadata
+stripping.
+
+The `install` command is intended for the compiled standalone binary. When running the Node-targeted
+package entrypoint, it creates a small wrapper script in the selected bin directory.
 
 ---
 
