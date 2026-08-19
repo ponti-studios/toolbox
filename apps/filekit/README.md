@@ -1,6 +1,6 @@
 # filekit
 
-General-purpose utility CLI for frontmatter, calendar import, and local tooling workflows.
+General-purpose utility CLI for frontmatter and local tooling workflows.
 
 ## Install
 
@@ -24,7 +24,6 @@ cargo run -p filekit -- --help
    - [publish](#frontmatter-publish)
    - [slug](#frontmatter-slug)
    - [update](#frontmatter-update)
-2. [Calendar Commands](#calendar-commands)
 3. [Classification Commands](#classification-commands)
 4. [DOCX Commands](#docx-commands)
 5. [Files Commands](#files-commands)
@@ -355,168 +354,30 @@ filekit frontmatter update -r ./content --field category --value tech
 
 ---
 
-## Calendar Commands
-
-### `cal import` - Import calendar events
+### `frontmatter remove` - Remove a frontmatter field
 
 ```bash
-filekit cal import [OPTIONS]
+filekit frontmatter remove [OPTIONS]
 ```
 
 **Options:**
 
 | Option | Description | Default |
 |--------|-------------|---------|
-| `-f, --file <FILE>` | ICS file path (required) | - |
-| `-o, --output <OUTPUT>` | Output directory | - |
-| `--merge` | Merge with existing events | `false` |
+| `-r, --root <ROOT>` | Root directory | `.` |
+| `--field <FIELD>` | Field name to remove (required) | - |
+| `--dry-run` | Show changes without applying | `false` |
+
+Files without frontmatter or without the requested field are left unchanged.
 
 **Examples:**
 
 ```bash
-# Import ICS file
-filekit cal import -f calendar.ics
+# Remove a legacy draft field
+filekit frontmatter remove --field draft
 
-# Import to specific directory
-filekit cal import -f events.ics -o ./calendar
-
-# Merge with existing
-filekit cal import -f new-events.ics --merge
-```
-
----
-
-### `cal expand` - Expand recurring events
-
-```bash
-filekit cal expand [OPTIONS]
-```
-
-**Options:**
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-d, --days <DAYS>` | Days to expand | `30` |
-| `-o, --output <OUTPUT>` | Output file | - |
-
-**Examples:**
-
-```bash
-# Expand next 30 days
-filekit cal expand
-
-# Expand 90 days
-filekit cal expand -d 90
-
-# Output to file
-filekit cal expand -o expanded.json
-```
-
----
-
-### `cal query` - Query calendar events
-
-```bash
-filekit cal query [OPTIONS]
-```
-
-**Options:**
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-s, --start <START>` | Start date | - |
-| `-e, --end <END>` | End date | - |
-| `-t, --type <TYPE>` | Event type filter | - |
-| `-o, --output <OUTPUT>` | Output format: `text` or `json` | `text` |
-
-**Examples:**
-
-```bash
-# Query all events
-filekit cal query
-
-# Query date range
-filekit cal query -s 2026-01-01 -e 2026-12-31
-
-# Filter by type
-filekit cal query -t meeting
-
-# JSON output
-filekit cal query -o json
-```
-
----
-
-### `cal inspect` - Inspect calendar data
-
-```bash
-filekit cal inspect [PATH]
-```
-
-**Examples:**
-
-```bash
-# Inspect calendar directory
-filekit cal inspect
-
-# Inspect specific path
-filekit cal inspect ./calendar/events
-```
-
----
-
-### `cal stats` - Show calendar statistics
-
-```bash
-filekit cal stats [OPTIONS]
-```
-
-**Options:**
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-p, --period <PERIOD>` | Time period | - |
-| `-o, --output <OUTPUT>` | Output format | - |
-
-**Examples:**
-
-```bash
-# Show stats
-filekit cal stats
-
-# Monthly stats
-filekit cal stats -p month
-
-# Yearly stats
-filekit cal stats -p year
-```
-
----
-
-### `cal doctor` - Diagnose calendar issues
-
-```bash
-filekit cal doctor [OPTIONS]
-```
-
-**Options:**
-
-| Option | Description | Default |
-|--------|-------------|---------|
-| `-f, --fix` | Auto-fix issues | `false` |
-| `-v, --verbose` | Verbose output | `false` |
-
-**Examples:**
-
-```bash
-# Run diagnostics
-filekit cal doctor
-
-# Auto-fix issues
-filekit cal doctor --fix
-
-# Verbose output
-filekit cal doctor -v
+# Preview removal in a specific directory
+filekit frontmatter remove -r ./content --field draft --dry-run
 ```
 
 ---
@@ -829,13 +690,11 @@ cargo install --path apps/filekit
 - [ ] Update multiple files
 - [ ] Dry run
 
-### cal commands
-- [ ] Import ICS file
-- [ ] Expand recurring events
-- [ ] Query by date range
-- [ ] Inspect calendar
-- [ ] Show statistics
-- [ ] Doctor diagnostics
+### frontmatter remove
+- [ ] Remove a field
+- [ ] Leave files without the field unchanged
+- [ ] Dry run
+
 
 ---
 
@@ -851,7 +710,6 @@ Release assets are published from tags like `filekit-v0.1.0`.
 - Validation uses a built-in `personal` schema by default
 - Migration supports fill, repair, overwrite, and timestamps strategies
 - Slug collision detection can be scoped by directory, project, or global namespace
-- Calendar functionality is exposed through the `cal` subcommands
 
 ## Source Files
 
@@ -859,7 +717,6 @@ Release assets are published from tags like `filekit-v0.1.0`.
 |------|---------|
 | `src/main.rs` | CLI dispatch only |
 | `src/analyze.rs` | Directory analysis with ignore-file support |
-| `src/cal.rs` | ICS import/query/expand/stats/doctor (SQLite) |
 | `src/classify.rs` | 5-pass essay classification pipeline |
 | `src/completions.rs` | Shell completion generate/install |
 | `src/docx.rs` | DOCX→Markdown via pandoc |
@@ -871,3 +728,4 @@ Release assets are published from tags like `filekit-v0.1.0`.
 | `src/frontmatter/migrate.rs` | frontmatter migrate command |
 | `src/frontmatter/slug.rs` | frontmatter slug command |
 | `src/frontmatter/update.rs` | frontmatter update command |
+| `src/frontmatter/remove.rs` | frontmatter remove command |

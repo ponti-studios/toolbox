@@ -31,7 +31,7 @@ toolbox/
 
 | Tool | Language | Description |
 |------|----------|-------------|
-| [filekit](./apps/filekit/README.md) | Rust | Frontmatter, calendar, file utilities, and essay classification |
+| [filekit](./apps/filekit/README.md) | Rust | Frontmatter, file utilities, and essay classification |
 | [xkit](./apps/xkit/README.md) | Go | Paid destructive X/Twitter post deletion |
 | [mediakit](./apps/mediakit/README.md) | Swift | Video/audio transcription to Markdown via Apple Speech |
 | [datpiff](./apps/datpiff/README.md) | Python | Internet Archive crawler for DatPiff-style mixtape listings |
