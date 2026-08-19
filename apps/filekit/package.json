@@ -16,6 +16,7 @@
     "prebuild": "node -e \"import('node:fs').then(({rmSync}) => rmSync('dist', { recursive: true, force: true }))\"",
     "build": "tsc",
     "typecheck": "tsc --noEmit",
+    "pretest": "npm run build",
     "test": "node --test --experimental-strip-types src/**/*.test.ts",
     "prepublishOnly": "npm run typecheck && npm test && npm run build"
   },
