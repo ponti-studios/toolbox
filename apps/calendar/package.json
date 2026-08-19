@@ -1,0 +1,46 @@
+{
+  "name": "@ponti-studios/calendar",
+  "version": "1.0.0",
+  "description": "Apple Calendar CLI for macOS - manage calendars and events from the command line",
+  "keywords": [
+    "apple",
+    "calendar",
+    "cli",
+    "macos"
+  ],
+  "license": "MIT",
+  "author": "Joar G.P. <joargp@gmail.com>",
+  "bin": {
+    "calendar": "dist/bin/calendar.js"
+  },
+  "files": [
+    "dist/",
+    "README.md",
+    "LICENSE"
+  ],
+  "os": [
+    "darwin"
+  ],
+  "main": "dist/lib/index.js",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "rm -rf dist && tsc && swift build -c release --package-path ../calendar-helper && cp package.json dist/package.json && cp ../calendar-helper/.build/release/calendar-helper dist/calendar-helper",
+    "test": "pnpm build && vitest run",
+    "lint": "oxlint .",
+    "format": "oxfmt --write .",
+    "prepack": "pnpm build && pnpm test",
+    "prepublishOnly": "pnpm lint && pnpm format && pnpm test"
+  },
+  "devDependencies": {
+    "@types/node": "^22.13.0",
+    "oxfmt": "^0.64.0",
+    "oxlint": "^1.79.0",
+    "typescript": "^5.8.0",
+    "vitest": "^3.2.4"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  }
+}
