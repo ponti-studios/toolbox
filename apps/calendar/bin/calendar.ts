@@ -123,7 +123,7 @@ COMMANDS:
   config       Manage configuration (default calendar)
   audit        Find duplicate and suspicious events
   normalize    Preview or normalize event titles
-  patterns     Discover user-specific title patterns with local Ollama
+  patterns     Discover user-specific title patterns (Ollama or OpenRouter)
   rollback     Restore titles from a cleanup manifest
   preflight    Validate an ICS file before Apple Calendar import
   verify-import Reconcile an ICS file with EventKit after import
@@ -349,14 +349,15 @@ DESCRIPTION:
   review. --apply requires --yes and writes a rollback manifest.
 `,
     patterns: `
-  calendar patterns - Discover user-specific title patterns with local Ollama
+  calendar patterns - Discover user-specific title patterns
 
 USAGE:
-  calendar patterns <calendarName> --ollama --policy <path> [--instructions <text-or-file>] [--output <path>] [--json]
+  calendar patterns <calendarName> --policy <path> [--provider ollama|openrouter] [--ollama] [--ollama-model <model>] [--openrouter-model <model>] [--instructions <text-or-file>] [--output <path>] [--json]
 
 DESCRIPTION:
   Proposes structured patterns and ambiguous clusters. It never changes Calendar. Review the
-  generated policy before passing it to calendar normalize.
+  generated policy before passing it to calendar normalize. Local Ollama is the default; pass
+  --provider openrouter (requires OPENROUTER_API_KEY) to send the title list to OpenRouter.
 `,
     rollback: `
   calendar rollback - Restore titles from a cleanup manifest
@@ -1514,9 +1515,13 @@ async function handleNormalize(args) {
 async function handlePatterns(args) {
   const scanned = await scanWorkflow(args);
   if (scanned.error) return workflowError(args, scanned);
-  if (!args.flags.ollama)
+  const provider = args.flags.provider === "openrouter" ? "openrouter" : "ollama";
+  if (provider === "openrouter" && !process.env.OPENROUTER_API_KEY)
     return workflowError(args, {
-      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "patterns requires --ollama" },
+      error: {
+        code: "MISSING_ENV",
+        message: "patterns --provider openrouter requires OPENROUTER_API_KEY",
+      },
     });
   let policy = { taxonomy: [], instructions: "" };
   if (args.flags.policy) {
@@ -1554,13 +1559,26 @@ async function handlePatterns(args) {
     const unresolved = cleanup
       .normalizeEvents(scanned.events, policy)
       .filter((item) => item.status === "review");
-    const result = await cleanup.discoverPatternsWithOllama(
-      unresolved,
-      policy.instructions,
-      args.flags["ollama-model"] || "qwen3.5:4b",
-      policy.taxonomy,
-      maxTitles,
-    );
+    const model =
+      provider === "openrouter"
+        ? args.flags["openrouter-model"] || cleanup.OPENROUTER_DEFAULT_MODEL
+        : args.flags["ollama-model"] || "qwen3.5:4b";
+    const result =
+      provider === "openrouter"
+        ? await cleanup.discoverPatternsWithOpenRouter(
+            unresolved,
+            policy.instructions,
+            model,
+            policy.taxonomy,
+            maxTitles,
+          )
+        : await cleanup.discoverPatternsWithOllama(
+            unresolved,
+            policy.instructions,
+            model,
+            policy.taxonomy,
+            maxTitles,
+          );
     const outputPath = args.flags.output;
     if (outputPath)
       fs.writeFileSync(
@@ -1569,11 +1587,16 @@ async function handlePatterns(args) {
         "utf8",
       );
     output.output(
-      { ...result, outputPath: outputPath || null, preview: true },
+      { ...result, provider, model, outputPath: outputPath || null, preview: true },
       { json: args.flags.json },
     );
   } catch (error) {
-    return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } });
+    return workflowError(args, {
+      error: {
+        code: provider === "openrouter" ? "OPENROUTER_UNAVAILABLE" : "OLLAMA_UNAVAILABLE",
+        message: error.message,
+      },
+    });
   }
 }
 

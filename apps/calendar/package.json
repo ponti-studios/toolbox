@@ -22,6 +22,9 @@
     "darwin"
   ],
   "main": "dist/lib/index.js",
+  "dependencies": {
+    "@ponti-studios/ai": "workspace:*"
+  },
   "publishConfig": {
     "access": "public"
   },

@@ -107,6 +107,70 @@ describe("calendar cleanup rules", () => {
     ).toBeNull();
   });
 
+  test("rejects malformed model patterns and keeps only patterns that match an example", () => {
+    const taxonomy = ["Travel", "Food"];
+    const parsed = {
+      patterns: [
+        {
+          id: "P001",
+          match: "Food Shopping & Delivery",
+          category: "Food",
+          detail: "Titles related to purchasing food.",
+          confidence: 0.95,
+          examples: ["Grocery shopping"],
+        },
+        {
+          id: "P002",
+          match: "^grocery\\s+(.+)$",
+          category: "Food",
+          detail: "$1",
+          confidence: 0.95,
+          examples: ["Grocery run", "Pickup at store"],
+        },
+        {
+          id: "P003",
+          match: "^trips?\\s+(.+)$",
+          category: "Travel",
+          detail: "$1",
+          confidence: 0.9,
+          examples: ["Dentist", "Call Mom"],
+        },
+        {
+          id: 42,
+          match: "^walk$",
+          category: "Exercise",
+          confidence: 1,
+          examples: ["Walk"],
+        },
+        {
+          id: "P005",
+          match: "^fly\\s+(.+)$",
+          category: "Travel",
+          confidence: 0.8,
+          examples: ["Fly to NYC"],
+        },
+        {
+          id: "P006",
+          match: "[",
+          category: "Travel",
+          confidence: 0.95,
+          examples: ["anything"],
+        },
+      ],
+    };
+    const kept = cleanup.patternProposals(parsed, taxonomy);
+    expect(kept).toHaveLength(1);
+    expect(kept[0]).toMatchObject({ id: "P002", category: "Food", confidence: 0.95 });
+  });
+
+  test("malformed model output without valid JSON shapes yields no patterns", () => {
+    const taxonomy = ["Travel"];
+    expect(cleanup.patternProposals({ patterns: [] }, taxonomy)).toEqual([]);
+    expect(cleanup.patternProposals({ patterns: null }, taxonomy)).toEqual([]);
+    expect(cleanup.patternProposals({}, taxonomy)).toEqual([]);
+    expect(cleanup.patternProposals(null, taxonomy)).toEqual([]);
+  });
+
   test("separates close duplicate candidates from distant same-day repeats", () => {
     const report = cleanup.auditEvents([
       {
