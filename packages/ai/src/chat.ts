@@ -23,24 +23,45 @@ export interface ChatJsonOptions<T extends ZodType> extends ChatTextOptions {
 
 function providerError(message: string, code: unknown, model: string): AiError {
   const codeText = typeof code === "string" ? code : code != null ? String(code) : "";
+  if (codeText === "structured-output-validation-failed")
+    return new AiError(
+      "INVALID_RESPONSE",
+      `Model output did not match the expected schema (${model})`,
+    );
   const isModel =
     /^(?:4|5)\d{2}\b/.test(message) ||
     /^(?:4|5)\d{2}$/.test(codeText) ||
     /(?:unauthorized|forbidden|rate.?limit|quota|not.?found|invalid)/i.test(message);
-  const isNetwork = /(?:connection|fetch failed|econnrefused|enetunreach|socket|network)/i.test(message);
+  const isNetwork = /(?:connection|fetch failed|econnrefused|enetunreach|socket|network)/i.test(
+    message,
+  );
   const category = isNetwork && !isModel ? "NETWORK_ERROR" : "MODEL_ERROR";
   return new AiError(category, `OpenRouter request failed (${model}): ${message}`);
 }
 
 function mapError(error: unknown, aborted: boolean, model: string): never {
-  if (aborted) throw new AiError("REQUEST_TIMEOUT", `OpenRouter request timed out (${model})`, { cause: error });
+  if (aborted)
+    throw new AiError("REQUEST_TIMEOUT", `OpenRouter request timed out (${model})`, {
+      cause: error,
+    });
   if (error instanceof AiError) throw error;
   if (error instanceof z.ZodError)
-    throw new AiError("INVALID_RESPONSE", `Model output did not match the expected schema (${model})`, { cause: error });
+    throw new AiError(
+      "INVALID_RESPONSE",
+      `Model output did not match the expected schema (${model})`,
+      { cause: error },
+    );
   const message = error instanceof Error ? error.message : String(error);
   const candidate = error as { status?: unknown; code?: unknown };
-  if (typeof candidate.status === "number" || (typeof candidate.status === "string" && /^\d{3}$/.test(candidate.status)))
-    throw new AiError("MODEL_ERROR", `OpenRouter rejected the request (${model}): ${candidate.status}`, { cause: error });
+  if (
+    typeof candidate.status === "number" ||
+    (typeof candidate.status === "string" && /^\d{3}$/.test(candidate.status))
+  )
+    throw new AiError(
+      "MODEL_ERROR",
+      `OpenRouter rejected the request (${model}): ${candidate.status}`,
+      { cause: error },
+    );
   throw providerError(message, candidate.code, model);
 }
 
@@ -64,8 +85,18 @@ function modelOptionsOf(
 }
 
 export async function chatText(options: ChatTextOptions): Promise<string> {
-  const { model, prompt, system, apiKey, baseURL, temperature, maxTokens, timeoutMs, thinking, responseFormat } =
-    options;
+  const {
+    model,
+    prompt,
+    system,
+    apiKey,
+    baseURL,
+    temperature,
+    maxTokens,
+    timeoutMs,
+    thinking,
+    responseFormat,
+  } = options;
   const controller = new AbortController();
   const clear = withTimeout(controller, timeoutMs ?? 120_000);
   try {
@@ -92,8 +123,21 @@ export async function chatText(options: ChatTextOptions): Promise<string> {
   }
 }
 
-export async function chatJson<T extends ZodType>(options: ChatJsonOptions<T>): Promise<z.infer<T>> {
-  const { model, prompt, system, apiKey, baseURL, schema, temperature, maxTokens, timeoutMs, thinking } = options;
+export async function chatJson<T extends ZodType>(
+  options: ChatJsonOptions<T>,
+): Promise<z.infer<T>> {
+  const {
+    model,
+    prompt,
+    system,
+    apiKey,
+    baseURL,
+    schema,
+    temperature,
+    maxTokens,
+    timeoutMs,
+    thinking,
+  } = options;
   const controller = new AbortController();
   const clear = withTimeout(controller, timeoutMs ?? 120_000);
   try {
@@ -123,9 +167,12 @@ export async function chatJsonLoose(options: ChatTextOptions): Promise<Record<st
     throw new AiError("INVALID_RESPONSE", `Model returned no JSON object (${model})`);
   try {
     const parsed = JSON.parse(text.slice(start, end + 1));
-    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed)) throw new Error("not an object");
+    if (parsed === null || typeof parsed !== "object" || Array.isArray(parsed))
+      throw new Error("not an object");
     return parsed as Record<string, unknown>;
   } catch (error) {
-    throw new AiError("INVALID_RESPONSE", `Model returned invalid JSON (${model})`, { cause: error });
+    throw new AiError("INVALID_RESPONSE", `Model returned invalid JSON (${model})`, {
+      cause: error,
+    });
   }
 }

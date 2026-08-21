@@ -1,7 +1,9 @@
 import { createServer, type IncomingMessage, type ServerResponse } from "node:http";
 import { afterEach, describe, expect, test } from "vitest";
+import { z } from "zod";
 import {
   AiError,
+  chatJson,
   chatJsonLoose,
   chatText,
   openRouterApiKey,
@@ -122,6 +124,34 @@ describe("chatText", () => {
         await expect(
           chatText({ model: "test/model", prompt: "hi", baseURL, timeoutMs: 10 }),
         ).rejects.toMatchObject({ code: "REQUEST_TIMEOUT" });
+      },
+    );
+  });
+});
+
+describe("chatJson", () => {
+  const schema = z.object({ ok: z.boolean() });
+
+  test("returns a validated non-streaming provider response", async () => {
+    process.env.OPENROUTER_API_KEY = KEY;
+    await withMockServer(
+      (_request, response) => writeSse(response, JSON.stringify({ ok: true })),
+      async (baseURL) => {
+        await expect(
+          chatJson({ model: "test/model", prompt: "hi", baseURL, schema }),
+        ).resolves.toEqual({ ok: true });
+      },
+    );
+  });
+
+  test("maps schema mismatches to INVALID_RESPONSE", async () => {
+    process.env.OPENROUTER_API_KEY = KEY;
+    await withMockServer(
+      (_request, response) => writeSse(response, JSON.stringify({ ok: "yes" })),
+      async (baseURL) => {
+        await expect(
+          chatJson({ model: "test/model", prompt: "hi", baseURL, schema }),
+        ).rejects.toMatchObject({ code: "INVALID_RESPONSE" });
       },
     );
   });
