@@ -8,6 +8,9 @@
     "tanstack"
   ],
   "license": "MIT",
+  "files": [
+    "dist"
+  ],
   "type": "module",
   "main": "dist/index.js",
   "types": "dist/index.d.ts",
@@ -17,9 +20,6 @@
       "import": "./dist/index.js"
     }
   },
-  "files": [
-    "dist"
-  ],
   "scripts": {
     "build": "tsc",
     "test": "pnpm build && vitest run",
@@ -32,12 +32,12 @@
     "zod": "^4.0.0"
   },
   "devDependencies": {
-    "@types/node": "^22.13.0",
+    "@types/node": "^24.0.0",
     "oxlint": "^1.79.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.4"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=24"
   }
 }

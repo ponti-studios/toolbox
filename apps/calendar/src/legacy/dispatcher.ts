@@ -8,114 +8,10 @@ const cleanup = require("../lib/cleanup");
 const { preflightIcalFile } = require("../lib/ical-preflight");
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
 const readline = require("readline");
-
-type CliArgs = {
-  command: string | null;
-  positional: string[];
-  flags: Record<string, any>;
-  arrays: Record<string, string[]>;
-};
-
-type ParseResult =
-  | { ok: true; result: CliArgs }
-  | { ok: false; error: { code: string; message: string } };
-
-function errorMessage(error: unknown): string {
-  return error instanceof Error ? error.message : String(error);
-}
-
-// Parse command line arguments
-// Returns { ok: true, result: {...} } or { ok: false, error: {...} }
-function parseArgs(args: string[]): ParseResult {
-  const result: CliArgs = {
-    command: null,
-    positional: [],
-    flags: {},
-    arrays: {},
-  };
-
-  let i = 0;
-  while (i < args.length) {
-    const arg = args[i];
-
-    if (arg.startsWith("--")) {
-      const key = arg.slice(2);
-
-      // Handle boolean flags
-      if (
-        key === "json" ||
-        key === "help" ||
-        key === "version" ||
-        key === "all-day" ||
-        key === "no-all-day" ||
-        key === "apply" ||
-        key === "yes" ||
-        key === "ollama"
-      ) {
-        result.flags[key] = true;
-        i++;
-        continue;
-      }
-
-      // Handle array flags (--calendar, --calendar-id, --calendar-index can be repeated)
-      if (key === "calendar" || key === "calendar-id" || key === "calendar-index") {
-        const value = args[i + 1];
-        if (value === undefined || value.startsWith("--")) {
-          return {
-            ok: false,
-            error: { code: ERROR_CODES.MISSING_REQUIRED, message: `--${key} requires a value` },
-          };
-        }
-        if (!result.arrays[key]) {
-          result.arrays[key] = [];
-        }
-        result.arrays[key].push(value);
-        i += 2;
-        continue;
-      }
-
-      // Handle key-value flags
-      const value = args[i + 1];
-      if (value === undefined || value.startsWith("--")) {
-        return {
-          ok: false,
-          error: { code: ERROR_CODES.MISSING_REQUIRED, message: `--${key} requires a value` },
-        };
-      }
-      result.flags[key] = value;
-      i += 2;
-    } else if (!result.command) {
-      result.command = arg;
-      i++;
-    } else {
-      result.positional.push(arg);
-      i++;
-    }
-  }
-
-  return { ok: true, result };
-}
-
-// Validate datetime format
-function isValidDatetime(str: string): boolean {
-  // Date only: YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    const date = new Date(str + "T00:00:00");
-    return !isNaN(date.getTime());
-  }
-  // Datetime: YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(str)) {
-    const date = new Date(str);
-    return !isNaN(date.getTime());
-  }
-  return false;
-}
-
-function isDateOnly(str: string): boolean {
-  return /^\d{4}-\d{2}-\d{2}$/.test(str);
-}
+import { isDateOnly, isValidDatetime, parseArgs } from "../cli/args.js";
+import { errorMessage, openCalendarsPrivacySettings, promptYesNo } from "../cli/runtime.js";
+import type { CliArgs } from "../cli/types.js";
 
 // Show help
 function showHelp(command: string | null = null) {
@@ -411,26 +307,6 @@ DESCRIPTION:
   } else {
     console.log(globalHelp.trim());
   }
-}
-
-function promptYesNo(question: string): Promise<boolean> {
-  if (!process.stdin.isTTY) return Promise.resolve(false);
-
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question(question, (answer: string) => {
-      rl.close();
-      const normalized = String(answer || "")
-        .trim()
-        .toLowerCase();
-      resolve(normalized === "y" || normalized === "yes");
-    });
-  });
-}
-
-function openCalendarsPrivacySettings() {
-  const url = "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars";
-  spawnSync("open", [url], { stdio: "ignore" });
 }
 
 // Main command handlers
@@ -1971,9 +1847,8 @@ async function handleConfig(args: CliArgs) {
   }
 }
 
-// Main entry point
-async function main() {
-  const parseResult = parseArgs(process.argv.slice(2));
+export async function runLegacy(argv: string[] = process.argv.slice(2)) {
+  const parseResult = parseArgs(argv);
 
   // Handle parse errors with JSON support
   if (!parseResult.ok) {
@@ -1988,7 +1863,7 @@ async function main() {
 
   // Handle global version
   if (args.flags.version) {
-    const { version } = require("../package.json");
+    const { version } = require("../../package.json");
     console.log(version);
     process.exitCode = 0;
     return;
@@ -2069,9 +1944,3 @@ async function main() {
       return;
   }
 }
-
-main().catch((err) => {
-  console.error("Unexpected error:", err.message);
-  process.exitCode = 1;
-  return;
-});
