@@ -1,5 +1,4 @@
 #!/usr/bin/env node
-// @ts-nocheck
 "use strict";
 
 const { runScript, ERROR_CODES, EXIT_VALIDATION_ERROR } = require("../lib/calendar-helper-runner");
@@ -9,102 +8,13 @@ const cleanup = require("../lib/cleanup");
 const { preflightIcalFile } = require("../lib/ical-preflight");
 const fs = require("fs");
 const path = require("path");
-const { spawnSync } = require("child_process");
 const readline = require("readline");
-
-// Parse command line arguments
-// Returns { ok: true, result: {...} } or { ok: false, error: {...} }
-function parseArgs(args) {
-  const result = {
-    command: null,
-    positional: [],
-    flags: {},
-    arrays: {},
-  };
-
-  let i = 0;
-  while (i < args.length) {
-    const arg = args[i];
-
-    if (arg.startsWith("--")) {
-      const key = arg.slice(2);
-
-      // Handle boolean flags
-      if (
-        key === "json" ||
-        key === "help" ||
-        key === "version" ||
-        key === "all-day" ||
-        key === "no-all-day" ||
-        key === "apply" ||
-        key === "yes" ||
-        key === "ollama"
-      ) {
-        result.flags[key] = true;
-        i++;
-        continue;
-      }
-
-      // Handle array flags (--calendar, --calendar-id, --calendar-index can be repeated)
-      if (key === "calendar" || key === "calendar-id" || key === "calendar-index") {
-        const value = args[i + 1];
-        if (value === undefined || value.startsWith("--")) {
-          return {
-            ok: false,
-            error: { code: ERROR_CODES.MISSING_REQUIRED, message: `--${key} requires a value` },
-          };
-        }
-        if (!result.arrays[key]) {
-          result.arrays[key] = [];
-        }
-        result.arrays[key].push(value);
-        i += 2;
-        continue;
-      }
-
-      // Handle key-value flags
-      const value = args[i + 1];
-      if (value === undefined || value.startsWith("--")) {
-        return {
-          ok: false,
-          error: { code: ERROR_CODES.MISSING_REQUIRED, message: `--${key} requires a value` },
-        };
-      }
-      result.flags[key] = value;
-      i += 2;
-    } else if (!result.command) {
-      result.command = arg;
-      i++;
-    } else {
-      result.positional.push(arg);
-      i++;
-    }
-  }
-
-  return { ok: true, result };
-}
-
-// Validate datetime format
-function isValidDatetime(str) {
-  // Date only: YYYY-MM-DD
-  if (/^\d{4}-\d{2}-\d{2}$/.test(str)) {
-    const date = new Date(str + "T00:00:00");
-    return !isNaN(date.getTime());
-  }
-  // Datetime: YYYY-MM-DDTHH:mm or YYYY-MM-DDTHH:mm:ss
-  if (/^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}(:\d{2})?$/.test(str)) {
-    const date = new Date(str);
-    return !isNaN(date.getTime());
-  }
-  return false;
-}
-
-function isDateOnly(str) {
-  return /^\d{4}-\d{2}-\d{2}$/.test(str);
-}
+import { isDateOnly, isValidDatetime, parseArgs } from "../cli/args.js";
+import { errorMessage, openCalendarsPrivacySettings, promptYesNo } from "../cli/runtime.js";
+import type { CliArgs } from "../cli/types.js";
 
 // Show help
-function showHelp(command = null) {
+function showHelp(command: string | null = null) {
   const globalHelp = `
   calendar - Apple Calendar CLI for macOS
 
@@ -123,7 +33,7 @@ COMMANDS:
   config       Manage configuration (default calendar)
   audit        Find duplicate and suspicious events
   normalize    Preview or normalize event titles
-  patterns     Discover user-specific title patterns with local Ollama
+  patterns     Discover user-specific title patterns (Ollama or OpenRouter)
   rollback     Restore titles from a cleanup manifest
   preflight    Validate an ICS file before Apple Calendar import
   verify-import Reconcile an ICS file with EventKit after import
@@ -144,7 +54,7 @@ EXAMPLES:
   calendar create Work --summary "Meeting" --start 2025-01-15T14:00 --end 2025-01-15T15:00
 `;
 
-  const commandHelp = {
+  const commandHelp: Record<string, string> = {
     setup: `
   calendar setup - Trigger macOS Calendar permission
 
@@ -349,14 +259,15 @@ DESCRIPTION:
   review. --apply requires --yes and writes a rollback manifest.
 `,
     patterns: `
-  calendar patterns - Discover user-specific title patterns with local Ollama
+  calendar patterns - Discover user-specific title patterns
 
 USAGE:
-  calendar patterns <calendarName> --ollama --policy <path> [--instructions <text-or-file>] [--output <path>] [--json]
+  calendar patterns <calendarName> --policy <path> [--provider ollama|openrouter] [--ollama] [--ollama-model <model>] [--openrouter-model <model>] [--instructions <text-or-file>] [--output <path>] [--json]
 
 DESCRIPTION:
   Proposes structured patterns and ambiguous clusters. It never changes Calendar. Review the
-  generated policy before passing it to calendar normalize.
+  generated policy before passing it to calendar normalize. Local Ollama is the default; pass
+  --provider openrouter (requires OPENROUTER_API_KEY) to send the title list to OpenRouter.
 `,
     rollback: `
   calendar rollback - Restore titles from a cleanup manifest
@@ -398,28 +309,8 @@ DESCRIPTION:
   }
 }
 
-function promptYesNo(question) {
-  if (!process.stdin.isTTY) return Promise.resolve(false);
-
-  return new Promise((resolve) => {
-    const rl = readline.createInterface({ input: process.stdin, output: process.stdout });
-    rl.question(question, (answer) => {
-      rl.close();
-      const normalized = String(answer || "")
-        .trim()
-        .toLowerCase();
-      resolve(normalized === "y" || normalized === "yes");
-    });
-  });
-}
-
-function openCalendarsPrivacySettings() {
-  const url = "x-apple.systempreferences:com.apple.preference.security?Privacy_Calendars";
-  spawnSync("open", [url], { stdio: "ignore" });
-}
-
 // Main command handlers
-async function handleSetup(args) {
+async function handleSetup(args: CliArgs) {
   const result = await runScript("setup", { json: !!args.flags.json });
 
   if (result.success) {
@@ -442,7 +333,7 @@ async function handleSetup(args) {
   return;
 }
 
-async function handleCalendars(args) {
+async function handleCalendars(args: CliArgs) {
   const result = await runScript("calendars", {});
 
   if (result.success) {
@@ -458,7 +349,7 @@ async function handleCalendars(args) {
   return;
 }
 
-async function handleEvents(args) {
+async function handleEvents(args: CliArgs) {
   const calendarNamePositional = args.positional[0];
   const calendarNameFlag = args.flags["calendar-name"];
   const calendarIds = args.arrays["calendar-id"] || [];
@@ -596,7 +487,7 @@ async function handleEvents(args) {
   return;
 }
 
-async function handleEvent(args) {
+async function handleEvent(args: CliArgs) {
   const calendarNameFlag = args.flags["calendar-name"];
   const calendarIds = args.arrays["calendar-id"] || [];
   const calendarIndexes = args.arrays["calendar-index"] || [];
@@ -748,7 +639,7 @@ async function handleEvent(args) {
   return;
 }
 
-async function handleCreate(args) {
+async function handleCreate(args: CliArgs) {
   const calendarNamePositional = args.positional[0];
   const calendarNameFlag = args.flags["calendar-name"];
   const calendarIds = args.arrays["calendar-id"] || [];
@@ -931,7 +822,7 @@ async function handleCreate(args) {
   return;
 }
 
-async function handleUpdate(args) {
+async function handleUpdate(args: CliArgs) {
   const calendarNameFlag = args.flags["calendar-name"];
   const calendarIds = args.arrays["calendar-id"] || [];
   const calendarIndexes = args.arrays["calendar-index"] || [];
@@ -1113,7 +1004,7 @@ async function handleUpdate(args) {
   return;
 }
 
-async function handleDelete(args) {
+async function handleDelete(args: CliArgs) {
   const calendarNameFlag = args.flags["calendar-name"];
   const calendarIds = args.arrays["calendar-id"] || [];
   const calendarIndexes = args.arrays["calendar-index"] || [];
@@ -1265,7 +1156,7 @@ async function handleDelete(args) {
   return;
 }
 
-async function handleFreeBusy(args) {
+async function handleFreeBusy(args: CliArgs) {
   const calendars = args.arrays["calendar"] || [];
   const calendarIds = args.arrays["calendar-id"] || [];
   const calendarIndexes = args.arrays["calendar-index"] || [];
@@ -1345,7 +1236,7 @@ async function handleFreeBusy(args) {
   return;
 }
 
-function workflowCalendar(args) {
+function workflowCalendar(args: CliArgs) {
   const ids = args.arrays["calendar-id"] || [];
   const names = args.positional;
   if (ids.length > 1 || names.length > 1 || (ids.length && names.length)) {
@@ -1369,7 +1260,7 @@ function workflowCalendar(args) {
   return { calendarId, calendarName };
 }
 
-function workflowRange(args) {
+function workflowRange(args: CliArgs) {
   if (args.flags.from && !isValidDatetime(args.flags.from))
     return { error: `Invalid --from datetime: ${args.flags.from}` };
   if (args.flags.to && !isValidDatetime(args.flags.to))
@@ -1377,14 +1268,14 @@ function workflowRange(args) {
   return { from: args.flags.from || "1900-01-01", to: args.flags.to || "2100-01-01" };
 }
 
-function writeManifest(args, manifest) {
+function writeManifest(args: CliArgs, manifest: unknown): string {
   const filename =
     args.flags.manifest || path.join(process.cwd(), `calendar-cleanup-${Date.now()}.json`);
   fs.writeFileSync(filename, JSON.stringify(manifest, null, 2) + "\n", "utf8");
   return filename;
 }
 
-async function scanWorkflow(args) {
+async function scanWorkflow(args: CliArgs) {
   const target = workflowCalendar(args);
   if (target.error) return { error: target.error };
   const range = workflowRange(args);
@@ -1395,16 +1286,16 @@ async function scanWorkflow(args) {
     : { error: result.error, exitCode: result.exitCode };
 }
 
-function workflowError(args, result) {
+function workflowError(args: CliArgs, result: any): void {
   output.outputError(result.error, { json: args.flags.json });
   process.exitCode = result.exitCode || EXIT_VALIDATION_ERROR;
 }
 
-async function handleAudit(args) {
+async function handleAudit(args: CliArgs) {
   const scanned = await scanWorkflow(args);
   if (scanned.error) return workflowError(args, scanned);
   const report = cleanup.auditEvents(scanned.events);
-  const removable = report.exactDuplicates.flatMap((group) => group.slice(1));
+  const removable = report.exactDuplicates.flatMap((group: any[]) => group.slice(1));
   if (!args.flags.apply) {
     output.output(
       { ...report, removableExactDuplicates: removable, preview: true },
@@ -1418,7 +1309,7 @@ async function handleAudit(args) {
     });
   const mutation = await runScript("mutate", {
     ...scanned.target,
-    changes: removable.map((event) => ({
+    changes: removable.map((event: any) => ({
       action: "delete",
       id: event.id,
       uid: event.uid,
@@ -1440,7 +1331,7 @@ async function handleAudit(args) {
   );
 }
 
-async function handleNormalize(args) {
+async function handleNormalize(args: CliArgs) {
   const scanned = await scanWorkflow(args);
   if (scanned.error) return workflowError(args, scanned);
   let policy = {};
@@ -1451,7 +1342,7 @@ async function handleNormalize(args) {
       return workflowError(args, {
         error: {
           code: ERROR_CODES.INVALID_ARGUMENT,
-          message: `Invalid policy file: ${error.message}`,
+          message: `Invalid policy file: ${errorMessage(error)}`,
         },
       });
     }
@@ -1465,18 +1356,20 @@ async function handleNormalize(args) {
         policy,
       );
     } catch (error) {
-      return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } });
+      return workflowError(args, {
+        error: { code: "OLLAMA_UNAVAILABLE", message: errorMessage(error) },
+      });
     }
   }
-  const changes = proposals.filter((item) => item.changed && item.status === "proposed");
-  const review = proposals.filter((item) => item.status === "review");
+  const changes = proposals.filter((item: any) => item.changed && item.status === "proposed");
+  const review = proposals.filter((item: any) => item.status === "review");
   if (!args.flags.apply) {
     output.output(
       {
         preview: true,
         changes,
         review,
-        excluded: proposals.filter((item) => item.status === "excluded"),
+        excluded: proposals.filter((item: any) => item.status === "excluded"),
       },
       { json: args.flags.json },
     );
@@ -1488,7 +1381,7 @@ async function handleNormalize(args) {
     });
   const mutation = await runScript("mutate", {
     ...scanned.target,
-    changes: changes.map((item) => ({
+    changes: changes.map((item: any) => ({
       action: "rename",
       id: item.id,
       uid: item.uid,
@@ -1511,12 +1404,16 @@ async function handleNormalize(args) {
   );
 }
 
-async function handlePatterns(args) {
+async function handlePatterns(args: CliArgs) {
   const scanned = await scanWorkflow(args);
   if (scanned.error) return workflowError(args, scanned);
-  if (!args.flags.ollama)
+  const provider = args.flags.provider === "openrouter" ? "openrouter" : "ollama";
+  if (provider === "openrouter" && !process.env.OPENROUTER_API_KEY)
     return workflowError(args, {
-      error: { code: ERROR_CODES.MISSING_REQUIRED, message: "patterns requires --ollama" },
+      error: {
+        code: "MISSING_ENV",
+        message: "patterns --provider openrouter requires OPENROUTER_API_KEY",
+      },
     });
   let policy = { taxonomy: [], instructions: "" };
   if (args.flags.policy) {
@@ -1526,7 +1423,7 @@ async function handlePatterns(args) {
       return workflowError(args, {
         error: {
           code: ERROR_CODES.INVALID_ARGUMENT,
-          message: `Invalid policy file: ${error.message}`,
+          message: `Invalid policy file: ${errorMessage(error)}`,
         },
       });
     }
@@ -1553,14 +1450,27 @@ async function handlePatterns(args) {
       });
     const unresolved = cleanup
       .normalizeEvents(scanned.events, policy)
-      .filter((item) => item.status === "review");
-    const result = await cleanup.discoverPatternsWithOllama(
-      unresolved,
-      policy.instructions,
-      args.flags["ollama-model"] || "qwen3.5:4b",
-      policy.taxonomy,
-      maxTitles,
-    );
+      .filter((item: any) => item.status === "review");
+    const model =
+      provider === "openrouter"
+        ? args.flags["openrouter-model"] || cleanup.OPENROUTER_DEFAULT_MODEL
+        : args.flags["ollama-model"] || "qwen3.5:4b";
+    const result =
+      provider === "openrouter"
+        ? await cleanup.discoverPatternsWithOpenRouter(
+            unresolved,
+            policy.instructions,
+            model,
+            policy.taxonomy,
+            maxTitles,
+          )
+        : await cleanup.discoverPatternsWithOllama(
+            unresolved,
+            policy.instructions,
+            model,
+            policy.taxonomy,
+            maxTitles,
+          );
     const outputPath = args.flags.output;
     if (outputPath)
       fs.writeFileSync(
@@ -1569,15 +1479,20 @@ async function handlePatterns(args) {
         "utf8",
       );
     output.output(
-      { ...result, outputPath: outputPath || null, preview: true },
+      { ...result, provider, model, outputPath: outputPath || null, preview: true },
       { json: args.flags.json },
     );
   } catch (error) {
-    return workflowError(args, { error: { code: "OLLAMA_UNAVAILABLE", message: error.message } });
+    return workflowError(args, {
+      error: {
+        code: provider === "openrouter" ? "OPENROUTER_UNAVAILABLE" : "OLLAMA_UNAVAILABLE",
+        message: errorMessage(error),
+      },
+    });
   }
 }
 
-async function handleRollback(args) {
+async function handleRollback(args: CliArgs) {
   const manifestPath = args.positional[0];
   if (!manifestPath)
     return workflowError(args, {
@@ -1592,12 +1507,15 @@ async function handleRollback(args) {
     manifest = JSON.parse(fs.readFileSync(manifestPath, "utf8"));
   } catch (error) {
     return workflowError(args, {
-      error: { code: ERROR_CODES.INVALID_ARGUMENT, message: `Invalid manifest: ${error.message}` },
+      error: {
+        code: ERROR_CODES.INVALID_ARGUMENT,
+        message: `Invalid manifest: ${errorMessage(error)}`,
+      },
     });
   }
   const changes = (manifest.changes || [])
-    .filter((change) => change.action === "rename")
-    .map((change) => ({
+    .filter((change: any) => change.action === "rename")
+    .map((change: any) => ({
       action: "rename",
       id: change.id,
       uid: change.uid,
@@ -1613,7 +1531,7 @@ async function handleRollback(args) {
   );
 }
 
-async function handlePreflight(args) {
+async function handlePreflight(args: CliArgs) {
   const file = args.positional[0];
   if (!file)
     return workflowError(args, {
@@ -1651,13 +1569,13 @@ async function handlePreflight(args) {
     workflowError(args, {
       error: {
         code: ERROR_CODES.INVALID_ARGUMENT,
-        message: `Unable to read ICS file: ${error.message}`,
+        message: `Unable to read ICS file: ${errorMessage(error)}`,
       },
     });
   }
 }
 
-async function handleVerifyImport(args) {
+async function handleVerifyImport(args: CliArgs) {
   const file = args.positional[0];
   if (!file)
     return workflowError(args, {
@@ -1679,14 +1597,14 @@ async function handleVerifyImport(args) {
     const scanned = await runScript("scan", { ...target, ...range });
     if (!scanned.success) return workflowError(args, scanned);
     const events = scanned.data.events || [];
-    const uniqueUids = new Set(events.map((event) => event.uid));
-    const recurring = events.filter((event) => event.isRecurring);
+    const uniqueUids = new Set(events.map((event: any) => event.uid));
+    const recurring = events.filter((event: any) => event.isRecurring);
     const eventkit = {
       generatedRecordCount: events.length,
       uniqueUidCount: uniqueUids.size,
-      nonRecurringCount: events.filter((event) => !event.isRecurring).length,
+      nonRecurringCount: events.filter((event: any) => !event.isRecurring).length,
       recurringRecordCount: recurring.length,
-      recurringSeriesCount: new Set(recurring.map((event) => event.uid)).size,
+      recurringSeriesCount: new Set(recurring.map((event: any) => event.uid)).size,
     };
     const reconciliation = {
       sourceEventCount: source.eventCount,
@@ -1709,13 +1627,13 @@ async function handleVerifyImport(args) {
     workflowError(args, {
       error: {
         code: ERROR_CODES.INVALID_ARGUMENT,
-        message: `Unable to verify import: ${error.message}`,
+        message: `Unable to verify import: ${errorMessage(error)}`,
       },
     });
   }
 }
 
-async function handleConfig(args) {
+async function handleConfig(args: CliArgs) {
   const action = args.positional[0];
 
   if (!action) {
@@ -1749,7 +1667,7 @@ async function handleConfig(args) {
         let selectedCalendar = null;
 
         if (calendarId) {
-          selectedCalendar = calendars.find((c) => c.id === calendarId);
+          selectedCalendar = calendars.find((c: any) => c.id === calendarId);
           if (!selectedCalendar) {
             output.outputError(
               {
@@ -1762,7 +1680,7 @@ async function handleConfig(args) {
             return;
           }
         } else if (calendarName) {
-          const matches = calendars.filter((c) => c.name === calendarName);
+          const matches = calendars.filter((c: any) => c.name === calendarName);
           if (matches.length === 0) {
             output.outputError(
               {
@@ -1775,7 +1693,7 @@ async function handleConfig(args) {
             return;
           }
           if (matches.length > 1) {
-            const ids = matches.map((c) => c.id).join(", ");
+            const ids = matches.map((c: any) => c.id).join(", ");
             output.outputError(
               {
                 code: ERROR_CODES.AMBIGUOUS_CALENDAR,
@@ -1834,7 +1752,7 @@ async function handleConfig(args) {
       }
 
       console.log("Available calendars:");
-      calendars.forEach((cal, i) => {
+      calendars.forEach((cal: any, i: number) => {
         console.log(`  ${i + 1}. ${cal.name} (${cal.source}) - ID: ${cal.id.substring(0, 8)}...`);
       });
 
@@ -1844,7 +1762,7 @@ async function handleConfig(args) {
       });
       rl.close();
 
-      const index = parseInt(answer, 10) - 1;
+      const index = parseInt(String(answer), 10) - 1;
       if (isNaN(index) || index < 0 || index >= calendars.length) {
         output.outputError(
           { code: ERROR_CODES.INVALID_ARGUMENT, message: "Invalid selection" },
@@ -1882,7 +1800,7 @@ async function handleConfig(args) {
         return;
       }
 
-      const calendar = result.data.calendars.find((c) => c.id === defaultId);
+      const calendar = result.data.calendars.find((c: any) => c.id === defaultId);
 
       if (args.flags.json) {
         output.output(
@@ -1929,9 +1847,8 @@ async function handleConfig(args) {
   }
 }
 
-// Main entry point
-async function main() {
-  const parseResult = parseArgs(process.argv.slice(2));
+export async function runLegacy(argv: string[] = process.argv.slice(2)) {
+  const parseResult = parseArgs(argv);
 
   // Handle parse errors with JSON support
   if (!parseResult.ok) {
@@ -1946,7 +1863,7 @@ async function main() {
 
   // Handle global version
   if (args.flags.version) {
-    const { version } = require("../package.json");
+    const { version } = require("../../package.json");
     console.log(version);
     process.exitCode = 0;
     return;
@@ -2027,9 +1944,3 @@ async function main() {
       return;
   }
 }
-
-main().catch((err) => {
-  console.error("Unexpected error:", err.message);
-  process.exitCode = 1;
-  return;
-});

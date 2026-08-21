@@ -33,14 +33,23 @@
     "prepack": "pnpm build && pnpm test",
     "prepublishOnly": "pnpm lint && pnpm format && pnpm test"
   },
+  "dependencies": {
+    "@oclif/core": "^4.14.0",
+    "@ponti-studios/ai": "workspace:*"
+  },
   "devDependencies": {
-    "@types/node": "^22.13.0",
+    "@types/node": "^24.0.0",
     "oxfmt": "^0.64.0",
     "oxlint": "^1.79.0",
     "typescript": "^5.8.0",
     "vitest": "^3.2.4"
   },
+  "oclif": {
+    "bin": "calendar",
+    "commands": "commands",
+    "dirname": "calendar"
+  },
   "engines": {
-    "node": ">=14.0.0"
+    "node": ">=24"
   }
 }
