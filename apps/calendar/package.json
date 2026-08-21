@@ -11,7 +11,7 @@
   "license": "MIT",
   "author": "Joar G.P. <joargp@gmail.com>",
   "bin": {
-    "calendar": "dist/bin/calendar.js"
+    "calendar": "dist/index.js"
   },
   "files": [
     "dist/",

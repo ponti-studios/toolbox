@@ -1,9 +1,9 @@
 import { Command } from "@oclif/core";
-import { runLegacyCommand } from "../cli/run-legacy.js";
+import { runCliCommand } from "../cli/run-command.js";
 
 export default class Rollback extends Command {
   static strict = false;
   async run(): Promise<void> {
-    await runLegacyCommand("rollback", this.argv);
+    await runCliCommand("rollback", this.argv);
   }
 }

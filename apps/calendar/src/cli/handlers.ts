@@ -1847,7 +1847,7 @@ async function handleConfig(args: CliArgs) {
   }
 }
 
-export async function runLegacy(argv: string[] = process.argv.slice(2)) {
+export async function runCommand(argv: string[] = process.argv.slice(2)) {
   const parseResult = parseArgs(argv);
 
   // Handle parse errors with JSON support
