@@ -1,9 +1,9 @@
 import { Command } from "@oclif/core";
-import { runLegacyCommand } from "../cli/run-legacy.js";
+import { runCliCommand } from "../cli/run-command.js";
 
 export default class Event extends Command {
   static strict = false;
   async run(): Promise<void> {
-    await runLegacyCommand("event", this.argv);
+    await runCliCommand("event", this.argv);
   }
 }

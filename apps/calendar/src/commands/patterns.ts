@@ -1,9 +1,9 @@
 import { Command } from "@oclif/core";
-import { runLegacyCommand } from "../cli/run-legacy.js";
+import { runCliCommand } from "../cli/run-command.js";
 
 export default class Patterns extends Command {
   static strict = false;
   async run(): Promise<void> {
-    await runLegacyCommand("patterns", this.argv);
+    await runCliCommand("patterns", this.argv);
   }
 }

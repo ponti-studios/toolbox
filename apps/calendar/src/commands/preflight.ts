@@ -1,9 +1,9 @@
 import { Command } from "@oclif/core";
-import { runLegacyCommand } from "../cli/run-legacy.js";
+import { runCliCommand } from "../cli/run-command.js";
 
 export default class Preflight extends Command {
   static strict = false;
   async run(): Promise<void> {
-    await runLegacyCommand("preflight", this.argv);
+    await runCliCommand("preflight", this.argv);
   }
 }
