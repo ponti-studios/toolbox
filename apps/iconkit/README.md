@@ -1,80 +1,31 @@
-# iconkit
+# @ponti-studios/iconkit (deprecated)
 
-Image asset toolkit — resize, optimize, and generate web icons from the command line.
-
-A TypeScript rewrite of the original bash script, compiled to a standalone binary with [Bun](https://bun.sh).
-
-## Install
-
-### From source or a checked-out repository
+> **Deprecated:** IconKit has been renamed to **ImageKit**. Install `@ponti-studios/imagekit` instead.
 
 ```bash
-git clone https://github.com/ponti-studios/toolbox.git
-cd toolbox/apps/iconkit
-bun install
-bun run build
-./iconkit install
+npm install -g @ponti-studios/imagekit
+# imagekit is primary; iconkit and photokit remain as aliases
+imagekit --help
+iconkit --help
+photokit --help
 ```
 
-IconKit currently targets macOS because it depends on the built-in `sips` command. The optional
-encoders and ImageMagick features require Homebrew dependencies:
+This package is a compatibility shim that depends on `@ponti-studios/imagekit` and exposes the `iconkit` executable. It will print a migration warning on install.
 
-```bash
-brew install imagemagick webp libavif exiftool
+Please update your dependencies:
+
+```diff
+- "@ponti-studios/iconkit"
++ "@ponti-studios/imagekit"
 ```
 
-`cwebp` is required for WebP optimization, `avifenc` for AVIF optimization, ImageMagick for
-cropping with gravity and web-asset generation, and either ImageMagick or `exiftool` for metadata
-stripping.
+And update scripts:
 
-The `install` command is intended for the compiled standalone binary. When running the Node-targeted
-package entrypoint, it creates a small wrapper script in the selected bin directory.
-
----
-
-## Commands
-
-### `iconkit optimize` — Resize & convert for the web
-
-```bash
-iconkit optimize -s 500x500 logo.*.png
-iconkit optimize -s 1200x630 -q 80 -f both -o ./web ~/assets/*.png
+```diff
+- iconkit optimize -s 500x500 ...
++ imagekit optimize -s 500x500 ...
 ```
 
-**Options:**
+`iconkit` and `photokit` continue to work as binary aliases for `imagekit`.
 
-| Option                   | Description                   | Default           |
-| ------------------------ | ----------------------------- | ----------------- |
-| `-s, --size <WxH>`       | Target dimensions             | `500x500`         |
-| `-q, --quality <N>`      | WebP/AVIF quality             | `85`              |
-| `-o, --output-dir <DIR>` | Output directory              | same dir as input |
-| `-k, --keep-png`         | Keep resized PNG              | `false`           |
-| `-f, --format <fmt>`     | `webp`, `avif`, `both`, `png` | `webp`            |
-| `-d, --dry-run`          | Preview without writing       | `false`           |
-
----
-
-### `iconkit web` — Generate favicon, app icons & social cards
-
-```bash
-iconkit web logo.png
-iconkit web logo.png -o ./static/icons
-```
-
-Generates favicon (16–96 + .ico), Apple touch (57–180), Android (36–192), PWA (192–512), MS Tile (70–310), OG image & Twitter card (1200×630).
-
-Requires `magick` (`brew install imagemagick`).
-
----
-
-### `iconkit info` — Show image dimensions & sizes
-
-```bash
-iconkit info *.png
-```
-
----
-
-### `iconkit install` — Symlink into PATH
-
-Auto-detects `~/.local/bin`, `/usr/local/bin`, or `~/bin`.
+See [`apps/imagekit/README.md`](../imagekit/README.md) for full documentation.
