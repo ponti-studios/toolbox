@@ -61,8 +61,16 @@ rootOption(frontmatter.command("update"))
   .requiredOption("--field <field>")
   .requiredOption("--value <value>")
   .option("--dry-run")
-  .action((options: { root: string; field: string; value: string; dryRun?: boolean }) =>
-    updateField(options.root, options.field, options.value, Boolean(options.dryRun)),
+  .option("--render", "re-render the whole frontmatter block (normalizes formatting and date scalars)")
+  .action(
+    (options: { root: string; field: string; value: string; dryRun?: boolean; render?: boolean }) =>
+      updateField(
+        options.root,
+        options.field,
+        options.value,
+        Boolean(options.dryRun),
+        Boolean(options.render),
+      ),
   );
 frontmatter
   .command("set")
@@ -70,14 +78,18 @@ frontmatter
   .requiredOption("--field <field>")
   .requiredOption("--value <value>")
   .option("--dry-run")
-  .action((options: { file: string; field: string; value: string; dryRun?: boolean }) =>
-    setField(options.file, options.field, options.value, Boolean(options.dryRun)),
+  .option("--render", "re-render the whole frontmatter block (normalizes formatting and date scalars)")
+  .action(
+    (options: { file: string; field: string; value: string; dryRun?: boolean; render?: boolean }) =>
+      setField(options.file, options.field, options.value, Boolean(options.dryRun), Boolean(options.render)),
   );
 rootOption(frontmatter.command("remove"))
   .requiredOption("--field <field>")
   .option("--dry-run")
-  .action((options: { root: string; field: string; dryRun?: boolean }) =>
-    removeField(options.root, options.field, Boolean(options.dryRun)),
+  .option("--render", "re-render the whole frontmatter block (normalizes formatting and date scalars)")
+  .action(
+    (options: { root: string; field: string; dryRun?: boolean; render?: boolean }) =>
+      removeField(options.root, options.field, Boolean(options.dryRun), Boolean(options.render)),
   );
 rootOption(frontmatter.command("slug"))
   .option("--resolve")
