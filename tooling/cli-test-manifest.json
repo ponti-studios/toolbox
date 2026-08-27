@@ -52,6 +52,19 @@
       "release_smoke_command": "./scripts/swift-package-clean-run.sh apps/mediakit swift build -c release && ./apps/mediakit/.build/release/mediakit --help",
       "allows_network_integration": false,
       "allows_system_integration": false
+    },
+    {
+      "name": "imagekit",
+      "language": "bun",
+      "path": "apps/imagekit",
+      "os": "macos-26",
+      "build_command": "cd apps/imagekit && bun install --frozen-lockfile && bun run build:test",
+      "unit_command": "cd apps/imagekit && bun install --frozen-lockfile && bun run typecheck && bun run test",
+      "smoke_command": "./apps/imagekit/.test-bin/imagekit --help && ./apps/imagekit/.test-bin/imagekit --version",
+      "integration_command": "./scripts/cli/integration/imagekit.sh",
+      "release_smoke_command": "cd apps/imagekit && bun install --frozen-lockfile && bun run build:npm && node dist/imagekit.js --help",
+      "allows_network_integration": false,
+      "allows_system_integration": false
     }
   ]
 }

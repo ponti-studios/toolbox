@@ -52,8 +52,8 @@ toolbox/
 just build
 ```
 
-`just build` currently builds FileKit, AgentKit, MediaKit on macOS, and XKit when Go is
-available. DatPiff, ImageKit, and OpenSpeek use their app-local commands below.
+`just build` currently builds FileKit, AgentKit, ImageKit (macOS, when Bun is
+available), MediaKit on macOS, and XKit when Go is available. DatPiff, ImageKit, and OpenSpeek use their app-local commands below.
 
 ### Install core Node CLIs
 

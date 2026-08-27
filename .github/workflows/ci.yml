@@ -85,6 +85,16 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
+      - name: Set up Bun
+        if: matrix.language == 'bun'
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Install imagekit system tools
+        if: matrix.language == 'bun'
+        run: brew install exiftool imagemagick libavif webp
+
       - name: Run unit phase
         run: ./scripts/test-clis.sh --phase unit --tool "${{ matrix.name }}"
 
@@ -123,6 +133,16 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
+
+      - name: Set up Bun
+        if: matrix.language == 'bun'
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Install imagekit system tools
+        if: matrix.language == 'bun'
+        run: brew install exiftool imagemagick libavif webp
 
       - name: Run smoke phase
         run: ./scripts/test-clis.sh --phase smoke --tool "${{ matrix.name }}"
@@ -163,6 +183,16 @@ jobs:
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
 
+      - name: Set up Bun
+        if: matrix.language == 'bun'
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Install imagekit system tools
+        if: matrix.language == 'bun'
+        run: brew install exiftool imagemagick libavif webp
+
       - name: Run integration phase
         run: ./scripts/test-clis.sh --phase integration --tool "${{ matrix.name }}"
 
@@ -202,6 +232,16 @@ jobs:
           node-version: "24"
           cache: npm
           cache-dependency-path: ${{ matrix.path }}/package-lock.json
+
+      - name: Set up Bun
+        if: matrix.language == 'bun'
+        uses: oven-sh/setup-bun@v2.2.0
+        with:
+          bun-version: 1.3.10
+
+      - name: Install imagekit system tools
+        if: matrix.language == 'bun'
+        run: brew install exiftool imagemagick libavif webp
 
       - name: Run release-smoke phase
         run: ./scripts/test-clis.sh --phase release-smoke --tool "${{ matrix.name }}"

@@ -5,10 +5,14 @@ build:
     cd apps/filekit && npm ci && npm run build
     cd apps/agentkit && npm run build
     if [ "$(uname)" = "Darwin" ] && [ -f apps/mediakit/Package.swift ]; then ./scripts/swift-package-clean-run.sh apps/mediakit swift build; fi
+    if [ "$(uname)" = "Darwin" ] && command -v bun >/dev/null 2>&1; then cd apps/imagekit && bun install --frozen-lockfile && bun run build; fi
     if command -v go >/dev/null 2>&1; then if command -v mise >/dev/null 2>&1; then (cd apps/xkit && mise exec go@1.26.4 -- go build -trimpath -ldflags='-s -w' -o ../../target/xkit .); else (cd apps/xkit && go build -trimpath -ldflags='-s -w' -o ../../target/xkit .); fi; fi
 
 build-filekit:
     cd apps/filekit && npm ci && npm run build
+
+build-imagekit:
+    cd apps/imagekit && bun install --frozen-lockfile && bun run build
 
 check:
     cd apps/filekit && npm ci && npm run typecheck
@@ -47,6 +51,7 @@ install NAME="all":
     case "{{NAME}}" in
       filekit) (cd apps/filekit && npm ci && npm run build); ln -sf "$(pwd)/apps/filekit/dist/index.js" "$mise_shims/filekit"; chmod +x "$mise_shims/filekit" ;;
       agentkit) (cd apps/agentkit && npm run build); ln -sf "$(pwd)/apps/agentkit/dist/index.js" "$mise_shims/agentkit"; chmod +x "$mise_shims/agentkit" ;;
-      all) just install filekit; just install agentkit ;;
+      imagekit) (cd apps/imagekit && bun install --frozen-lockfile && bun run build); ln -sf "$(pwd)/apps/imagekit/imagekit" "$mise_shims/imagekit"; chmod +x "$mise_shims/imagekit" ;;
+      all) just install filekit; just install agentkit; just install imagekit ;;
       *) echo "Unknown app: {{NAME}}"; exit 1 ;;
     esac
