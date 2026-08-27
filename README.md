@@ -18,10 +18,10 @@ toolbox/
 │   ├── xkit/
 │   ├── mediakit/
 │   ├── datpiff/
-│   ├── photokit/
+│   ├── imagekit/   # primary — replaces iconkit + photokit
+│   ├── iconkit/    # compat shim for @ponti-studios/iconkit
 │   ├── agentkit/
 │   ├── calendar/
-│   ├── iconkit/
 │   └── openspeek/
 ├── packages/
 │   └── files/
@@ -32,17 +32,17 @@ toolbox/
 
 ## Tool Index
 
-| Tool                                    | Language             | Description                                                                           |
-| --------------------------------------- | -------------------- | ------------------------------------------------------------------------------------- |
-| [filekit](./apps/filekit/README.md)     | TypeScript / Node 24 | Generic frontmatter and file utilities                                                |
-| [xkit](./apps/xkit/README.md)           | Go                   | Paid destructive X/Twitter post deletion                                              |
-| [mediakit](./apps/mediakit/README.md)   | Swift                | Video/audio transcription to Markdown via Apple Speech                                |
-| [datpiff](./apps/datpiff/README.md)     | Python               | Internet Archive crawler for DatPiff-style mixtape listings                           |
-| [photokit](./apps/photokit/README.md)   | Python               | EXIF analysis, date repair from filenames, and date-based renaming                    |
-| [agentkit](./apps/agentkit/README.md)   | TypeScript           | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter  |
-| [calendar](./apps/calendar/README.md)   | TypeScript / macOS   | Apple Calendar CLI for managing calendars and events via EventKit                     |
-| [iconkit](./apps/iconkit/README.md)     | TypeScript / Bun     | Image resizing, optimization, conversion, metadata stripping, and web-icon generation |
-| [openspeek](./apps/openspeek/README.md) | TypeScript / Bun     | Markdown-to-audio narration using OpenRouter TTS and local fallbacks                  |
+| Tool                                      | Language             | Description                                                                                      |
+| ----------------------------------------- | -------------------- | ---------------------------------------------------------------------------------------------- |
+| [filekit](./apps/filekit/README.md)       | TypeScript / Node 24 | Generic frontmatter and file utilities                                                           |
+| [xkit](./apps/xkit/README.md)             | Go                   | Paid destructive X/Twitter post deletion                                                         |
+| [mediakit](./apps/mediakit/README.md)     | Swift                | Video/audio transcription to Markdown via Apple Speech                                           |
+| [datpiff](./apps/datpiff/README.md)       | Python               | Internet Archive crawler for DatPiff-style mixtape listings                                      |
+| [imagekit](./apps/imagekit/README.md)     | TypeScript / Bun     | Image resizing, optimization, EXIF analysis, date repair, renaming, and web-icon generation     |
+| [iconkit](./apps/iconkit/README.md)       | TypeScript (compat)  | Deprecated shim for `imagekit` — `iconkit` remains as a binary alias                           |
+| [agentkit](./apps/agentkit/README.md)     | TypeScript           | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter             |
+| [calendar](./apps/calendar/README.md)     | TypeScript / macOS   | Apple Calendar CLI for managing calendars and events via EventKit                                |
+| [openspeek](./apps/openspeek/README.md)   | TypeScript / Bun     | Markdown-to-audio narration using OpenRouter TTS and local fallbacks                             |
 
 ## Development
 
@@ -52,8 +52,8 @@ toolbox/
 just build
 ```
 
-`just build` currently builds FileKit, AgentKit, MediaKit on macOS, and XKit when Go is
-available. DatPiff, PhotoKit, IconKit, and OpenSpeek use their app-local commands below.
+`just build` currently builds FileKit, AgentKit, ImageKit (macOS, when Bun is
+available), MediaKit on macOS, and XKit when Go is available. DatPiff, ImageKit, and OpenSpeek use their app-local commands below.
 
 ### Install core Node CLIs
 
@@ -75,14 +75,13 @@ just test
 For app-local tests:
 
 ```bash
-cd apps/iconkit && bun install --frozen-lockfile && bun run typecheck && bun run test
+cd apps/imagekit && bun install --frozen-lockfile && bun run typecheck && bun run test
 cd apps/openspeek && bun install && bun run typecheck && bun run test
-cd apps/photokit && python3 -m photokit --help
 cd apps/datpiff && python3 -m datpiff --help
 ```
 
-IconKit is macOS-specific because it uses `sips`. Its fixture corpus and reproducible manual
-binary sweep live in `apps/iconkit/tests/fixtures/README.md`.
+ImageKit is macOS-specific because it uses `sips`. Its fixture corpus and reproducible manual
+binary sweep live in `apps/imagekit/tests/fixtures/README.md`. `iconkit` and `photokit` remain as compatibility aliases for `imagekit`.
 
 ### Run manifest-driven CLI checks
 
@@ -100,7 +99,7 @@ currently CI-managed CLI checks: FileKit, AgentKit, XKit, and MediaKit. It defin
 - whether a CLI is allowed to rely on network or system integration during automation
 
 CLI fixtures should stay tool-local. Use app-owned fixture directories such as
-`apps/filekit/tests/fixtures` and `apps/iconkit/tests/fixtures` instead of introducing
+`apps/filekit/tests/fixtures` and `apps/imagekit/tests/fixtures` instead of introducing
 machine-local dependencies.
 
 The CLI runner activates `mise` automatically when it is available so local Go and other managed
@@ -113,7 +112,7 @@ toolchains match the versions you have configured. Swift package automation is e
 npx @ponti-studios/filekit frontmatter walk
 cd apps/datpiff && python3 -m datpiff scrape archiveorg --help
 cd apps/xkit && go run . delete-posts --help
-cd apps/iconkit && bun run build:test && .test-bin/iconkit --help
+cd apps/imagekit && bun run build:test && .test-bin/imagekit --help
 cd apps/openspeek && bun run build && node dist/openspeek.js --help
 ```
 
@@ -129,7 +128,8 @@ just install-mediakit
 
 - Release tags follow the pattern `<cli>-v<version>`
 - `filekit` is published to npm as `@ponti-studios/filekit`
-- `iconkit` is published to npm as `@ponti-studios/iconkit`
+- `imagekit` is published to npm as `@ponti-studios/imagekit` (primary; `iconkit`/`photokit` are binary aliases)
+- `@ponti-studios/iconkit` is a deprecated compatibility package depending on `@ponti-studios/imagekit`
 - `openspeek` is published to npm as `@ponti-studios/openspeek`
 - Node/Bun tools use their app-local lockfiles
 - Swift tools build from their package directories

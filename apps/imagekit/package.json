@@ -1,0 +1,51 @@
+{
+  "name": "@ponti-studios/imagekit",
+  "version": "1.0.0",
+  "description": "Image asset toolkit — resize, optimize, crop, convert, strip metadata, analyze EXIF, and generate web icons from the command line",
+  "keywords": [
+    "avif",
+    "cli",
+    "favicon",
+    "image",
+    "optimize",
+    "resize",
+    "sips",
+    "webp"
+  ],
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ponti-studios/toolbox.git",
+    "directory": "apps/imagekit"
+  },
+  "bin": {
+    "imagekit": "dist/imagekit.js",
+    "iconkit": "dist/imagekit.js",
+    "photokit": "dist/imagekit.js"
+  },
+  "files": [
+    "dist",
+    "README.md"
+  ],
+  "type": "module",
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "dev": "bun run src/index.ts",
+    "build": "bun build src/index.ts --compile --outfile imagekit",
+    "build:test": "bun build src/index.ts --compile --outfile .test-bin/imagekit",
+    "build:npm": "bun build src/index.ts --target node --outfile dist/imagekit.js",
+    "typecheck": "tsc --noEmit",
+    "test": "bun run build:test && bun test",
+    "prepublishOnly": "bun run build:npm"
+  },
+  "dependencies": {
+    "commander": "^13.1.0"
+  },
+  "devDependencies": {
+    "@types/bun": "^1.3.14",
+    "@types/node": "^22.13.0",
+    "typescript": "^5.8.0"
+  }
+}

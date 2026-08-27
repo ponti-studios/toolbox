@@ -1,4 +1,4 @@
-name: Publish Iconkit
+name: Publish Iconkit (compat)
 
 on:
   push:
@@ -9,7 +9,7 @@ on:
 
 jobs:
   publish:
-    name: Publish to npm
+    name: Publish compat to npm
     runs-on: ubuntu-latest
     environment: npm-publish
     permissions:
@@ -17,10 +17,6 @@ jobs:
       id-token: write
     steps:
       - uses: actions/checkout@v7.0.1
-
-      - uses: oven-sh/setup-bun@v2.2.0
-        with:
-          bun-version: latest
 
       - uses: actions/setup-node@v7.0.0
         with:
@@ -43,17 +39,19 @@ jobs:
             echo "$PACKAGE_NAME version $VERSION not yet published."
           fi
 
-      - name: Install dependencies
+      - name: Validate package
         if: steps.check.outputs.exists == 'false'
         working-directory: apps/iconkit
-        run: bun install
+        run: npm pack --dry-run
 
-      - name: Build
-        if: steps.check.outputs.exists == 'false'
-        working-directory: apps/iconkit
-        run: bun run build:npm
-
-      - name: Publish
+      - name: Publish compat
         if: steps.check.outputs.exists == 'false'
         working-directory: apps/iconkit
         run: npm publish --provenance --access public
+
+      - name: Deprecate package
+        if: steps.check.outputs.exists == 'false'
+        run: |
+          PACKAGE_NAME=$(node -p "require('./apps/iconkit/package.json').name")
+          VERSION=$(node -p "require('./apps/iconkit/package.json').version")
+          npm deprecate "$PACKAGE_NAME@$VERSION" "iconkit is deprecated — use @ponti-studios/imagekit. iconkit remains as a binary alias: npm install -g @ponti-studios/imagekit" || echo "deprecate failed (may already be deprecated)"

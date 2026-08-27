@@ -1,16 +1,12 @@
 {
   "name": "@ponti-studios/iconkit",
   "version": "1.0.0",
-  "description": "Image asset toolkit — resize, optimize, crop, convert, strip metadata, and generate web icons from the command line",
+  "description": "Deprecated — use @ponti-studios/imagekit instead. ImageKit is the successor to IconKit. This package is a compatibility shim.",
   "keywords": [
-    "avif",
-    "cli",
-    "favicon",
-    "image",
-    "optimize",
-    "resize",
-    "sips",
-    "webp"
+    "deprecated",
+    "imagekit",
+    "iconkit",
+    "image"
   ],
   "license": "MIT",
   "repository": {
@@ -19,10 +15,10 @@
     "directory": "apps/iconkit"
   },
   "bin": {
-    "iconkit": "dist/iconkit.js"
+    "iconkit": "bin/iconkit.js"
   },
   "files": [
-    "dist",
+    "bin",
     "README.md"
   ],
   "type": "module",
@@ -30,20 +26,10 @@
     "access": "public"
   },
   "scripts": {
-    "dev": "bun run src/index.ts",
-    "build": "bun build src/index.ts --compile --outfile iconkit",
-    "build:test": "bun build src/index.ts --compile --outfile .test-bin/iconkit",
-    "build:npm": "bun build src/index.ts --target node --outfile dist/iconkit.js",
-    "typecheck": "tsc --noEmit",
-    "test": "bun run build:test && bun test",
-    "prepublishOnly": "bun run build:npm"
+    "postinstall": "node -e \"console.warn('\\u001b[33m[@ponti-studios/iconkit] deprecated: use @ponti-studios/imagekit. Run: npm install -g @ponti-studios/imagekit — iconkit remains as an alias.\\u001b[0m')\"",
+    "prepublishOnly": "echo 'compatibility package — no build needed'"
   },
   "dependencies": {
-    "commander": "^13.1.0"
-  },
-  "devDependencies": {
-    "@types/bun": "^1.3.14",
-    "@types/node": "^22.13.0",
-    "typescript": "^5.8.0"
+    "@ponti-studios/imagekit": "^1.0.0"
   }
 }
