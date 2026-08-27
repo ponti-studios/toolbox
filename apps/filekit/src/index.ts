@@ -22,7 +22,7 @@ import { filesFrom, readText, renderFile, rootOption, writeText } from "./lib/he
 const program = new Command()
   .name("filekit")
   .description("CLI utilities and tools")
-  .version("1.0.0");
+  .version("2.0.0");
 
 const frontmatter = program.command("frontmatter");
 rootOption(frontmatter.command("walk").description("Walk and display frontmatter"))
