@@ -1,7 +1,8 @@
 import { existsSync, mkdirSync, statSync, unlinkSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
-import type { Frontmatter } from "../lib/helpers.js";
+import type { Frontmatter, FrontmatterEdit } from "../lib/helpers.js";
 import {
+  applyFrontmatterEdits,
   asString,
   filesFrom,
   markdownFiles,
@@ -133,8 +134,25 @@ export function stage(
   console.log(`Staged ${staged.length} files`);
 }
 
-export function updateField(root: string, field: string, value: string, dryRun: boolean): void {
+export function updateField(
+  root: string,
+  field: string,
+  value: string,
+  dryRun: boolean,
+  render = false,
+): void {
   for (const target of filesFrom(root)) {
+    if (!render) {
+      const updated = applyFrontmatterEdits(readText(target.file), [
+        { key: field, action: "set", value },
+      ]);
+      if (dryRun) console.log(`Would update ${field}: ${target.file}`);
+      else if (updated !== readText(target.file)) {
+        writeText(target.file, updated);
+        console.log(`Updated ${target.file}`);
+      }
+      continue;
+    }
     target.data[field] = value;
     if (dryRun) console.log(`Would update ${field}: ${target.file}`);
     else {
@@ -144,9 +162,26 @@ export function updateField(root: string, field: string, value: string, dryRun: 
   }
 }
 
-export function setField(file: string, field: string, value: string, dryRun: boolean): void {
+export function setField(
+  file: string,
+  field: string,
+  value: string,
+  dryRun: boolean,
+  render = false,
+): void {
   const target = parseFile(resolve(file));
   if (!target) throw new Error(`No frontmatter found in ${file}`);
+  if (!render) {
+    const updated = applyFrontmatterEdits(readText(target.file), [
+      { key: field, action: "set", value },
+    ]);
+    if (dryRun) console.log(`Would set ${field}: ${file}`);
+    else {
+      writeText(target.file, updated);
+      console.log(`Set ${field}: ${target.file}`);
+    }
+    return;
+  }
   const data = { ...target.data, [field]: value };
   if (dryRun) console.log(`Would set ${field}: ${file}`);
   else {
@@ -155,9 +190,25 @@ export function setField(file: string, field: string, value: string, dryRun: boo
   }
 }
 
-export function removeField(root: string, field: string, dryRun: boolean): void {
+export function removeField(
+  root: string,
+  field: string,
+  dryRun: boolean,
+  render = false,
+): void {
   for (const target of filesFrom(root)) {
     if (!(field in target.data)) continue;
+    if (!render) {
+      const updated = applyFrontmatterEdits(readText(target.file), [
+        { key: field, action: "remove" },
+      ]);
+      if (dryRun) console.log(`Would remove ${field}: ${target.file}`);
+      else {
+        writeText(target.file, updated);
+        console.log(`Removed ${field}: ${target.file}`);
+      }
+      continue;
+    }
     if (dryRun) console.log(`Would remove ${field}: ${target.file}`);
     else {
       const data = { ...target.data };

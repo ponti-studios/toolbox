@@ -47,3 +47,62 @@ export const filesFrom = (root: string, includeHidden = false): FileTarget[] =>
     const parsed = parseFile(file);
     return parsed ? [parsed] : [];
   });
+
+export type FrontmatterEdit =
+  | { key: string; action: "remove" }
+  | { key: string; action: "set"; value: string };
+
+const FRONTMATTER_KEY = /^(\s*)([\w.-]+):(.*)$/;
+
+function isContinuation(line: string): boolean {
+  return /^\s{1,}/.test(line) || /^- /.test(line);
+}
+
+/**
+ * Apply line-precise edits to a file's frontmatter block without re-rendering it,
+ * so untouched keys keep their exact formatting and scalar types (dates, quotes,
+ * flow styles). Editable keys are column-0, single-line or multi-line (indented
+ * continuations, block sequences, block scalars); a multi-line value is edited as
+ * a whole block. Files without a frontmatter block, and keys that are absent, are
+ * left untouched.
+ */
+export function applyFrontmatterEdits(text: string, edits: FrontmatterEdit[]): string {
+  const lines = text.split("\n");
+  if (lines[0]?.trim() !== "---") return text;
+  const close = lines.findIndex((line, i) => i > 0 && line.trim() === "---");
+  if (close < 0) return text;
+  const wanted = new Map<string, FrontmatterEdit>(edits.map((edit) => [edit.key, edit]));
+  const edited = new Set<string>();
+  const result: string[] = [lines[0] ?? ""];
+  for (let i = 1; i < close; ) {
+    const line = lines[i] ?? "";
+    const match = FRONTMATTER_KEY.exec(line);
+    if (!match) {
+      result.push(line);
+      i++;
+      continue;
+    }
+    const indent = match[1] ?? "";
+    const key = match[2] ?? "";
+    if (indent !== "" || key === "") {
+      result.push(line);
+      i++;
+      continue;
+    }
+    const edit = wanted.get(key);
+    if (edit === undefined) {
+      result.push(line);
+      i++;
+      continue;
+    }
+    let end = i + 1;
+    while (end < close && isContinuation(lines[end] ?? "")) end++;
+    edited.add(key);
+    if (edit.action === "set") result.push(`${indent}${key}: ${edit.value}`);
+    i = end;
+  }
+  for (const edit of edits)
+    if (!edited.has(edit.key) && edit.action === "set") result.push(`${edit.key}: ${edit.value}`);
+  result.push(...lines.slice(close));
+  return result.join("\n");
+}
