@@ -14,6 +14,7 @@ import { cmdFixDates } from "./commands/fix-dates";
 import { cmdRename } from "./commands/rename";
 import { cmdGenerate } from "./commands/generate";
 import { DATE_PATTERN_HELP } from "./date-patterns";
+import pkg from "../package.json";
 
 // Detect invocation name for help text: imagekit is primary, but support iconkit/photokit aliases
 const invokedAs = path.basename(process.execPath).toLowerCase().includes("iconkit")
@@ -29,7 +30,7 @@ program
   .description(
     "Image asset toolkit — resize, optimize, analyze EXIF, fix dates, rename, and generate web icons from the command line",
   )
-  .version("1.0.0");
+  .version(pkg.version);
 
 // Keep primary name as imagekit for help, but allow alias detection for version output
 // Ensure --version works regardless of invoked name

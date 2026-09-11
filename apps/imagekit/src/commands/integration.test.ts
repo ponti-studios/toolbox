@@ -12,6 +12,7 @@ import {
   runSource,
   tempDir,
 } from "../test-support";
+import pkg from "../../package.json";
 
 const temporaryDirs: string[] = [];
 
@@ -215,7 +216,7 @@ describe("iconkit binary fixture matrix", () => {
     expect(result.exitCode).toBe(0);
     expect(fs.readFileSync(destination, "utf8")).toContain(APP_DIR);
     expect(version.exitCode).toBe(0);
-    expect(version.stdout.toString().trim()).toBe("1.0.0");
+    expect(version.stdout.toString().trim()).toBe(pkg.version);
   });
 
   test("handles a broken existing symlink without crashing", () => {
