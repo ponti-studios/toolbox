@@ -1,7 +1,7 @@
 import { afterEach, describe, expect, test } from "bun:test";
 import fs from "node:fs";
 import path from "node:path";
-import { FIXTURES, dimensions, runIconkit, tempDir } from "../test-support";
+import { FIXTURES, dimensions, hasAlpha, pixelAt, runIconkit, tempDir } from "../test-support";
 
 const temporaryDirs: string[] = [];
 
@@ -30,6 +30,25 @@ describe("iconkit web", () => {
     const second = runIconkit(["web", source, "-o", output]);
     expect(second.exitCode).toBe(0);
     expect(fs.existsSync(path.join(output, "apple-touch-icon.png"))).toBe(true);
+  });
+
+  test("--bg flattens onto an opaque background and pads into the safe zone", () => {
+    const tmp = tempDir("web-bg");
+    temporaryDirs.push(tmp);
+    const source = path.join(FIXTURES, "transparent-rgba.png");
+    const output = path.join(tmp, "icons");
+
+    const result = runIconkit(["web", source, "-o", output, "--bg", "#0a0a0a", "--safe-zone", "0.7"]);
+    expect(result.exitCode).toBe(0);
+
+    const appleIcon = path.join(output, "apple-touch-icon.png");
+    expect(hasAlpha(appleIcon)).toBe(false);
+    // Corner pixel should be the flattened background, not left transparent/white.
+    expect(pixelAt(appleIcon, 0, 0)).toBe("10,10,10");
+
+    const pwaIcon = path.join(output, "icon-512x512.png");
+    expect(dimensions(pwaIcon)).toEqual({ width: 512, height: 512 });
+    expect(pixelAt(pwaIcon, 0, 0)).toBe("10,10,10");
   });
 
   test("reports a copy failure without aborting web generation", () => {

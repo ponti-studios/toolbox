@@ -1,6 +1,6 @@
 {
   "name": "@ponti-studios/imagekit",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Image asset toolkit — resize, optimize, crop, convert, strip metadata, analyze EXIF, and generate web icons from the command line",
   "keywords": [
     "avif",
@@ -41,6 +41,7 @@
     "prepublishOnly": "bun run build:npm"
   },
   "dependencies": {
+    "@openrouter/sdk": "^1.2.84",
     "commander": "^13.1.0"
   },
   "devDependencies": {

@@ -48,6 +48,24 @@ export function metadata(filePath: string, field: string): string {
   return result.stdout.toString().trim();
 }
 
+export function hasAlpha(filePath: string): boolean {
+  const result = Bun.spawnSync(["sips", "-g", "hasAlpha", filePath]);
+  return /hasAlpha: yes/.test(result.stdout.toString());
+}
+
+/** Reads the pixel color at (x, y) as an "r,g,b" string (0-255 channels). */
+export function pixelAt(filePath: string, x: number, y: number): string {
+  const p = `p{${x},${y}}`;
+  const result = Bun.spawnSync([
+    "magick",
+    filePath,
+    "-format",
+    `%[fx:int(255*${p}.r)],%[fx:int(255*${p}.g)],%[fx:int(255*${p}.b)]`,
+    "info:",
+  ]);
+  return result.stdout.toString().trim();
+}
+
 export function fakeTool(dir: string, name: string, body: string): string {
   const toolPath = path.join(dir, name);
   fs.writeFileSync(toolPath, `#!/bin/sh\n${body}\n`, { mode: 0o755 });
