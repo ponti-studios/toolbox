@@ -26,5 +26,6 @@ cp "$fixtures/metadata-exif.jpg" "$tmpdir/photo.jpg"
 "$binary" strip "$tmpdir/photo.jpg"
 "$binary" info "$tmpdir/photo.jpg" | grep -qi "photo.jpg"
 
-# version surfaces with the imagekit identity
-"$binary" --version | grep -q "1.0.0"
+# version surfaces and matches package.json
+expected_version="$(node -p "require('$repo_root/apps/imagekit/package.json').version")"
+"$binary" --version | grep -q "$expected_version"
