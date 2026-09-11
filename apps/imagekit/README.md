@@ -165,6 +165,27 @@ imagekit strip logo.jpg
 
 Requires `exiftool` or ImageMagick.
 
+### `imagekit generate` — Generate an icon from a text prompt
+
+```bash
+export OPENROUTER_API_KEY=sk-or-...
+imagekit generate "an icon for my reading learning app" -o icon.png
+imagekit generate "a minimal logomark" -m openai/gpt-5.4-image-2 -r ref1.png ref2.png
+```
+
+**Options:**
+
+| Option | Description | Default |
+| --- | --- | --- |
+| `-o, --output <file>` | Output file | `icon.png` |
+| `-m, --model <id>` | OpenRouter model id | `openai/gpt-5.4-image-2` |
+| `-s, --system <file>` | System prompt file | `~/.iconkit/system.md` if present |
+| `-r, --reference <files...>` | Reference image files to include in the prompt | none |
+
+Requires `OPENROUTER_API_KEY`. Any OpenRouter image-capable model works — see [openrouter.ai/models](https://openrouter.ai/models?modality=text%2Bimage-%3Etext%2Bimage).
+
+---
+
 ### `imagekit info` — Show image dimensions & sizes
 
 ```bash

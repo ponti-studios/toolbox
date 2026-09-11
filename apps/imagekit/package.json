@@ -41,6 +41,7 @@
     "prepublishOnly": "bun run build:npm"
   },
   "dependencies": {
+    "@openrouter/sdk": "^1.2.84",
     "commander": "^13.1.0"
   },
   "devDependencies": {
