@@ -12,6 +12,7 @@ import { cmdInstall } from "./commands/install";
 import { cmdAnalyze } from "./commands/analyze";
 import { cmdFixDates } from "./commands/fix-dates";
 import { cmdRename } from "./commands/rename";
+import { cmdGenerate } from "./commands/generate";
 import { DATE_PATTERN_HELP } from "./date-patterns";
 
 // Detect invocation name for help text: imagekit is primary, but support iconkit/photokit aliases
@@ -195,9 +196,42 @@ program
   .command("web")
   .description("Generate favicon, app icons, and social-card assets")
   .option("-o, --output-dir <dir>", "Output directory")
+  .option(
+    "-b, --bg <color>",
+    "Flatten onto this opaque background and pad content into the safe zone " +
+      "(any ImageMagick color, e.g. '#0a0a0a' or 'black') — use for source art " +
+      "that doesn't already bleed edge to edge, so maskable PWA/Android icons " +
+      "and the iOS apple-touch-icon don't get clipped or show transparency",
+  )
+  .option(
+    "--safe-zone <fraction>",
+    "Fraction (0.1-1) of the canvas content should occupy when --bg is set",
+    "0.8",
+  )
   .argument("<source>", "Source image file")
   .action((source: string, opts: Record<string, unknown>) => {
-    cmdWeb(source, { outputDir: opts.outputDir as string | undefined });
+    cmdWeb(source, {
+      outputDir: opts.outputDir as string | undefined,
+      bg: opts.bg as string | undefined,
+      safeZone: opts.safeZone ? parseFloat(opts.safeZone as string) : undefined,
+    });
+  });
+
+program
+  .command("generate")
+  .description("Generate an icon from a text prompt via an OpenRouter image model")
+  .argument("<prompt>", "Text prompt describing the icon")
+  .option("-o, --output <file>", "Output file", "icon.png")
+  .option("-m, --model <id>", "OpenRouter model id", "openai/gpt-5.4-image-2")
+  .option("-s, --system <file>", "System prompt file (default: ~/.iconkit/system.md if present)")
+  .option("-r, --reference <files...>", "Reference image files")
+  .action(async (prompt: string, opts: Record<string, unknown>) => {
+    await cmdGenerate(prompt, {
+      output: opts.output as string,
+      model: opts.model as string,
+      system: opts.system as string | undefined,
+      reference: opts.reference as string[] | undefined,
+    });
   });
 
 program
