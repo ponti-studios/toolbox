@@ -3,6 +3,10 @@ packages:
   - "packages/*"
 allowBuilds:
   esbuild: true
+  # Allowed: advisory-only postinstall (warns when vendored model types go
+  # stale; network fetch, cannot fail installs). Only consumed by
+  # apps/imagekit. Revisit if a future version ships a required build step.
+  '@openrouter/sdk': true
 minimumReleaseAgeExclude:
   - "@tanstack/ai-openai@0.19.1"
   - "@tanstack/ai@0.45.1"
