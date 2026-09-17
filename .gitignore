@@ -33,3 +33,7 @@ dist/
 # Environment files
 .env
 .env.local
+
+# Python virtualenvs (uv/pip)
+.venv/
+uv.lock.tmp
