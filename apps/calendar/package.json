@@ -26,7 +26,7 @@
     "access": "public"
   },
   "scripts": {
-    "build": "rm -rf dist && tsc && swift build -c release --package-path ../calendar-helper && cp package.json dist/package.json && cp ../calendar-helper/.build/release/calendar-helper dist/calendar-helper",
+    "build": "rm -rf dist && tsc && swift build -c release --package-path ./calendar-helper && cp package.json dist/package.json && cp ./calendar-helper/.build/release/calendar-helper dist/calendar-helper",
     "test": "pnpm build && vitest run",
     "lint": "oxlint .",
     "format": "oxfmt --write .",

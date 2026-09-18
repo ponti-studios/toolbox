@@ -18,8 +18,7 @@ toolbox/
 │   ├── xkit/
 │   ├── mediakit/
 │   ├── datpiff/
-│   ├── imagekit/   # primary — replaces iconkit + photokit
-│   ├── iconkit/    # compat shim for @ponti-studios/iconkit
+│   ├── imagekit/   # primary (iconkit/photokit remain as binary aliases)
 │   ├── agentkit/
 │   ├── calendar/
 │   └── openspeek/
@@ -39,7 +38,6 @@ toolbox/
 | [mediakit](./apps/mediakit/README.md)     | Swift                | Video/audio transcription to Markdown via Apple Speech                                           |
 | [datpiff](./apps/datpiff/README.md)       | Python               | Internet Archive crawler for DatPiff-style mixtape listings                                      |
 | [imagekit](./apps/imagekit/README.md)     | TypeScript / Bun     | Image resizing, optimization, EXIF analysis, date repair, renaming, and web-icon generation     |
-| [iconkit](./apps/iconkit/README.md)       | TypeScript (compat)  | Deprecated shim for `imagekit` — `iconkit` remains as a binary alias                           |
 | [agentkit](./apps/agentkit/README.md)     | TypeScript           | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter             |
 | [calendar](./apps/calendar/README.md)     | TypeScript / macOS   | Apple Calendar CLI for managing calendars and events via EventKit                                |
 | [openspeek](./apps/openspeek/README.md)   | TypeScript / Bun     | Markdown-to-audio narration using OpenRouter TTS and local fallbacks                             |
@@ -128,8 +126,7 @@ just install-mediakit
 
 - Release tags follow the pattern `<cli>-v<version>`
 - `filekit` is published to npm as `@ponti-studios/filekit`
-- `imagekit` is published to npm as `@ponti-studios/imagekit` (primary; `iconkit`/`photokit` are binary aliases)
-- `@ponti-studios/iconkit` is a deprecated compatibility package depending on `@ponti-studios/imagekit`
+- `imagekit` is published to npm as `@ponti-studios/imagekit` (`iconkit`/`photokit` remain as binary aliases)
 - `openspeek` is published to npm as `@ponti-studios/openspeek`
 - Node/Bun tools use their app-local lockfiles
 - Swift tools build from their package directories

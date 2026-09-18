@@ -7,7 +7,7 @@ function runCli(args) {
   const preload = path.join(__dirname, "helpers", "mock-calendar-helper.js");
   return spawnSync(
     process.execPath,
-    ["-r", preload, path.join(__dirname, "..", "dist", "bin", "calendar.js"), ...args],
+    ["-r", preload, path.join(__dirname, "..", "dist", "index.js"), ...args],
     { encoding: "utf8" },
   );
 }

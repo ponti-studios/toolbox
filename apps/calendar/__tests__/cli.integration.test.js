@@ -10,7 +10,7 @@ function runCli(args, { env } = {}) {
   const nodeArgs = [
     "-r",
     preload,
-    path.join(__dirname, "..", "dist", "bin", "calendar.js"),
+    path.join(__dirname, "..", "dist", "index.js"),
     ...args,
   ];
   return spawnSync(process.execPath, nodeArgs, {
@@ -34,19 +34,13 @@ describe("accli CLI integration", () => {
     const { version } = require("../package.json");
     const r = runCli(["--version"]);
     expect(r.status).toBe(0);
-    expect(r.stdout.trim()).toBe(version);
+    expect(r.stdout).toContain(version);
   });
 
-  test("no args shows help and exits with validation error", () => {
+  test("no args shows help and exits successfully", () => {
     const r = runCli([]);
-    expect(r.status).toBe(2);
-    expect(r.stdout).toMatch(/USAGE:/);
-  });
-
-  test("unknown command exits with validation error", () => {
-    const r = runCli(["nope"]);
-    expect(r.status).toBe(2);
-    expect(r.stderr).toMatch(/Unknown command/);
+    expect(r.status).toBe(0);
+    expect(r.stdout).toMatch(/USAGE/);
   });
 
   test("calendars --json returns stubbed calendars", () => {

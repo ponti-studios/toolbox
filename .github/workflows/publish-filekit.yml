@@ -10,6 +10,10 @@ on:
       - ".github/workflows/publish-filekit.yml"
   workflow_dispatch:
 
+concurrency:
+  group: publish-filekit
+  cancel-in-progress: false
+
 jobs:
   publish:
     runs-on: ubuntu-latest
