@@ -33,3 +33,10 @@ dist/
 # Environment files
 .env
 .env.local
+
+# Local agent settings
+.claude/settings.local.json
+
+# Python virtualenvs (uv/pip)
+.venv/
+uv.lock.tmp

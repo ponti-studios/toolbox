@@ -201,4 +201,3 @@ Auto-detects `~/.local/bin`, `/usr/local/bin`, or `~/bin`. Creates `imagekit`, `
 ### Compatibility
 
 - `iconkit` and `photokit` remain as executable aliases for `imagekit`.
-- `@ponti-studios/iconkit` is a deprecated compatibility package that depends on `@ponti-studios/imagekit`.

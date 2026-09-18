@@ -1,0 +1,135 @@
+{
+  "$schema": "https://www.raycast.com/schemas/extension.json",
+  "name": "raycast-gallery-dl",
+  "title": "Gallery DL",
+  "description": "Download Instagram carousels and web galleries via gallery-dl",
+  "icon": "icon.png",
+  "author": "thecharlesponti",
+  "categories": [
+    "Media"
+  ],
+  "license": "MIT",
+  "commands": [
+    {
+      "name": "download-carousel",
+      "title": "Download Instagram Carousel",
+      "description": "Download all photos from an Instagram carousel post",
+      "mode": "view",
+      "keywords": [
+        "instagram",
+        "carousel",
+        "photos",
+        "reel"
+      ]
+    },
+    {
+      "name": "download-clipboard",
+      "title": "Download Gallery URL from Clipboard",
+      "description": "Download the gallery URL on the clipboard with default settings",
+      "mode": "no-view",
+      "keywords": [
+        "clipboard",
+        "download",
+        "gallery"
+      ]
+    }
+  ],
+  "preferences": [
+    {
+      "name": "downloadDir",
+      "title": "Download Directory",
+      "description": "Where files are saved by default",
+      "type": "textfield",
+      "required": true,
+      "default": "~/Downloads/gallery-dl",
+      "placeholder": "~/Downloads/gallery-dl"
+    },
+    {
+      "name": "browser",
+      "title": "Cookies Browser",
+      "description": "Browser to read login cookies from (Instagram needs a login)",
+      "type": "dropdown",
+      "required": false,
+      "default": "chrome",
+      "data": [
+        {
+          "title": "Chrome",
+          "value": "chrome"
+        },
+        {
+          "title": "Firefox",
+          "value": "firefox"
+        },
+        {
+          "title": "Edge",
+          "value": "edge"
+        },
+        {
+          "title": "Safari",
+          "value": "safari"
+        },
+        {
+          "title": "Brave",
+          "value": "brave"
+        },
+        {
+          "title": "None (use cookies file)",
+          "value": "none"
+        }
+      ]
+    },
+    {
+      "name": "cookiesFile",
+      "title": "Cookies File",
+      "description": "Optional Netscape cookies.txt. Overrides the browser setting.",
+      "type": "textfield",
+      "required": false,
+      "default": "",
+      "placeholder": "~/Downloads/instagram-cookies.txt"
+    },
+    {
+      "name": "photosOnly",
+      "title": "Photos Only",
+      "description": "Delete downloaded videos and keep images",
+      "type": "checkbox",
+      "required": false,
+      "default": false,
+      "label": "Drop videos, keep photos"
+    },
+    {
+      "name": "galleryDlPath",
+      "title": "gallery-dl Binary",
+      "description": "Leave empty to auto-detect from PATH, ~/.local/bin, and Homebrew",
+      "type": "textfield",
+      "required": false,
+      "default": "",
+      "placeholder": "Auto-detect"
+    }
+  ],
+  "version": "0.1.0",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/ponti-studios/toolbox.git",
+    "directory": "apps/raycast-gallery-dl"
+  },
+  "scripts": {
+    "dev": "ray develop",
+    "build": "ray build",
+    "lint": "ray lint",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@raycast/api": "^2.4.1"
+  },
+  "devDependencies": {
+    "@raycast/eslint-config": "^2.0.4",
+    "@types/node": "^24.0.0",
+    "@types/react": "^19.0.0",
+    "eslint": "^9.0.0",
+    "prettier": "^3.0.0",
+    "typescript": "^5.8.0"
+  },
+  "engines": {
+    "node": ">=22.14.0"
+  }
+}
