@@ -1,8 +1,0 @@
-{
-  "permissions": {
-    "allow": [
-      "Bash(grep -rln \"modalities\\\\|buildPrompt\\\\|api/v1/images\\\\|OPENROUTER_API_KEY\" --include=\"*.ts\" --include=\"*.js\" /Users/charlesponti/Developer/infra/toolbox -not -path \"*/node_modules/*\")",
-      "Bash(npm view *)"
-    ]
-  }
-}

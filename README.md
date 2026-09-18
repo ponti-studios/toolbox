@@ -21,6 +21,7 @@ toolbox/
 │   ├── imagekit/   # primary (iconkit/photokit remain as binary aliases)
 │   ├── agentkit/
 │   ├── calendar/
+│   ├── raycast-gallery-dl/
 │   └── openspeek/
 ├── packages/
 │   └── files/
@@ -40,6 +41,7 @@ toolbox/
 | [imagekit](./apps/imagekit/README.md)     | TypeScript / Bun     | Image resizing, optimization, EXIF analysis, date repair, renaming, and web-icon generation     |
 | [agentkit](./apps/agentkit/README.md)     | TypeScript           | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter             |
 | [calendar](./apps/calendar/README.md)     | TypeScript / macOS   | Apple Calendar CLI for managing calendars and events via EventKit                                |
+| [raycast-gallery-dl](./apps/raycast-gallery-dl/README.md) | TypeScript / Raycast | Download Instagram carousels and web galleries via gallery-dl                         |
 | [openspeek](./apps/openspeek/README.md)   | TypeScript / Bun     | Markdown-to-audio narration using OpenRouter TTS and local fallbacks                             |
 
 ## Development

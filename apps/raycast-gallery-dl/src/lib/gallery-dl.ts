@@ -236,6 +236,7 @@ export async function downloadGallery(
 ): Promise<DownloadResult> {
   const outDir = expandPath(request.outDir);
   mkdirSync(outDir, { recursive: true });
+  const filesBeforeDownload = new Set(listFilesRecursive(outDir));
 
   const url = request.url.trim();
   const binaryDir = binary.command.includes("/")
@@ -277,6 +278,7 @@ export async function downloadGallery(
   let videosRemoved = 0;
   if (request.photosOnly) {
     for (const file of listFilesRecursive(outDir)) {
+      if (filesBeforeDownload.has(file)) continue;
       const ext = extensionOf(file);
       if (VIDEO_EXTENSIONS.has(ext) || AUDIO_EXTENSIONS.has(ext)) {
         rmSync(file);
