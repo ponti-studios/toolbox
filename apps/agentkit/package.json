@@ -1,5 +1,5 @@
 {
-  "name": "agentkit",
+  "name": "@ponti-studios/agentkit",
   "version": "0.1.0",
   "description": "Unified AI agent usage & cost CLI — Claude Code, Codex, Copilot, OpenRouter, OpenCode",
   "keywords": [
@@ -11,6 +11,9 @@
     "usage"
   ],
   "license": "MIT",
+  "publishConfig": {
+    "access": "public"
+  },
   "bin": {
     "agentkit": "./dist/index.js"
   },
@@ -19,7 +22,7 @@
     "build": "tsc",
     "dev": "tsc --watch",
     "start": "node dist/index.js",
-    "lint": "eslint src --ext .ts",
+    "lint": "oxlint .",
     "test": "node --experimental-strip-types --test src/**/*.test.ts"
   },
   "dependencies": {
@@ -27,6 +30,7 @@
   },
   "devDependencies": {
     "@types/node": "^24.0.0",
+    "oxlint": "^1.79.0",
     "typescript": "^5.8.0"
   },
   "engines": {

@@ -7,9 +7,8 @@ token consumption, and quota usage across providers.
 ## Quick start
 
 ```bash
-cd apps/agentkit
-npm ci && npm run build
-node dist/index.js --help
+pnpm --filter @ponti-studios/agentkit build
+node apps/agentkit/dist/index.js --help
 ```
 
 ## Commands

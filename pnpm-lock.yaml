@@ -24,6 +24,9 @@ importers:
       '@types/node':
         specifier: ^24.0.0
         version: 24.13.3
+      oxlint:
+        specifier: ^1.79.0
+        version: 1.79.0
       typescript:
         specifier: ^5.8.0
         version: 5.9.3
