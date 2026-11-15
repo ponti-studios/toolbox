@@ -17,7 +17,6 @@ toolbox/
 │   ├── filekit/
 │   ├── xkit/
 │   ├── mediakit/
-│   ├── datpiff/
 │   ├── imagekit/   # primary (iconkit/photokit remain as binary aliases)
 │   ├── agentkit/
 │   ├── calendar/
@@ -37,7 +36,6 @@ toolbox/
 | [filekit](./apps/filekit/README.md)       | TypeScript / Node 24 | Generic frontmatter and file utilities                                                           |
 | [xkit](./apps/xkit/README.md)             | Go                   | Paid destructive X/Twitter post deletion                                                         |
 | [mediakit](./apps/mediakit/README.md)     | Swift                | Video/audio transcription to Markdown via Apple Speech                                           |
-| [datpiff](./apps/datpiff/README.md)       | Python               | Internet Archive crawler for DatPiff-style mixtape listings                                      |
 | [imagekit](./apps/imagekit/README.md)     | TypeScript / Bun     | Image resizing, optimization, EXIF analysis, date repair, renaming, and web-icon generation     |
 | [agentkit](./apps/agentkit/README.md)     | TypeScript           | AI agent usage and cost analytics across Claude Code, Codex, Copilot, and OpenRouter             |
 | [calendar](./apps/calendar/README.md)     | TypeScript / macOS   | Apple Calendar CLI for managing calendars and events via EventKit                                |
@@ -53,7 +51,7 @@ just build
 ```
 
 `just build` currently builds FileKit, AgentKit, ImageKit (macOS, when Bun is
-available), MediaKit on macOS, and XKit when Go is available. DatPiff, ImageKit, and OpenSpeek use their app-local commands below.
+available), MediaKit on macOS, and XKit when Go is available. ImageKit and OpenSpeek use their app-local commands below. DatPiff moved to audio-kit (`audio-kit source archiveorg`).
 
 ### Install core Node CLIs
 
@@ -77,7 +75,6 @@ For app-local tests:
 ```bash
 cd apps/imagekit && bun install --frozen-lockfile && bun run typecheck && bun run test
 cd apps/openspeek && bun install && bun run typecheck && bun run test
-cd apps/datpiff && python3 -m datpiff --help
 ```
 
 ImageKit is macOS-specific because it uses `sips`. Its fixture corpus and reproducible manual
@@ -110,7 +107,6 @@ toolchains match the versions you have configured. Swift package automation is e
 
 ```bash
 npx @ponti-studios/filekit frontmatter walk
-cd apps/datpiff && python3 -m datpiff scrape archiveorg --help
 cd apps/xkit && go run . delete-posts --help
 cd apps/imagekit && bun run build:test && .test-bin/imagekit --help
 cd apps/openspeek && bun run build && node dist/openspeek.js --help

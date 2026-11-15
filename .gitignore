@@ -7,7 +7,6 @@
 .idea/
 *.iml
 *.egg-info
-**/datpiff/*.txt
 
 # Rust build and local config
 target/
